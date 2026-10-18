@@ -7,6 +7,7 @@ import '../models/audio_info.dart';
 import '../models/eq.dart';
 import '../models/eq_rules.dart';
 import '../models/loudness.dart';
+import '../models/play_stats.dart';
 import '../models/playlist.dart';
 
 /// Everything the app stores itself: favorites, playlists, play history and
@@ -22,7 +23,7 @@ class AppDatabase {
     final path = p.join(await getDatabasesPath(), 'audifac.db');
     final db = await openDatabase(
       path,
-      version: 6,
+      version: 7,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: (db, _) async {
         final batch = db.batch()
@@ -58,6 +59,7 @@ class AppDatabase {
         _createAudioInfo(batch);
         _createEq(batch);
         _createLoudness(batch);
+        _createPlayLog(batch);
         await batch.commit(noResult: true);
       },
       onUpgrade: (db, from, _) async {
@@ -70,6 +72,7 @@ class AppDatabase {
         if (from < 4) _createAudioInfo(batch);
         if (from < 5) _createEq(batch);
         if (from < 6) _createLoudness(batch);
+        if (from < 7) _createPlayLog(batch);
         await batch.commit(noResult: true);
       },
     );
@@ -92,6 +95,20 @@ class AppDatabase {
           json TEXT NOT NULL,
           PRIMARY KEY (scope, key)
         )''');
+  }
+
+  /// v7: every listen (play counts, last played, listening time, stats).
+  static void _createPlayLog(Batch batch) {
+    batch
+      ..execute('''
+        CREATE TABLE play_log (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          song_id INTEGER NOT NULL,
+          played_at INTEGER NOT NULL,
+          listened_ms INTEGER NOT NULL,
+          counted INTEGER NOT NULL
+        )''')
+      ..execute('CREATE INDEX play_log_song ON play_log (song_id)');
   }
 
   /// v6: ReplayGain tags / R128 measurement per file (JSON), keyed by location.
@@ -298,6 +315,21 @@ class AppDatabase {
     await batch.commit(noResult: true);
   }
 
+  // --- Play log ----------------------------------------------------------------
+
+  Future<List<PlayEvent>> playLog() async {
+    final rows = await _db.query('play_log', orderBy: 'played_at');
+    return [for (final r in rows) PlayEvent.fromRow(r)];
+  }
+
+  Future<void> addPlays(Iterable<PlayEvent> events) {
+    final batch = _db.batch();
+    for (final e in events) {
+      batch.insert('play_log', e.toRow());
+    }
+    return batch.commit(noResult: true);
+  }
+
   // --- Loudness ----------------------------------------------------------------
 
   Future<Map<String, LoudnessInfo>> loudness() async {
@@ -411,7 +443,11 @@ class Bootstrap {
     required this.eqPresets,
     required this.eqRules,
     this.loudness = const {},
+    this.playLog = const [],
   });
+
+  /// Every listen, oldest first.
+  final List<PlayEvent> playLog;
 
   /// Cached ReplayGain / loudness scans, by file location.
   final Map<String, LoudnessInfo> loudness;
@@ -429,7 +465,7 @@ class Bootstrap {
   final Map<String, AudioInfo> audioInfo;
 
   static Future<Bootstrap> load(AppDatabase db) async {
-    final (favoriteIds, playlists, recentIds, values, audioInfo, eqPresets, eqRules, loudness) = await (
+    final (favoriteIds, playlists, recentIds, values, audioInfo, eqPresets, eqRules, loudness, playLog) = await (
       db.favoriteIds(),
       db.playlists(),
       db.recentIds(),
@@ -438,6 +474,7 @@ class Bootstrap {
       db.eqPresets(),
       db.eqRules(),
       db.loudness(),
+      db.playLog(),
     ).wait;
     return Bootstrap(
       favoriteIds: favoriteIds,
@@ -448,6 +485,7 @@ class Bootstrap {
       eqPresets: eqPresets,
       eqRules: eqRules,
       loudness: loudness,
+      playLog: playLog,
     );
   }
 }

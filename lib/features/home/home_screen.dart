@@ -18,6 +18,7 @@ import '../collection/playlist_screen.dart';
 import '../favorites/favorites_screen.dart';
 import '../library/library_gate.dart';
 import 'settings_sheet.dart';
+import 'stats_screen.dart';
 
 /// Landing page: quick actions, recently played, recently added, playlists.
 class HomeScreen extends ConsumerWidget {
@@ -47,6 +48,11 @@ class HomeScreen extends ConsumerWidget {
               child: Row(
                 children: [
                   Expanded(child: Text(_greeting(), style: theme.textTheme.headlineLarge)),
+                  IconButton(
+                    tooltip: 'Your stats',
+                    onPressed: () => StatsScreen.open(context),
+                    icon: HugeIcon(icon: HugeIcons.strokeRoundedAnalytics01, color: palette.ink, size: 24),
+                  ),
                   IconButton(
                     tooltip: 'Settings',
                     onPressed: () => SettingsSheet.show(context),

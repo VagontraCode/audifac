@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../providers/audio_info_providers.dart';
 import '../../providers/eq_providers.dart';
 import '../../providers/loudness_providers.dart';
+import '../../providers/stats_providers.dart';
 import '../equalizer/quick_eq_sheet.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/player_providers.dart';
@@ -86,6 +87,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     ref.listen(dspSyncProvider, (_, _) {});
     // Volume matching settings and per-song gains for the queue.
     ref.listen(volumeSyncProvider, (_, _) {});
+    // Play counts and listening time.
+    ref.listen(playTrackerProvider, (_, _) {});
     // A new queue started and no rule decides its sound: offer a choice.
     ref.listen(eqPromptProvider, (_, song) {
       if (song == null) return;

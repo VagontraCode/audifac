@@ -5,10 +5,12 @@ import '../models/backup.dart';
 import '../models/eq.dart';
 import '../models/eq_rules.dart';
 import '../models/loudness.dart';
+import '../models/play_stats.dart';
 import '../models/song.dart';
 import 'eq_providers.dart';
 import 'library_providers.dart';
 import 'loudness_providers.dart';
+import 'stats_providers.dart';
 import 'user_data_providers.dart';
 
 final backupServiceProvider = Provider<BackupService>(BackupService.new);
@@ -63,6 +65,14 @@ class BackupService {
       ],
       eqRules: rules,
       eqSettings: _ref.read(eqSettingsProvider).encode(),
+      plays: [
+        for (final e in _groupPlays(_ref.read(playLogProvider)).entries)
+          if (byId[e.key] case final song?)
+            PlaysBackup(
+              song: SongRef.of(song),
+              events: [for (final p in e.value) (p.at.millisecondsSinceEpoch, p.listenedMs, p.counted)],
+            ),
+      ],
       settings: {
         ..._ref.read(settingsProvider).toKeyValues(),
         VolumeMatchingNotifier.key: _ref.read(volumeMatchingProvider).encode(),
@@ -91,6 +101,17 @@ class BackupService {
     // Favorites & history.
     report.favorites = _ref.read(favoritesProvider.notifier).addAll([for (final s in resolve(data.favorites)) s.id]);
     report.recent = await _ref.read(recentIdsProvider.notifier).restore([for (final s in resolve(data.recent)) s.id]);
+
+    // Listening history (play counts, stats).
+    final plays = <PlayEvent>[];
+    for (final p in data.plays) {
+      final song = matcher.match(p.song);
+      if (song == null) continue;
+      for (final (at, ms, counted) in p.events) {
+        plays.add(PlayEvent(songId: song.id, at: DateTime.fromMillisecondsSinceEpoch(at), listenedMs: ms, counted: counted));
+      }
+    }
+    report.plays = await _ref.read(playLogProvider.notifier).restore(plays);
 
     // Playlists: same name + same songs = already there; otherwise add.
     final playlists = _ref.read(playlistsProvider.notifier);
@@ -163,4 +184,12 @@ class BackupService {
     }
     return true;
   }
+}
+
+Map<int, List<PlayEvent>> _groupPlays(List<PlayEvent> log) {
+  final out = <int, List<PlayEvent>>{};
+  for (final e in log) {
+    out.putIfAbsent(e.songId, () => []).add(e);
+  }
+  return out;
 }

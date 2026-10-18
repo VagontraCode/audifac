@@ -8,7 +8,10 @@ import '../core/theme/app_colors.dart';
 import '../models/audio_info.dart';
 import '../models/song.dart';
 import '../models/song_source.dart';
+import '../models/loudness.dart';
 import '../providers/audio_info_providers.dart';
+import '../providers/loudness_providers.dart';
+import '../providers/stats_providers.dart';
 import 'artwork.dart';
 import 'song_labels.dart';
 
@@ -42,6 +45,8 @@ class _SongInfoSheetState extends ConsumerState<SongInfoSheet> {
     final song = widget.song;
     final info = ref.watch(songAudioInfoProvider(song));
     final source = SongSource.of(song);
+    final stats = ref.watch(songStatsProvider.select((m) => m[song.id]));
+    final loudness = ref.watch(loudnessProvider.select((m) => m[song.location]));
     final theme = Theme.of(context);
     final palette = context.palette;
 
@@ -79,6 +84,24 @@ class _SongInfoSheetState extends ConsumerState<SongInfoSheet> {
           ('Track', song.trackNumber % 1000 == 0 ? null : '${song.trackNumber % 1000}'),
           ('Disc', info.disc),
           ('Composer', info.composer),
+        ],
+      ),
+      (
+        'Listening',
+        [
+          ('Plays', '${stats?.plays ?? 0}'),
+          ('Last played', stats?.lastPlayed == null ? null : _date(stats!.lastPlayed!)),
+          ('Listening time', stats == null || stats.listened == Duration.zero ? null : formatTotalDuration(stats.listened)),
+          (
+            'Loudness',
+            switch (loudness) {
+              LoudnessInfo(source: LoudnessSource.tags, :final trackGainDb?) =>
+                'ReplayGain ${formatDb(trackGainDb)} (tags)',
+              LoudnessInfo(source: LoudnessSource.scan, :final lufs?, :final trackGainDb?) =>
+                '${lufs.toStringAsFixed(1)} LUFS · ReplayGain ${formatDb(trackGainDb)}',
+              _ => null,
+            },
+          ),
         ],
       ),
       (

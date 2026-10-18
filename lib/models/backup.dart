@@ -151,6 +151,7 @@ class BackupData {
     this.eqRules = const [],
     this.eqSettings,
     this.settings = const {},
+    this.plays = const [],
   });
 
   static const format = 'audifac-backup';
@@ -172,6 +173,9 @@ class BackupData {
   /// App settings key/values (theme, sort, filters, library options).
   final Map<String, String> settings;
 
+  /// Listening history behind play counts and stats.
+  final List<PlaysBackup> plays;
+
   String encode() => const JsonEncoder.withIndent('  ').convert({
         'format': format,
         'version': version,
@@ -186,6 +190,7 @@ class BackupData {
           'settings': eqSettings,
         },
         'settings': settings,
+        'plays': [for (final p in plays) p.toJson()],
       });
 
   /// Throws [FormatException] for files that aren't audifac backups.
@@ -218,6 +223,7 @@ class BackupData {
       eqRules: [for (final r in (eq['rules'] as List? ?? const []).cast<Map<String, dynamic>>()) RuleBackup.fromJson(r)],
       eqSettings: eq['settings'] as String?,
       settings: (raw['settings'] as Map? ?? const {}).map((k, v) => MapEntry('$k', '$v')),
+      plays: [for (final p in (raw['plays'] as List? ?? const []).cast<Map<String, dynamic>>()) PlaysBackup.fromJson(p)],
     );
   }
 }
@@ -230,6 +236,28 @@ class RestoreReport {
   int presets = 0;
   int rules = 0;
   int recent = 0;
+  int plays = 0;
   int missingSongs = 0;
   bool settings = false;
+}
+
+/// One song's listens: `[startMs, listenedMs, counted]` triples.
+class PlaysBackup {
+  const PlaysBackup({required this.song, required this.events});
+
+  final SongRef song;
+  final List<(int at, int listenedMs, bool counted)> events;
+
+  Map<String, Object?> toJson() => {
+        'song': song.toJson(),
+        'events': [for (final e in events) [e.$1, e.$2, if (e.$3) 1 else 0]],
+      };
+
+  factory PlaysBackup.fromJson(Map<String, dynamic> j) => PlaysBackup(
+        song: SongRef.fromJson((j['song'] as Map).cast<String, dynamic>()),
+        events: [
+          for (final e in (j['events'] as List? ?? const []).cast<List<dynamic>>())
+            if (e.length >= 3) ((e[0] as num).toInt(), (e[1] as num).toInt(), e[2] == 1),
+        ],
+      );
 }

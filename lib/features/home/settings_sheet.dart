@@ -182,7 +182,7 @@ class SettingsSheet extends ConsumerWidget {
                 contentPadding: EdgeInsets.zero,
                 leading: HugeIcon(icon: HugeIcons.strokeRoundedCloudUpload, color: palette.ink, size: 22),
                 title: const Text('Back up to a file', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Favorites, playlists, history, EQ presets & rules, settings'),
+                subtitle: const Text('Favorites, playlists, history & play counts, EQ, settings'),
                 onTap: () => _backup(context, ref),
               ),
               ListTile(
@@ -259,6 +259,7 @@ class SettingsSheet extends ConsumerWidget {
           '• ${pluralize(report.playlists, 'playlist')} (${pluralize(report.playlistSongs, 'song')})',
           '• ${pluralize(report.presets, 'EQ preset')}, ${pluralize(report.rules, 'rule')}',
           '• ${pluralize(report.recent, 'history entry', 'history entries')}',
+          if (report.plays > 0) '• ${pluralize(report.plays, 'listen')} (play counts & stats)',
           if (report.settings) '• Settings',
           if (report.missingSongs > 0)
             '\n${pluralize(report.missingSongs, 'song')} from the backup aren\'t on this device and were skipped.',
