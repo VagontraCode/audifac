@@ -6,10 +6,12 @@ import '../models/eq.dart';
 import '../models/eq_rules.dart';
 import '../models/loudness.dart';
 import '../models/play_stats.dart';
+import '../models/smart_playlist.dart';
 import '../models/song.dart';
 import 'eq_providers.dart';
 import 'library_providers.dart';
 import 'loudness_providers.dart';
+import 'smart_playlist_providers.dart';
 import 'stats_providers.dart';
 import 'user_data_providers.dart';
 
@@ -76,6 +78,7 @@ class BackupService {
       settings: {
         ..._ref.read(settingsProvider).toKeyValues(),
         VolumeMatchingNotifier.key: _ref.read(volumeMatchingProvider).encode(),
+        SmartPlaylistsNotifier.key: SmartPlaylist.encodeAll(_ref.read(smartPlaylistsProvider).where((l) => !l.builtIn).toList()),
       },
     );
   }
@@ -171,6 +174,9 @@ class BackupService {
       _ref.read(settingsProvider.notifier).replace(AppSettings.fromKeyValues(data.settings));
       if (data.settings[VolumeMatchingNotifier.key] case final volume?) {
         _ref.read(volumeMatchingProvider.notifier).set(VolumeMatching.decode(volume));
+      }
+      if (data.settings[SmartPlaylistsNotifier.key] case final smart?) {
+        _ref.read(smartPlaylistsProvider.notifier).restore(SmartPlaylist.decodeAll(smart));
       }
       report.settings = true;
     }

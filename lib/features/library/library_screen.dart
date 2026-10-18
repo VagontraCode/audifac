@@ -8,6 +8,7 @@ import '../../models/app_settings.dart';
 import '../../providers/audio_info_providers.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/player_providers.dart';
+import '../../providers/smart_playlist_providers.dart';
 import '../../providers/user_data_providers.dart';
 import '../../widgets/artwork.dart';
 import '../../widgets/empty_state.dart';
@@ -17,6 +18,7 @@ import '../../widgets/playlist_dialogs.dart';
 import '../../widgets/song_tile.dart';
 import '../collection/collection_screen.dart';
 import '../collection/playlist_screen.dart';
+import '../collection/smart_playlist_screen.dart';
 import '../favorites/favorites_screen.dart';
 import 'library_gate.dart';
 import 'song_filter_bar.dart';
@@ -371,6 +373,7 @@ class PlaylistsTab extends ConsumerWidget {
     final playlists = ref.watch(playlistsProvider);
     final favorites = ref.watch(favoriteSongsProvider);
     final palette = context.palette;
+    final smart = ref.watch(smartPlaylistsProvider);
 
     Widget iconTile(List<List<dynamic>> icon) => Container(
       width: 56,
@@ -438,6 +441,46 @@ class PlaylistsTab extends ConsumerWidget {
               subtitle: Text(pluralize(playlist.songIds.length, 'song')),
               onTap: () => PlaylistScreen.open(context, playlist.id),
             ),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 8, 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Smart playlists',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  final list = await SmartPlaylistEditor.open(context, SmartPlaylistEditor.blank());
+                  if (list == null) return;
+                  ref.read(smartPlaylistsProvider.notifier).save(list);
+                  if (context.mounted) SmartPlaylistScreen.open(context, list.id);
+                },
+                icon: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: palette.ink, size: 18),
+                label: const Text('New'),
+              ),
+            ],
+          ),
+        ),
+        for (final list in smart)
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            leading: SmartCover(list: list, size: 56),
+            title: Text(
+              list.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            subtitle: Text(
+              '${pluralize(ref.watch(smartSongsProvider(list.id)).length, 'song')} · ${list.describe()}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            onTap: () => SmartPlaylistScreen.open(context, list.id),
           ),
       ],
     );
