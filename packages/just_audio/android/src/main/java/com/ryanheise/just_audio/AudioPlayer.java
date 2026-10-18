@@ -800,6 +800,25 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
                         .build();
                     return decorator.decorate(ctx, sink);
                 }
+
+                // audifac patch: Samsung decoders mislabel their output as float.
+                @Override
+                protected void buildAudioRenderers(Context ctx, int extensionRendererMode,
+                        androidx.media3.exoplayer.mediacodec.MediaCodecSelector mediaCodecSelector,
+                        boolean enableDecoderFallback, AudioSink audioSink, android.os.Handler eventHandler,
+                        androidx.media3.exoplayer.audio.AudioRendererEventListener eventListener,
+                        java.util.ArrayList<Renderer> out) {
+                    int start = out.size();
+                    super.buildAudioRenderers(ctx, extensionRendererMode, mediaCodecSelector,
+                        enableDecoderFallback, audioSink, eventHandler, eventListener, out);
+                    for (int i = start; i < out.size(); i++) {
+                        if (out.get(i).getClass() == androidx.media3.exoplayer.audio.MediaCodecAudioRenderer.class) {
+                            out.set(i, new HonestPcmAudioRenderer(ctx, getCodecAdapterFactory(), mediaCodecSelector,
+                                enableDecoderFallback, eventHandler, eventListener, audioSink));
+                            break;
+                        }
+                    }
+                }
             };
             if (decorator != null) {
                 baseFactory.setEnableAudioFloatOutput(decorator.enableFloatOutput());
