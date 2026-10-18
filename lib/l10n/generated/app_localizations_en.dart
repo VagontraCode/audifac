@@ -1825,4 +1825,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cast => 'Play on a TV or speaker';
+
+  @override
+  String get iosAddMusic => 'Adding music';
+
+  @override
+  String get iosFilesHint =>
+      'Songs downloaded in the Apple Music app appear automatically. To add your own files (FLAC, WAV, ALAC…), copy them into audifac with the Files app (On My iPhone → audifac) or from a computer with Finder / iTunes file sharing.';
 }

@@ -1860,4 +1860,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get cast => 'Lire sur un téléviseur ou une enceinte';
+
+  @override
+  String get iosAddMusic => 'Ajouter de la musique';
+
+  @override
+  String get iosFilesHint =>
+      'Les titres téléchargés dans l\'app Musique apparaissent automatiquement. Pour ajouter vos propres fichiers (FLAC, WAV, ALAC…), copiez-les dans audifac avec l\'app Fichiers (Sur mon iPhone → audifac) ou depuis un ordinateur avec le partage de fichiers du Finder / d\'iTunes.';
 }

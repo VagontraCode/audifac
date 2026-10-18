@@ -487,5 +487,7 @@
   "searchAgain": "Rechercher à nouveau",
   "playOnPhone": "Lire sur ce téléphone",
   "previous": "Précédent",
-  "cast": "Lire sur un téléviseur ou une enceinte"
+  "cast": "Lire sur un téléviseur ou une enceinte",
+  "iosAddMusic": "Ajouter de la musique",
+  "iosFilesHint": "Les titres téléchargés dans l'app Musique apparaissent automatiquement. Pour ajouter vos propres fichiers (FLAC, WAV, ALAC…), copiez-les dans audifac avec l'app Fichiers (Sur mon iPhone → audifac) ou depuis un ordinateur avec le partage de fichiers du Finder / d'iTunes."
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -12,9 +14,8 @@ import '../../l10n/l10n.dart';
 class FoldersScreen extends ConsumerWidget {
   const FoldersScreen({super.key});
 
-  static Future<void> open(BuildContext context) => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const FoldersScreen()),
-      );
+  static Future<void> open(BuildContext context) =>
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const FoldersScreen()));
 
   /// `/storage/emulated/0/Music/Rock` → `Internal storage › Music › Rock`.
   static String label(AppLocalizations l10n, String path) {
@@ -46,9 +47,9 @@ class FoldersScreen extends ConsumerWidget {
       if (folder == null) return;
       ref.invalidate(grantedFoldersProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.scanningFolder(label(context.l10n, folder.path ?? '')))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(context.l10n.scanningFolder(label(context.l10n, folder.path ?? '')))));
       }
       await ref.read(libraryProvider.notifier).refresh();
     }
@@ -60,9 +61,9 @@ class FoldersScreen extends ConsumerWidget {
     }
 
     Widget section(String text) => Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 6),
-          child: Text(text, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-        );
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 6),
+      child: Text(text, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -78,10 +79,7 @@ class FoldersScreen extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              context.l10n.foldersIntro,
-              style: theme.textTheme.bodyMedium,
-            ),
+            child: Text(context.l10n.foldersIntro, style: theme.textTheme.bodyMedium),
           ),
           section(context.l10n.foldersWithAudio),
           if (folders.isEmpty)
@@ -101,44 +99,49 @@ class FoldersScreen extends ConsumerWidget {
               title: Text(label(context.l10n, folder.path), style: const TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text(context.l10n.files(folder.count)),
             ),
-          section(context.l10n.hiddenFolders),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              context.l10n.hiddenFoldersIntro,
-              style: theme.textTheme.bodyMedium,
+          if (Platform.isIOS) ...[
+            section(context.l10n.iosAddMusic),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(context.l10n.iosFilesHint, style: theme.textTheme.bodyMedium),
             ),
-          ),
-          for (final folder in granted)
-            ListTile(
-              contentPadding: const EdgeInsets.only(left: 20, right: 8),
-              leading: HugeIcon(icon: HugeIcons.strokeRoundedFolderMusic, color: palette.ink, size: 22),
-              title: Text(
-                label(context.l10n, folder.path ?? folder.uri),
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              trailing: IconButton(
-                tooltip: context.l10n.remove,
-                onPressed: () => removeFolder(folder.uri),
-                icon: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: palette.inkMuted, size: 20),
-              ),
+          ] else ...[
+            section(context.l10n.hiddenFolders),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(context.l10n.hiddenFoldersIntro, style: theme.textTheme.bodyMedium),
             ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton.icon(
-                onPressed: addFolder,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: palette.ink,
-                  side: BorderSide(color: palette.line, width: 1.5),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            for (final folder in granted)
+              ListTile(
+                contentPadding: const EdgeInsets.only(left: 20, right: 8),
+                leading: HugeIcon(icon: HugeIcons.strokeRoundedFolderMusic, color: palette.ink, size: 22),
+                title: Text(
+                  label(context.l10n, folder.path ?? folder.uri),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                icon: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: palette.ink, size: 18),
-                label: Text(context.l10n.addFolder, style: TextStyle(fontWeight: FontWeight.w700)),
+                trailing: IconButton(
+                  tooltip: context.l10n.remove,
+                  onPressed: () => removeFolder(folder.uri),
+                  icon: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: palette.inkMuted, size: 20),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: addFolder,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: palette.ink,
+                    side: BorderSide(color: palette.line, width: 1.5),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  ),
+                  icon: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: palette.ink, size: 18),
+                  label: Text(context.l10n.addFolder, style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );

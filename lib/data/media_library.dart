@@ -60,6 +60,17 @@ class MediaLibrary {
   int? _sdkInt;
 
   Future<LibraryAccess> checkAccess({bool request = false}) async {
+    if (Platform.isIOS) {
+      // Apple Music library (optional): the Files-app folder works without it.
+      if (request) {
+        try {
+          await _channel.invokeMethod<bool>('requestMusicAccess');
+        } on MissingPluginException {
+          // Tests.
+        }
+      }
+      return LibraryAccess.granted;
+    }
     if (!Platform.isAndroid) return LibraryAccess.granted;
 
     // Android 13+ (API 33) uses READ_MEDIA_AUDIO; older versions use
@@ -145,7 +156,12 @@ class MediaLibrary {
   /// Lets the user pick a small text file; returns its name and content.
   /// [anyType]: any file can be picked (lyrics: .lrc has no standard MIME type).
   Future<({String? name, String text})?> openTextDocument({bool anyType = false}) async {
-    final raw = await _channel.invokeMapMethod<String, dynamic>('openTextDocument', {'anyType': anyType});
+    final Map<String, dynamic>? raw;
+    try {
+      raw = await _channel.invokeMapMethod<String, dynamic>('openTextDocument', {'anyType': anyType});
+    } on MissingPluginException {
+      return null; // iOS: no document picker yet.
+    }
     if (raw == null) return null;
     return (name: raw['name'] as String?, text: raw['text'] as String);
   }

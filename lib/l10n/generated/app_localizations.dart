@@ -3025,6 +3025,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Play on a TV or speaker'**
   String get cast;
+
+  /// No description provided for @iosAddMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding music'**
+  String get iosAddMusic;
+
+  /// No description provided for @iosFilesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs downloaded in the Apple Music app appear automatically. To add your own files (FLAC, WAV, ALAC…), copy them into audifac with the Files app (On My iPhone → audifac) or from a computer with Finder / iTunes file sharing.'**
+  String get iosFilesHint;
 }
 
 class _AppLocalizationsDelegate
