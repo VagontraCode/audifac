@@ -39,6 +39,10 @@ class PlayerScreen extends ConsumerStatefulWidget {
   /// between them.
   static const artworkHeroTag = 'now-playing-artwork';
 
+  /// True while this screen fully covers the app (opened, not being dragged
+  /// or closing): the app shell mutes its animations meanwhile.
+  static final coversApp = ValueNotifier<bool>(false);
+
   static Future<void> open(BuildContext context) {
     return Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder<void>(
@@ -73,14 +77,37 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
   late final AnimationController _settle = AnimationController(vsync: this, duration: const Duration(milliseconds: 280))
     ..addListener(() {
       setState(() => _drag = _settleFrom * (1 - Curves.easeOutCubic.transform(_settle.value)));
+      if (_settle.isCompleted) _updateCover();
     });
 
   /// Last known artwork seed; kept while the next track's color loads.
   int? _seed;
   bool _closing = false;
 
+  Animation<double>? _routeAnimation;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final animation = ModalRoute.of(context)?.animation;
+    if (animation != _routeAnimation) {
+      _routeAnimation?.removeStatusListener(_onRouteStatus);
+      _routeAnimation = animation?..addStatusListener(_onRouteStatus);
+      _updateCover();
+    }
+  }
+
+  void _onRouteStatus(AnimationStatus _) => _updateCover();
+
+  void _updateCover() {
+    PlayerScreen.coversApp.value =
+        _routeAnimation?.status == AnimationStatus.completed && _drag == 0 && !_closing;
+  }
+
   @override
   void dispose() {
+    _routeAnimation?.removeStatusListener(_onRouteStatus);
+    PlayerScreen.coversApp.value = false;
     _settle.dispose();
     super.dispose();
   }
@@ -88,12 +115,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
   void _close() {
     if (_closing) return;
     _closing = true;
+    _updateCover();
     Navigator.of(context).pop();
   }
 
   void _onDragUpdate(DragUpdateDetails d) {
     _settle.stop();
     setState(() => _drag = math.max(0, _drag + d.delta.dy));
+    _updateCover();
   }
 
   void _onDragEnd(DragEndDetails d) {

@@ -1,6 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/app_visibility.dart';
 import '../core/audio/audio_handler.dart';
 import '../data/artwork_colors.dart';
 import '../models/song.dart';
@@ -23,9 +24,27 @@ final queueProvider = StreamProvider<List<MediaItem>>(
   (ref) => ref.watch(audioHandlerProvider).queue,
 );
 
+/// Fine-grained position (up to every 16–200 ms), for the seek bar and
+/// lyrics. Nothing while the app is in the background: no one sees it.
 final positionProvider = StreamProvider<Duration>(
-  (ref) => ref.watch(audioHandlerProvider).positionStream,
+  (ref) => ref.watch(audioHandlerProvider).positionStream.where((_) => AppVisibility.visible),
 );
+
+/// Position once a second (and on seeks / play / pause): enough for the mini
+/// player's 2 px progress line, at a fifth of the repaints.
+final coarsePositionProvider = StreamProvider<Duration>((ref) {
+  final handler = ref.watch(audioHandlerProvider);
+  final playing = ref.watch(isPlayingProvider);
+  ref.watch(playbackStateProvider.select((s) => s.value?.updatePosition));
+  Stream<Duration> ticks() async* {
+    yield handler.position;
+    if (!playing) return;
+    yield* Stream<Duration>.periodic(const Duration(seconds: 1), (_) => handler.position)
+        .where((_) => AppVisibility.visible);
+  }
+
+  return ticks();
+});
 
 /// "Couldn't play …" messages, shown as snackbars by the shell.
 final playbackErrorsProvider = StreamProvider<String>(

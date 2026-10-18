@@ -19,6 +19,7 @@ import '../../providers/player_providers.dart';
 import '../../providers/session_controller.dart';
 import '../../widgets/mini_player.dart';
 import '../favorites/favorites_screen.dart';
+import '../player/player_screen.dart';
 import '../home/home_screen.dart';
 import '../library/library_screen.dart';
 import '../search/search_screen.dart';
@@ -124,7 +125,7 @@ class _AppShellState extends ConsumerState<AppShell> {
 
     final palette = context.palette;
 
-    return PopScope(
+    final shell = PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _onBack();
@@ -134,11 +135,16 @@ class _AppShellState extends ConsumerState<AppShell> {
           index: _index,
           children: [
             for (var i = 0; i < _tabs.length; i++)
-              HeroControllerScope.none(
-                child: Navigator(
-                  key: _navigatorKeys[i],
-                  onGenerateRoute: (_) => MaterialPageRoute<void>(
-                    builder: (_) => _tabs[i].root,
+              // Hidden tabs stay built but must not animate: their frames
+              // would be drawn for nothing.
+              TickerMode(
+                enabled: i == _index,
+                child: HeroControllerScope.none(
+                  child: Navigator(
+                    key: _navigatorKeys[i],
+                    onGenerateRoute: (_) => MaterialPageRoute<void>(
+                      builder: (_) => _tabs[i].root,
+                    ),
                   ),
                 ),
               ),
@@ -164,6 +170,14 @@ class _AppShellState extends ConsumerState<AppShell> {
           ],
         ),
       ),
+    );
+
+    // The player route is see-through (for drag-to-close), so the shell stays
+    // "onstage" under it: mute its animations while it is fully covered.
+    return ValueListenableBuilder<bool>(
+      valueListenable: PlayerScreen.coversApp,
+      builder: (_, covered, child) => TickerMode(enabled: !covered, child: child!),
+      child: shell,
     );
   }
 }

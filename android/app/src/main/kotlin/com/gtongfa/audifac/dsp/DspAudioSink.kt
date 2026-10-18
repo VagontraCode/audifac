@@ -46,6 +46,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
 
     private var samples = FloatArray(0)
     private var chunk = FloatArray(0)
+    private var shorts = ShortArray(0)
     private var output: ByteBuffer = ByteBuffer.allocateDirect(0)
     private var outputPts = 0L
 
@@ -344,7 +345,13 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
     private fun readFloats(src: ByteBuffer, dst: FloatArray, offset: Int, count: Int) {
         var o = offset
         when (encoding) {
-            C.ENCODING_PCM_16BIT -> repeat(count) { dst[o++] = src.short / 32768f }
+            // Bulk reads: one bounds check per buffer instead of per sample.
+            C.ENCODING_PCM_16BIT -> {
+                if (shorts.size < count) shorts = ShortArray(count)
+                src.asShortBuffer().get(shorts, 0, count)
+                src.position(src.position() + count * 2)
+                for (i in 0 until count) dst[o++] = shorts[i] / 32768f
+            }
             C.ENCODING_PCM_24BIT -> repeat(count) {
                 val b0 = src.get().toInt() and 0xFF
                 val b1 = src.get().toInt() and 0xFF
@@ -352,7 +359,10 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
                 dst[o++] = ((b2 shl 16) or (b1 shl 8) or b0) / 8388608f
             }
             C.ENCODING_PCM_32BIT -> repeat(count) { dst[o++] = (src.int / 2147483648.0).toFloat() }
-            C.ENCODING_PCM_FLOAT -> repeat(count) { dst[o++] = src.float }
+            C.ENCODING_PCM_FLOAT -> {
+                src.asFloatBuffer().get(dst, o, count)
+                src.position(src.position() + count * 4)
+            }
             C.ENCODING_PCM_8BIT -> repeat(count) { dst[o++] = ((src.get().toInt() and 0xFF) - 128) / 128f }
         }
     }

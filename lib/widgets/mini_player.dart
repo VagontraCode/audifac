@@ -164,7 +164,7 @@ class _ProgressLine extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final position = ref.watch(positionProvider).value ?? Duration.zero;
+    final position = ref.watch(coarsePositionProvider).value ?? Duration.zero;
     final total = duration?.inMilliseconds ?? 0;
     final progress = total == 0 ? 0.0 : (position.inMilliseconds / total).clamp(0.0, 1.0);
     return LinearProgressIndicator(

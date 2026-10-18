@@ -213,14 +213,14 @@ All steps are implemented and committed one per step. Checked on the Nokia G100 
 - iOS: no DSP / EQ (needs an AVAudioEngine-based player), no document picker (backups are saved into Documents), no widget.
 - "Unknown artist" / "Unknown album" placeholders stay in English (they are data values).
 - Generated l10n methods take placeholders in **alphabetical** order — check call sites when adding multi-placeholder messages (`test/l10n_test.dart` covers the current ones).
-- UI rendering costs ~60–75 % of a core (raster thread) while the library is visible during playback, with any format — look at the now-playing indicator / progress animations (repaint boundaries, lower tick rate).
+- Battery (measured on the Nokia G100, release build, playing): library with the now-playing bars ~40 % of one core in total (raster 19 %, was 73 %), full player 5 fps, raster 10 % (was 16 fps, 28 %), Home tab 1 fps, screen off ~28 % (decoding + playback loop). How: the bars tick at 12 fps from one shared clock and stop when paused, in the background, on hidden tabs or under the player (TickerMode); the mini player progress updates once a second; position ticks are dropped in the background; artwork uses RRect shadows / clips; ExoPlayer dynamic scheduling (the playback loop no longer runs every 10 ms). Measure with `top -H` on a release build: profile builds are debuggable, so their Java/Kotlin runs interpreted and looks several times slower.
 - Reordering the queue is disabled while shuffling (the order is random by design); removing still works.
 - Playlists reference MediaStore ids: a song deleted from the device disappears from playlists (kept in storage, hidden).
-- Smoke-tested on a Nokia G100 (Android 12): launches, Home renders, permission prompt appears.
+- Tested on a Nokia G100 (Android 12) and a Galaxy S24+ (Android 17). Samsung decoders write 16-bit PCM when asked for float: they are not asked (HonestPcmAudioRenderer), and any other decoder caught doing it is detected in the DSP sink and remembered (DecoderQuirks).
 - Old Flutter launcher PNGs backed up in `legacy/android-icons/`.
 
 - `packages/just_audio` is a patched copy of just_audio 0.10.6: when upgrading just_audio, re-apply the `JustAudioHooks` patch (AudioPlayer.ensurePlayerInitialized + `api` media3 dependency) and keep the app's media3 version (android/app/build.gradle.kts) identical.
-- Android resamples to its mixer rate (usually 48 kHz); no bit-perfect USB DAC output.
+- Android resamples to its mixer rate (usually 48 kHz) unless bit-perfect USB output (Android 14+, see 6.20) is on and active.
 - Gradle wrapper must stay on 8.14.3 while AGP is 8.11 (an IDE extension rewrote it to 9.7.1 once; AGP 8.x can't run on Gradle ≥ 9.6).
 
 ### Out of scope for MVP

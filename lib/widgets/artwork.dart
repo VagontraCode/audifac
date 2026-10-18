@@ -50,10 +50,6 @@ class Artwork extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final library = ref.watch(mediaLibraryProvider);
     final cached = library.peekArtwork(albumId);
-    final shape = circle
-        ? const CircleBorder()
-        : RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius));
-
     final content = cached != null
         ? _image(context, cached.bytes)
         : FutureBuilder<Uint8List?>(
@@ -66,12 +62,18 @@ class Artwork extends ConsumerWidget {
             ),
           );
 
+    // Box decoration + RRect / oval clip rather than a shape path: the
+    // renderer draws rounded-rect shadows and clips analytically, while a
+    // path shadow is a full blur pass on every frame (the player screen
+    // repaints several times a second for its seek bar).
+    final borderRadius = circle ? null : BorderRadius.circular(radius);
     return Container(
       width: size,
       height: size,
-      decoration: ShapeDecoration(
-        shape: shape,
-        shadows: shadow
+      decoration: BoxDecoration(
+        shape: circle ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: borderRadius,
+        boxShadow: shadow
             ? [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.28),
@@ -81,10 +83,9 @@ class Artwork extends ConsumerWidget {
               ]
             : null,
       ),
-      child: ClipPath(
-        clipper: ShapeBorderClipper(shape: shape),
-        child: content,
-      ),
+      child: circle
+          ? ClipOval(child: content)
+          : ClipRRect(borderRadius: borderRadius!, child: content),
     );
   }
 

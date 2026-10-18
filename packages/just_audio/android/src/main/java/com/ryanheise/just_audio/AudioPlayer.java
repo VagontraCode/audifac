@@ -836,6 +836,9 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
             };
             ExoPlayer.Builder builder = new ExoPlayer.Builder(context, renderersFactory);
             builder.setUseLazyPreparation(useLazyPreparation);
+            // audifac patch (battery): run the playback loop only when the
+            // audio track needs data, not every 10 ms.
+            builder.experimentalSetDynamicSchedulingEnabled(true);
             if (loadControl != null) {
                 builder.setLoadControl(loadControl);
             }
@@ -1194,6 +1197,13 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
                 consecutivePosCount = 0;
             }
             lastPosUs = positionUs;
+        }
+
+        // audifac patch: with dynamic scheduling, don't force the playback
+        // loop to run every 10 ms; the audio renderer's wake-ups are enough.
+        @Override
+        public long getDurationToProgressUs(long positionUs, long elapsedRealtimeUs) {
+            return DEFAULT_IDLE_DURATION_TO_PROGRESS_US;
         }
 
         @Override
