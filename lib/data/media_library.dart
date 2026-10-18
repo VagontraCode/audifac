@@ -143,8 +143,9 @@ class MediaLibrary {
   }
 
   /// Lets the user pick a small text file; returns its name and content.
-  Future<({String? name, String text})?> openTextDocument() async {
-    final raw = await _channel.invokeMapMethod<String, dynamic>('openTextDocument');
+  /// [anyType]: any file can be picked (lyrics: .lrc has no standard MIME type).
+  Future<({String? name, String text})?> openTextDocument({bool anyType = false}) async {
+    final raw = await _channel.invokeMapMethod<String, dynamic>('openTextDocument', {'anyType': anyType});
     if (raw == null) return null;
     return (name: raw['name'] as String?, text: raw['text'] as String);
   }
@@ -153,6 +154,19 @@ class MediaLibrary {
   /// cancelled.
   Future<String?> saveTextDocument({required String name, required String text, String mime = 'application/json'}) =>
       _channel.invokeMethod<String>('saveTextDocument', {'name': name, 'text': text, 'mime': mime});
+
+  /// Lyrics beside the file or in its tags: (text, source "file" | "tags"), or null.
+  Future<({String text, String source})?> readLyrics(Song song) async {
+    try {
+      final raw = await _channel.invokeMapMethod<String, dynamic>('readLyrics', {'location': song.location, 'path': song.path});
+      if (raw == null) return null;
+      return (text: raw['text'] as String, source: raw['source'] as String? ?? 'tags');
+    } on PlatformException {
+      return null;
+    } on MissingPluginException {
+      return null;
+    }
+  }
 
   /// `0.1.0+3`.
   Future<String> appVersion() async {

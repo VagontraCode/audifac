@@ -412,6 +412,13 @@ class AppDatabase {
     return {for (final r in rows) r['key'] as String: r['value'] as String};
   }
 
+  Future<String?> getValue(String key) async {
+    final rows = await _db.query('kv', where: 'key = ?', whereArgs: [key]);
+    return rows.isEmpty ? null : rows.first['value'] as String;
+  }
+
+  Future<void> deleteValue(String key) => _db.delete('kv', where: 'key = ?', whereArgs: [key]);
+
   Future<void> setValue(String key, String value) => _db.insert(
         'kv',
         {'key': key, 'value': value},

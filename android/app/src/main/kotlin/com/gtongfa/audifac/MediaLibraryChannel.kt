@@ -102,12 +102,16 @@ class MediaLibraryChannel(
                 runIn(executor, result) { cacheArtwork(call, key) }
             }
             "pickFolder" -> pickFolder(result)
-            "openTextDocument" -> openTextDocument(result)
+            "openTextDocument" -> openTextDocument(result, call.argument<Boolean>("anyType") ?: false)
             "saveTextDocument" -> {
                 val name = call.argument<String>("name") ?: "audifac.txt"
                 val mime = call.argument<String>("mime") ?: "text/plain"
                 val text = call.argument<String>("text") ?: ""
                 saveTextDocument(name, mime, text, result)
+            }
+            "readLyrics" -> {
+                val location = call.argument<String>("location") ?: return result.error("bad_args", "Missing location", null)
+                runIn(executor, result) { com.gtongfa.audifac.extract.Lyrics.read(context, location, call.argument<String>("path")) }
             }
             "appVersion" -> {
                 val info = context.packageManager.getPackageInfo(context.packageName, 0)
@@ -456,15 +460,18 @@ class MediaLibraryChannel(
     }
 
     /** Lets the user pick a text file (e.g. an AutoEQ ParametricEQ.txt) and returns its content. */
-    private fun openTextDocument(result: MethodChannel.Result) {
+    private fun openTextDocument(result: MethodChannel.Result, anyType: Boolean) {
         val host = activity() ?: return result.error("no_activity", "No foreground activity", null)
         if (pendingDocument != null) return result.error("busy", "Picker already open", null)
         pendingDocument = result
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
             .addCategory(Intent.CATEGORY_OPENABLE)
             .setType("*/*")
-            // AutoEQ .txt files and audifac .json backups.
-            .putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("text/*", "application/json", "application/octet-stream"))
+            // AutoEQ .txt files and audifac .json backups. Lyrics: .lrc has no
+            // standard MIME type (shows as anything from x-lrc to binary), so any file.
+            .apply {
+                if (!anyType) putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("text/*", "application/json", "application/octet-stream"))
+            }
         @Suppress("DEPRECATION")
         host.startActivityForResult(intent, OPEN_DOCUMENT_REQUEST)
     }
@@ -510,8 +517,16 @@ class MediaLibraryChannel(
         executor.execute {
             try {
                 val text = context.contentResolver.openInputStream(uri)?.use { input ->
-                    val bytes = input.readBytes()
-                    if (bytes.size > MAX_TEXT_BYTES) null else String(bytes, Charsets.UTF_8)
+                    // Read at most one byte past the limit: any file can be picked.
+                    val buffer = java.io.ByteArrayOutputStream()
+                    val chunk = ByteArray(8192)
+                    while (buffer.size() <= MAX_TEXT_BYTES) {
+                        val n = input.read(chunk)
+                        if (n < 0) break
+                        buffer.write(chunk, 0, n)
+                    }
+                    val bytes = buffer.toByteArray()
+                    if (bytes.size > MAX_TEXT_BYTES || bytes.contains(0)) null else String(bytes, Charsets.UTF_8)
                 }
                 val name = uri.lastPathSegment?.substringAfterLast('/')?.substringBeforeLast('.')
                 mainHandler.post {

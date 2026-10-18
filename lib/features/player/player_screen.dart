@@ -14,6 +14,7 @@ import '../../providers/player_providers.dart';
 import '../../providers/user_data_providers.dart';
 import '../../widgets/artwork.dart';
 import '../../widgets/seek_bar.dart';
+import '../../widgets/lyrics_sheet.dart';
 import '../../widgets/sleep_timer_sheet.dart';
 import '../../widgets/song_actions_sheet.dart';
 import '../equalizer/equalizer_screen.dart';
@@ -248,6 +249,11 @@ class _Header extends StatelessWidget {
                   ),
               ],
             ),
+          ),
+          IconButton(
+            tooltip: 'Lyrics',
+            onPressed: () => LyricsSheet.show(context),
+            icon: HugeIcon(icon: HugeIcons.strokeRoundedQuoteDown, color: palette.ink, size: 24),
           ),
           IconButton(
             tooltip: 'Equalizer',
