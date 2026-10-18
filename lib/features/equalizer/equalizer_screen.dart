@@ -490,7 +490,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             leading: HugeIcon(icon: HugeIcons.strokeRoundedListView, color: palette.ink, size: 22),
             title: Text(context.l10n.rulesAndDevices, style: TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: Text(context.l10n.rulesDevicesCount(ref.watch(eqRulesProvider).length, settings.devices.length)),
+            subtitle: Text(context.l10n.rulesDevicesCount(settings.devices.length, ref.watch(eqRulesProvider).length)),
             trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
             onTap: () => EqRulesScreen.open(context),
           ),

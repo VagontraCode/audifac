@@ -104,8 +104,8 @@ extension Labels on AppLocalizations {
       _ => r.value,
     };
     return switch (r.op) {
-      SmartOp.within => ruleWithin(field, r.value),
-      SmartOp.notWithin => ruleNotWithin(field, r.value),
+      SmartOp.within => ruleWithin(r.value, field), // (generated parameters are alphabetical)
+      SmartOp.notWithin => ruleNotWithin(r.value, field),
       SmartOp.never => r.field == SmartField.lastPlayed ? neverPlayed : '$field ${opNever.toLowerCase()}',
       SmartOp.yes => field,
       SmartOp.no => ruleNot(field.toLowerCase()),

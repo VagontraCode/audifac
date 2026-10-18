@@ -56,7 +56,7 @@ class SettingsSheet extends ConsumerWidget {
         ? context.l10n.scanningStorage
         : [
             if (totalCount != null)
-              totalCount != visibleCount ? context.l10n.shownOfFound(visibleCount, totalCount) : context.l10n.shown(visibleCount),
+              totalCount != visibleCount ? context.l10n.shownOfFound(totalCount, visibleCount) : context.l10n.shown(visibleCount),
             if (scan.last case final last?)
               context.l10n.scannedIn(last.found, (last.elapsed.inMilliseconds / 1000).toStringAsFixed(1)),
             if (scan.error != null) context.l10n.lastScanFailed('${scan.error}'),

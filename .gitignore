@@ -54,3 +54,7 @@ android/.kotlin/
 *.keystore
 key.properties
 keystore.base64.txt
+
+# Raw phone captures (third-party artwork); cropped versions are in store/screenshots
+store/raw/
+store/screenshots/
