@@ -2887,6 +2887,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Wired headphones'**
   String get wiredHeadphones;
+
+  /// No description provided for @lastFmIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Scrobbles what you listen to (half a song or 4 minutes counts). Uses your own Last.fm API key — create one free at last.fm/api/account/create.'**
+  String get lastFmIntro;
+
+  /// No description provided for @lastFmConnectedAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected as {user}'**
+  String lastFmConnectedAs(Object user);
+
+  /// No description provided for @lastFmScrobble.
+  ///
+  /// In en, this message translates to:
+  /// **'Scrobble my listening'**
+  String get lastFmScrobble;
+
+  /// No description provided for @lastFmAllSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything sent'**
+  String get lastFmAllSent;
+
+  /// No description provided for @lastFmPending.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 scrobble waiting for the network} other{{count} scrobbles waiting for the network}}'**
+  String lastFmPending(num count);
+
+  /// No description provided for @lastFmSendNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Send now'**
+  String get lastFmSendNow;
+
+  /// No description provided for @lastFmDisconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get lastFmDisconnect;
+
+  /// No description provided for @lastFmKeyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste your API key and shared secret, then log in once. Your password isn\'t stored.'**
+  String get lastFmKeyHint;
+
+  /// No description provided for @lastFmApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'API key'**
+  String get lastFmApiKey;
+
+  /// No description provided for @lastFmSecret.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared secret'**
+  String get lastFmSecret;
+
+  /// No description provided for @lastFmUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Last.fm username'**
+  String get lastFmUser;
+
+  /// No description provided for @lastFmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get lastFmPassword;
+
+  /// No description provided for @lastFmConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get lastFmConnect;
+
+  /// No description provided for @lastFmOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected'**
+  String get lastFmOff;
 }
 
 class _AppLocalizationsDelegate

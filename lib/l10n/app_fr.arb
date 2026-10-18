@@ -464,5 +464,19 @@
   "useForAllMusic": "Utiliser pour toute la musique",
   "forgetDevice": "Oublier l'appareil",
   "offShort": "Non",
-  "wiredHeadphones": "Casque filaire"
+  "wiredHeadphones": "Casque filaire",
+  "lastFmIntro": "Envoie vos écoutes à Last.fm (la moitié d'un titre ou 4 minutes compte). Utilise votre propre clé d'API Last.fm — créez-en une gratuitement sur last.fm/api/account/create.",
+  "lastFmConnectedAs": "Connecté en tant que {user}",
+  "lastFmScrobble": "Envoyer mes écoutes",
+  "lastFmAllSent": "Tout est envoyé",
+  "lastFmPending": "{count, plural, =0{0 écoute en attente du réseau} =1{1 écoute en attente du réseau} other{{count} écoutes en attente du réseau}}",
+  "lastFmSendNow": "Envoyer maintenant",
+  "lastFmDisconnect": "Se déconnecter",
+  "lastFmKeyHint": "Collez votre clé d'API et votre secret partagé, puis connectez-vous une fois. Votre mot de passe n'est pas enregistré.",
+  "lastFmApiKey": "Clé d'API",
+  "lastFmSecret": "Secret partagé",
+  "lastFmUser": "Nom d'utilisateur Last.fm",
+  "lastFmPassword": "Mot de passe",
+  "lastFmConnect": "Se connecter",
+  "lastFmOff": "Non connecté"
 }

@@ -1773,4 +1773,59 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get wiredHeadphones => 'Casque filaire';
+
+  @override
+  String get lastFmIntro =>
+      'Envoie vos écoutes à Last.fm (la moitié d\'un titre ou 4 minutes compte). Utilise votre propre clé d\'API Last.fm — créez-en une gratuitement sur last.fm/api/account/create.';
+
+  @override
+  String lastFmConnectedAs(Object user) {
+    return 'Connecté en tant que $user';
+  }
+
+  @override
+  String get lastFmScrobble => 'Envoyer mes écoutes';
+
+  @override
+  String get lastFmAllSent => 'Tout est envoyé';
+
+  @override
+  String lastFmPending(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count écoutes en attente du réseau',
+      one: '1 écoute en attente du réseau',
+      zero: '0 écoute en attente du réseau',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get lastFmSendNow => 'Envoyer maintenant';
+
+  @override
+  String get lastFmDisconnect => 'Se déconnecter';
+
+  @override
+  String get lastFmKeyHint =>
+      'Collez votre clé d\'API et votre secret partagé, puis connectez-vous une fois. Votre mot de passe n\'est pas enregistré.';
+
+  @override
+  String get lastFmApiKey => 'Clé d\'API';
+
+  @override
+  String get lastFmSecret => 'Secret partagé';
+
+  @override
+  String get lastFmUser => 'Nom d\'utilisateur Last.fm';
+
+  @override
+  String get lastFmPassword => 'Mot de passe';
+
+  @override
+  String get lastFmConnect => 'Se connecter';
+
+  @override
+  String get lastFmOff => 'Non connecté';
 }

@@ -10,9 +10,11 @@ import '../../providers/audio_info_providers.dart';
 import '../../providers/eq_providers.dart';
 import '../equalizer/equalizer_screen.dart';
 import '../../providers/library_providers.dart';
+import '../../providers/lastfm_provider.dart';
 import '../../providers/loudness_providers.dart';
 import '../../providers/user_data_providers.dart';
 import '../../providers/widget_provider.dart';
+import 'lastfm_sheet.dart';
 import 'folders_screen.dart';
 import 'volume_matching_sheet.dart';
 import '../../l10n/l10n.dart';
@@ -237,6 +239,20 @@ class SettingsSheet extends ConsumerWidget {
                       content: Text(hint),
                     ));
                   }
+                },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: HugeIcon(icon: HugeIcons.strokeRoundedRadio01, color: palette.ink, size: 22),
+                title: const Text('Last.fm', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(switch (ref.watch(lastFmProvider)) {
+                  final s when s.account?.connected ?? false => context.l10n.lastFmConnectedAs(s.account!.username ?? ''),
+                  _ => context.l10n.lastFmOff,
+                }),
+                trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  LastFmSheet.show(context);
                 },
               ),
               heading(context.l10n.backup),

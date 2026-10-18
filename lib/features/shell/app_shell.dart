@@ -11,6 +11,7 @@ import '../../providers/loudness_providers.dart';
 import '../../providers/stats_providers.dart';
 import '../../providers/widget_provider.dart';
 import '../../providers/browse_provider.dart';
+import '../../providers/lastfm_provider.dart';
 import '../../providers/spoken_providers.dart';
 import '../equalizer/quick_eq_sheet.dart';
 import '../../providers/library_providers.dart';
@@ -99,6 +100,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     ref.listen(homeWidgetSyncProvider, (_, _) {});
     // Android Auto / media browsers.
     ref.listen(browseSyncProvider, (_, _) {});
+    // Last.fm scrobbling.
+    ref.listen(lastFmSyncProvider, (_, _) {});
     // Play counts and listening time.
     ref.listen(playTrackerProvider, (_, _) {});
     // Audiobooks & podcasts: speed and resume.

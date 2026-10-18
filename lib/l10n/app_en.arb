@@ -464,5 +464,19 @@
   "useForAllMusic": "Use for all music",
   "forgetDevice": "Forget device",
   "offShort": "Off",
-  "wiredHeadphones": "Wired headphones"
+  "wiredHeadphones": "Wired headphones",
+  "lastFmIntro": "Scrobbles what you listen to (half a song or 4 minutes counts). Uses your own Last.fm API key — create one free at last.fm/api/account/create.",
+  "lastFmConnectedAs": "Connected as {user}",
+  "lastFmScrobble": "Scrobble my listening",
+  "lastFmAllSent": "Everything sent",
+  "lastFmPending": "{count, plural, =1{1 scrobble waiting for the network} other{{count} scrobbles waiting for the network}}",
+  "lastFmSendNow": "Send now",
+  "lastFmDisconnect": "Disconnect",
+  "lastFmKeyHint": "Paste your API key and shared secret, then log in once. Your password isn't stored.",
+  "lastFmApiKey": "API key",
+  "lastFmSecret": "Shared secret",
+  "lastFmUser": "Last.fm username",
+  "lastFmPassword": "Password",
+  "lastFmConnect": "Connect",
+  "lastFmOff": "Not connected"
 }

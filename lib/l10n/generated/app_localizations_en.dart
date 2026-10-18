@@ -1739,4 +1739,58 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wiredHeadphones => 'Wired headphones';
+
+  @override
+  String get lastFmIntro =>
+      'Scrobbles what you listen to (half a song or 4 minutes counts). Uses your own Last.fm API key — create one free at last.fm/api/account/create.';
+
+  @override
+  String lastFmConnectedAs(Object user) {
+    return 'Connected as $user';
+  }
+
+  @override
+  String get lastFmScrobble => 'Scrobble my listening';
+
+  @override
+  String get lastFmAllSent => 'Everything sent';
+
+  @override
+  String lastFmPending(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count scrobbles waiting for the network',
+      one: '1 scrobble waiting for the network',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get lastFmSendNow => 'Send now';
+
+  @override
+  String get lastFmDisconnect => 'Disconnect';
+
+  @override
+  String get lastFmKeyHint =>
+      'Paste your API key and shared secret, then log in once. Your password isn\'t stored.';
+
+  @override
+  String get lastFmApiKey => 'API key';
+
+  @override
+  String get lastFmSecret => 'Shared secret';
+
+  @override
+  String get lastFmUser => 'Last.fm username';
+
+  @override
+  String get lastFmPassword => 'Password';
+
+  @override
+  String get lastFmConnect => 'Connect';
+
+  @override
+  String get lastFmOff => 'Not connected';
 }
