@@ -1,0 +1,255 @@
+# audifac CI/CD
+#
+# Every push / pull request:  analyze + Dart tests → changes summary
+#                             → Android (signed APKs + AAB, DSP JVM tests) and iOS (unsigned IPA)
+# Tag "v1.2.3":               the same, then a GitHub Release with all files + release notes.
+#
+# Secrets (Settings → Secrets and variables → Actions):
+#   ANDROID_KEYSTORE_BASE64   base64 of the release .jks (see PLAN.md → "Release & CI")
+#   ANDROID_KEYSTORE_PASSWORD
+#   ANDROID_KEY_ALIAS         audifac
+#   ANDROID_KEY_PASSWORD
+# Without them (e.g. pull requests from forks) Android builds fall back to the debug key.
+
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: '3.47.7'
+  JAVA_VERSION: '17'
+
+jobs:
+  test:
+    name: Analyze & test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Dart tests
+        run: flutter test --coverage --reporter expanded
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/lcov.info
+          if-no-files-found: ignore
+
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="$(grep -E '^version:' pubspec.yaml | sed -E 's/version: *//; s/\+.*//')"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Changes since the previous release
+        run: |
+          CURRENT="${GITHUB_SHA}"
+          # Previous tag (excluding the one being built, if any).
+          PREVIOUS="$(git describe --tags --abbrev=0 "${CURRENT}^" 2>/dev/null || true)"
+          if [ -n "$PREVIOUS" ]; then RANGE="$PREVIOUS..$CURRENT"; TITLE="Changes since $PREVIOUS"
+          else RANGE="$CURRENT"; TITLE="All changes"; fi
+          {
+            echo "## $TITLE"
+            echo
+            echo "Version **${{ steps.version.outputs.version }}** · build **${{ github.run_number }}** · \`${GITHUB_SHA::7}\`"
+            echo
+            echo "### Commits"
+            git log --no-merges --pretty='- %s (%h, %an)' $RANGE | head -200
+            echo
+            echo "### Files changed"
+            echo '```'
+            if [ -n "$PREVIOUS" ]; then git diff --stat "$PREVIOUS" "$CURRENT" | tail -40; else git show --stat --format= "$CURRENT" | tail -40; fi
+            echo '```'
+          } > CHANGES.md
+          cat CHANGES.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: changes
+          path: CHANGES.md
+
+  android:
+    name: Android build
+    needs: [test, changes]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      VERSION: ${{ needs.changes.outputs.version }}
+      BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: Release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.jks
+            {
+              echo "storeFile=release.jks"
+              echo "storePassword=$KEYSTORE_PASSWORD"
+              echo "keyAlias=${KEY_ALIAS:-audifac}"
+              echo "keyPassword=$KEY_PASSWORD"
+            } > android/key.properties
+            echo "Release key installed."
+          else
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret: APKs are signed with the debug key (fine for testing, not for Play)."
+          fi
+
+      - name: Build APKs (one per CPU architecture)
+        run: flutter build apk --release --split-per-abi --build-name="$VERSION" --build-number="$BUILD_NUMBER"
+
+      - name: Build App Bundle (Google Play)
+        run: flutter build appbundle --release --build-name="$VERSION" --build-number="$BUILD_NUMBER"
+
+      - name: DSP unit tests (JVM)
+        working-directory: android
+        run: ./gradlew :app:testDebugUnitTest --console=plain
+
+      - name: Collect files
+        run: |
+          mkdir -p dist
+          for f in build/app/outputs/flutter-apk/app-*-release.apk; do
+            abi="$(basename "$f" | sed -E 's/app-(.*)-release.apk/\1/')"
+            cp "$f" "dist/audifac-$VERSION+$BUILD_NUMBER-$abi.apk"
+          done
+          cp build/app/outputs/bundle/release/app-release.aab "dist/audifac-$VERSION+$BUILD_NUMBER.aab"
+          (cd dist && sha256sum * > SHA256SUMS.txt)
+          ls -la dist
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-test-reports
+          path: android/app/build/reports/tests/
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: dist/
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/app/release.jks android/key.properties
+
+  ios:
+    name: iOS build
+    needs: [test, changes]
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      VERSION: ${{ needs.changes.outputs.version }}
+      BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Dependencies
+        run: flutter pub get
+
+      # No Apple signing yet: an unsigned build proves iOS compiles and can be
+      # sideloaded with a re-signing tool. See PLAN.md for adding real signing.
+      - name: Build (no code signing)
+        run: flutter build ios --release --no-codesign --build-name="$VERSION" --build-number="$BUILD_NUMBER"
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p dist/Payload
+          cp -R build/ios/iphoneos/Runner.app dist/Payload/
+          (cd dist && zip -qr "audifac-$VERSION+$BUILD_NUMBER-unsigned.ipa" Payload && rm -rf Payload)
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios
+          path: dist/
+
+  release:
+    name: GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [android, ios, changes]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          name: audifac ${{ needs.changes.outputs.version }}
+          body_path: artifacts/changes/CHANGES.md
+          generate_release_notes: true
+          files: |
+            artifacts/android/*
+            artifacts/ios/*

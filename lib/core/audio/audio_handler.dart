@@ -1,0 +1,362 @@
+import 'dart:async';
+import 'dart:math';
+
+import 'package:audio_service/audio_service.dart';
+import 'package:audio_session/audio_session.dart';
+import 'package:just_audio/just_audio.dart';
+
+import '../../models/song.dart';
+import 'queue_logic.dart';
+
+/// Starts the background audio service. Call once, before `runApp`.
+Future<AudifacAudioHandler> initAudioHandler() {
+  return AudioService.init(
+    builder: AudifacAudioHandler.new,
+    config: const AudioServiceConfig(
+      androidNotificationChannelId: 'com.gtongfa.audifac.playback',
+      androidNotificationChannelName: 'Playback',
+      androidNotificationOngoing: true,
+      androidStopForegroundOnPause: true,
+      artDownscaleWidth: 512,
+      artDownscaleHeight: 512,
+    ),
+  );
+}
+
+/// The single source of truth for playback.
+///
+/// The UI, the media notification, the lock screen and headset/Bluetooth
+/// buttons all go through this handler. It wraps `just_audio` so the engine
+/// can be swapped without touching the UI.
+class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
+  AudifacAudioHandler() {
+    _init();
+  }
+
+  final _player = AudioPlayer();
+  final _subscriptions = <StreamSubscription<dynamic>>[];
+  final _errors = StreamController<String>.broadcast();
+  var _shuffleOrder = QueueShuffleOrder();
+
+  Stream<Duration> get positionStream => _player.positionStream;
+  Duration get position => _player.position;
+
+  /// Human-readable messages about tracks that could not be played.
+  Stream<String> get errors => _errors.stream;
+
+  /// Sequence indices in the order they will play.
+  List<int> get playOrder => _player.shuffleModeEnabled
+      ? List.of(_player.shuffleIndices)
+      : List.generate(queue.value.length, (i) => i);
+
+  Future<void> _init() async {
+    final session = await AudioSession.instance;
+    // Music profile: pauses on calls, ducks for notifications, and just_audio
+    // pauses automatically when headphones are unplugged.
+    await session.configure(const AudioSessionConfiguration.music());
+
+    _subscriptions.addAll([
+      _player.playbackEventStream.listen((_) => _broadcastState(), onError: (_) {}),
+      _player.playingStream.listen((_) => _broadcastState()),
+      _player.shuffleModeEnabledStream.listen((_) => _broadcastState()),
+      _player.shuffleIndicesStream.listen((_) => _broadcastState()),
+      _player.loopModeStream.listen((_) => _broadcastState()),
+      _player.currentIndexStream.listen(_onCurrentIndexChanged),
+      _player.durationStream.listen(_onDurationChanged),
+      _player.errorStream.listen(_onError),
+    ]);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Public API used by the UI
+
+  /// Replaces the queue with [songs] and starts playing.
+  Future<void> playSongs(
+    List<Song> songs, {
+    int startIndex = 0,
+    bool shuffle = false,
+  }) async {
+    if (songs.isEmpty) return;
+    final start = shuffle ? Random().nextInt(songs.length) : startIndex;
+    await _load(songs, index: start, shuffle: shuffle);
+    _queueStarts.add(songs[_player.currentIndex ?? start]);
+    unawaited(_player.play());
+  }
+
+  final _queueStarts = StreamController<Song>.broadcast();
+
+  /// The first song each time the user starts a new queue (not restores,
+  /// not "play next"). Used to offer an EQ preset choice.
+  Stream<Song> get queueStarts => _queueStarts.stream;
+
+  /// Loads a previously saved queue without starting playback.
+  Future<void> restoreSession(
+    List<Song> songs, {
+    required int index,
+    required Duration position,
+    required bool shuffle,
+    required AudioServiceRepeatMode repeat,
+  }) async {
+    if (songs.isEmpty) return;
+    await _load(songs, index: index, position: position, shuffle: shuffle);
+    await setRepeatMode(repeat);
+  }
+
+  /// Inserts [songs] right after the current track.
+  Future<void> playNext(List<Song> songs) => _insert(songs, InsertPlacement.afterCurrent);
+
+  /// Appends [songs] to the end of the queue.
+  Future<void> addToQueue(List<Song> songs) => _insert(songs, InsertPlacement.end);
+
+  Future<void> removeFromQueue(int index) async {
+    final items = queue.value;
+    if (index < 0 || index >= items.length || index == _player.currentIndex) return;
+    await _player.removeAudioSourceAt(index);
+    queue.add([...items]..removeAt(index));
+  }
+
+  /// Moves a queue item; [to] is the index after removal (as given by
+  /// `ReorderableListView.onReorderItem`).
+  Future<void> moveInQueue(int from, int to) async {
+    final items = queue.value;
+    if (from == to || from < 0 || from >= items.length) return;
+    final target = to.clamp(0, items.length - 1);
+    await _player.moveAudioSource(from, target);
+    queue.add(moveItem(items, from, target));
+  }
+
+  Future<void> togglePlayPause() => _player.playing ? pause() : play();
+
+  Future<void> toggleShuffle() => setShuffleMode(
+        _player.shuffleModeEnabled ? AudioServiceShuffleMode.none : AudioServiceShuffleMode.all,
+      );
+
+  Future<void> cycleRepeat() =>
+      setRepeatMode(nextRepeatMode(playbackState.value.repeatMode));
+
+  // ---------------------------------------------------------------------------
+  // BaseAudioHandler overrides (also triggered by notification & headset)
+
+  @override
+  Future<void> play() => _player.play();
+
+  @override
+  Future<void> pause() => _player.pause();
+
+  @override
+  Future<void> stop() async {
+    await _player.stop();
+    await super.stop();
+  }
+
+  @override
+  Future<void> seek(Duration position) => _player.seek(position);
+
+  @override
+  Future<void> skipToNext() => _player.seekToNext();
+
+  /// Restarts the current track if more than 3 s in, like most players.
+  @override
+  Future<void> skipToPrevious() async {
+    if (_player.position > const Duration(seconds: 3) || !_player.hasPrevious) {
+      await _player.seek(Duration.zero);
+    } else {
+      await _player.seekToPrevious();
+    }
+  }
+
+  @override
+  Future<void> skipToQueueItem(int index) async {
+    if (index < 0 || index >= queue.value.length) return;
+    await _player.seek(Duration.zero, index: index);
+    if (!_player.playing) unawaited(_player.play());
+  }
+
+  @override
+  Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
+    final enabled = shuffleMode != AudioServiceShuffleMode.none;
+    if (enabled) await _player.shuffle();
+    await _player.setShuffleModeEnabled(enabled);
+  }
+
+  @override
+  Future<void> setRepeatMode(AudioServiceRepeatMode repeatMode) {
+    return _player.setLoopMode(switch (repeatMode) {
+      AudioServiceRepeatMode.none => LoopMode.off,
+      AudioServiceRepeatMode.one => LoopMode.one,
+      AudioServiceRepeatMode.all || AudioServiceRepeatMode.group => LoopMode.all,
+    });
+  }
+
+  @override
+  Future<void> onTaskRemoved() async {
+    if (!_player.playing) await stop();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internals
+
+  Future<void> _load(
+    List<Song> songs, {
+    required int index,
+    Duration position = Duration.zero,
+    bool shuffle = false,
+  }) async {
+    final items = songs.map(_toMediaItem).toList();
+    queue.add(items);
+    _shuffleOrder = QueueShuffleOrder();
+
+    await _player.setShuffleModeEnabled(false);
+    await _player.setAudioSources(
+      [for (final item in items) AudioSource.uri(Uri.parse(item.id), tag: item)],
+      initialIndex: index.clamp(0, items.length - 1),
+      initialPosition: position,
+      shuffleOrder: _shuffleOrder,
+    );
+    if (shuffle) {
+      await _player.shuffle();
+      await _player.setShuffleModeEnabled(true);
+    }
+  }
+
+  Future<void> _insert(List<Song> songs, InsertPlacement placement) async {
+    if (songs.isEmpty) return;
+    final items = queue.value;
+    final current = _player.currentIndex;
+    if (items.isEmpty || current == null) return playSongs(songs);
+
+    final newItems = songs.map(_toMediaItem).toList();
+    final at = placement == InsertPlacement.afterCurrent ? current + 1 : items.length;
+    _shuffleOrder
+      ..placement = placement
+      ..currentIndex = current;
+    await _player.insertAudioSources(
+      at,
+      [for (final item in newItems) AudioSource.uri(Uri.parse(item.id), tag: item)],
+    );
+    queue.add([...items]..insertAll(at, newItems));
+  }
+
+  MediaItem _toMediaItem(Song song) => MediaItem(
+        id: song.uri,
+        title: song.title,
+        artist: song.artist,
+        album: song.album,
+        duration: song.duration == Duration.zero ? null : song.duration,
+        // The notification loads embedded artwork straight from an indexed
+        // song's content:// URI via ContentResolver.loadThumbnail. Files
+        // outside MediaStore have no such URI, so they get no notification art.
+        artUri: song.isFile ? null : Uri.parse(song.uri),
+        extras: {
+          'songId': song.id,
+          'albumId': song.albumId,
+          if (!song.isFile) 'loadThumbnailUri': true,
+        },
+      );
+
+  void _onCurrentIndexChanged(int? index) {
+    final items = queue.value;
+    if (index == null || index >= items.length) return;
+    mediaItem.add(items[index]);
+    _attachArtworkFile(index, items[index]);
+  }
+
+  /// Supplies a `file://` artwork image for the notification. Set by the app;
+  /// covers songs whose artwork Android won't thumbnail (e.g. in Download) and
+  /// files outside MediaStore.
+  Future<Uri?> Function(int songId, int albumId)? artworkFileResolver;
+
+  Future<void> _attachArtworkFile(int index, MediaItem item) async {
+    final resolver = artworkFileResolver;
+    final songId = item.extras?['songId'] as int?;
+    final albumId = item.extras?['albumId'] as int?;
+    if (resolver == null || songId == null || albumId == null) return;
+    if (item.artUri?.scheme == 'file') return;
+
+    final art = await resolver(songId, albumId);
+    if (art == null) return;
+    final items = queue.value;
+    if (index >= items.length || items[index].id != item.id) return; // Queue changed meanwhile.
+    final updated = items[index].copyWith(
+      artUri: art,
+      extras: {...?items[index].extras}..remove('loadThumbnailUri'),
+    );
+    queue.add([...items]..[index] = updated);
+    if (mediaItem.value?.id == item.id) mediaItem.add(updated);
+  }
+
+  /// MediaStore durations are sometimes missing/wrong; trust the decoder.
+  void _onDurationChanged(Duration? duration) {
+    final index = _player.currentIndex;
+    final items = queue.value;
+    if (duration == null || index == null || index >= items.length) return;
+    if (items[index].duration == duration) return;
+
+    final updated = items[index].copyWith(duration: duration);
+    queue.add([...items]..[index] = updated);
+    mediaItem.add(updated);
+  }
+
+  /// Unplayable/corrupt file: report it and skip instead of getting stuck.
+  void _onError(PlayerException error) {
+    final title = mediaItem.value?.title;
+    _errors.add(
+      title == null ? "Couldn't play this file" : "Couldn't play \"$title\" — skipped",
+    );
+    if (_player.hasNext) {
+      unawaited(_player.seekToNext().then((_) => _player.play()));
+    } else {
+      unawaited(_player.pause());
+    }
+  }
+
+  void _broadcastState() {
+    final playing = _player.playing;
+    playbackState.add(
+      playbackState.value.copyWith(
+        controls: [
+          MediaControl.skipToPrevious,
+          if (playing) MediaControl.pause else MediaControl.play,
+          MediaControl.skipToNext,
+        ],
+        systemActions: const {
+          MediaAction.seek,
+          MediaAction.seekForward,
+          MediaAction.seekBackward,
+          MediaAction.skipToQueueItem,
+          MediaAction.setShuffleMode,
+          MediaAction.setRepeatMode,
+        },
+        androidCompactActionIndices: const [0, 1, 2],
+        processingState: switch (_player.processingState) {
+          ProcessingState.idle => AudioProcessingState.idle,
+          ProcessingState.loading => AudioProcessingState.loading,
+          ProcessingState.buffering => AudioProcessingState.buffering,
+          ProcessingState.ready => AudioProcessingState.ready,
+          ProcessingState.completed => AudioProcessingState.completed,
+        },
+        playing: playing,
+        updatePosition: _player.position,
+        bufferedPosition: _player.bufferedPosition,
+        speed: _player.speed,
+        queueIndex: _player.currentIndex,
+        shuffleMode: _player.shuffleModeEnabled
+            ? AudioServiceShuffleMode.all
+            : AudioServiceShuffleMode.none,
+        repeatMode: switch (_player.loopMode) {
+          LoopMode.off => AudioServiceRepeatMode.none,
+          LoopMode.one => AudioServiceRepeatMode.one,
+          LoopMode.all => AudioServiceRepeatMode.all,
+        },
+      ),
+    );
+  }
+
+  Future<void> dispose() async {
+    for (final s in _subscriptions) {
+      await s.cancel();
+    }
+    await _errors.close();
+    await _player.dispose();
+  }
+}

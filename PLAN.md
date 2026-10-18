@@ -1,0 +1,225 @@
+# audifac — MVP Plan
+
+Goal: a local music player for Android that plays common audio formats, with a polished UI and fluid animations.
+
+## Starting point (audit, 2026-10-18)
+
+| Area | State before this plan |
+|---|---|
+| Build | Did not compile (`library_screen.dart` referenced undefined `_tabController`, `ArtistTab`, …) |
+| Playback | None — play/pause toggled a bool. Audio packages were visualizer/recorder toys |
+| Library | 5 hardcoded songs, dead placeholder image URLs, no permissions |
+| Navigation | Home & Library were the same screen; Player/Album unreachable; double bottom nav bars |
+| Theme | `ThemeData.dark()` on a light background; colors hardcoded per widget |
+| State | No shared player state |
+| Search / Favorites | Placeholder text |
+
+## Key technical decisions
+
+- **Audio engine:** `just_audio` (ExoPlayer on Android → MP3, AAC/M4A, FLAC, OGG Vorbis, Opus, WAV) wrapped by **`audio_service`** for background playback, media notification, lock screen and headset/Bluetooth controls. The UI only talks to our own `AudioHandler` so the engine can be swapped later (e.g. `media_kit` for APE/WMA/DSD).
+- **Library scanning:** a small in-house Kotlin MethodChannel over Android `MediaStore` (no unmaintained third-party plugin). Artwork loaded on demand and cached in memory (LRU, per album).
+- **State management:** Riverpod.
+- **Persistence:** `sqflite` (no code generation). Favorites, playlists, history, settings and the last session are preloaded before the first frame, so there is no theme/data flicker.
+- **Platform scope for MVP:** Android first. iOS/desktop later.
+
+## Folder structure
+
+```
+lib/
+  core/theme/      app_theme.dart (light + dark), app_colors.dart (AppPalette tokens)
+  core/audio/      audio_handler.dart (just_audio + audio_service), queue_logic.dart (pure, tested)
+  data/            media_library.dart (MediaStore channel), app_database.dart (sqflite), artwork_colors.dart
+  models/          song, album, artist, playlist, app_settings, saved_session
+  providers/       library, player, user data (favorites/playlists/history/settings), session_controller
+  features/
+    shell/  home/  library/  collection/ (album, artist, playlist)  player/  search/  favorites/
+  widgets/         mini_player, artwork, seek_bar, song_tile, song_actions_sheet, playlist_dialogs, entrance, ...
+```
+
+## Phases
+
+### Phase 0 — Get it building ✅
+- [x] Remove visualizer/recorder packages (`audio_waveforms`, `flutter_audio_visualizer`, `waveform`)
+- [x] Design tokens (`AppPalette`) + theme; no hardcoded colors in widgets
+- [x] Single app shell: one bottom nav + docked mini player; remove fake nav bars from screens
+- [x] Android toolchain bumped to what Flutter 3.47 requires: Gradle 8.14.3, AGP 8.11.1, Kotlin 2.3.20 (`compilerOptions` DSL)
+- [ ] Delete `legacy/` and `lib/screens/` (old mock screens & icons, kept for reference — nothing imports them)
+- [ ] `git init` + first commit (owner: you)
+
+### Phase 1 — Real playback ✅
+- [x] `just_audio`, `audio_service`, `audio_session`, `flutter_riverpod`
+- [x] Android manifest: `AudioService` + `MediaButtonReceiver`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `WAKE_LOCK`; `MainActivity` extends `AudioServiceActivity`
+- [x] `AudioHandler`: queue, play/pause, next/prev, seek, shuffle, repeat; streams for position/state
+- [x] Audio session: pause on headphones unplugged, duck/pause on interruptions (calls)
+- [x] Player screen wired to real state (seek bar, times, controls)
+
+### Phase 2 — Real library ✅
+- [x] Permissions via `permission_handler` (`READ_MEDIA_AUDIO` on 13+, `READ_EXTERNAL_STORAGE` ≤12)
+- [x] MediaStore query: songs, grouped into albums & artists; embedded artwork thumbnails
+- [x] Library tabs: Songs / Albums / Artists / Playlists; album & artist pages
+- [x] Empty / loading / permission-denied states (re-checked when returning from Settings)
+- [x] Search: instant local filter over songs, albums, artists
+- [x] Pull-to-refresh on every tab; song sort (title / artist / album / recently added), persisted
+
+### Phase 2b — Whole-device scanning ✅
+Android's own index (MediaStore) can be stale: on the test phone it held **zero** of the 7 songs in `Download`.
+- [x] Own storage walk of internal storage + SD cards (skips `Android/`, dot-folders, excluded folders)
+- [x] Files Android missed are handed to its media scanner → indexed with tags & artwork (7/7 on the test phone, 0.9 s)
+- [x] All audio types, not just "music": ringtones/alarms/notifications always hidden; recordings & voice notes behind a toggle; minimum length (Off / 15 / 30 / 60 s, default 30 s)
+- [x] Hidden (`.nomedia`) folders: Android 11+ won't let apps list them, so Settings → Folders → **Add a folder** uses the system folder picker (persistent, Play-compliant grant); files play via their document URI, tags read natively and cached (`file_meta`)
+- [x] Settings → Folders: every folder with audio, untick to exclude (hidden + skipped by scans)
+- [x] Auto-update: MediaStore change observer, rescan on app open / resume (at most every 15 min), pull-to-refresh / "Scan device for audio"
+- [x] Artwork fallback when Android refuses thumbnails (it won't for `Download`), and cached cover files so the notification / lock screen shows artwork for every song
+- [x] Formats listed = what ExoPlayer plays: mp3, m4a/m4b/aac, flac, ogg/oga/opus, wav, amr/awb, 3gp/3ga, mka, weba
+
+### Phase 2c — Song info, codec filters, source labels ✅
+- [x] Native `AudioInspector`: real codec from the stream (MediaExtractor — so .m4a is told apart as AAC vs ALAC), sample rate, channels, bitrate, bit depth (FLAC STREAMINFO / WAV `fmt ` headers, Android 12+ metadata), genre, year, composer, album artist, disc
+- [x] Analysed once per file in the background, cached in `audio_info` (DB v4) keyed by location + size + mtime; progress in Settings; instant fallback guess from MIME/extension
+- [x] Quality classes: **Hi-Res** (lossless > 48 kHz or > 16-bit), **Lossless** (FLAC / ALAC / WAV), **Lossy**
+- [x] Song info sheet (song menu & player ⋮): audio, tags, file (name, folder, source, size, dates, index origin), copy path
+- [x] Songs tab filters: All / Hi-Res / Lossless / Lossy + per-codec chips with counts + source chips (shown when > 1 choice); persisted; Shuffle plays the filtered list; "Clear filters"
+- [x] Row labels: source category (Music, Downloads, WhatsApp, Telegram, Bluetooth, Recordings, Podcasts, Audiobooks, Hidden folder, or the folder name) + SD-card marker + codec badge (`FLAC 24/96` gold, `FLAC 16/44.1` green, `MP3 320` muted); toggle in Settings
+- [x] Verified on the Nokia: 1 × FLAC 16/44.1 (Lossless) + 6 × MP3 128/256, all "Downloads"
+
+### Phase 2d — Audiophile equalizer / DSP ✅
+**Engine:** `just_audio` is vendored in `packages/just_audio` (pubspec `dependency_overrides`) with one patch: `JustAudioHooks` lets the app wrap ExoPlayer's audio sink. ExoPlayer only runs custom AudioProcessors on 16-bit PCM, so `DspAudioSink` instead receives the decoder's full-resolution PCM (16/24/32-bit or float), processes it in double precision and feeds 32-bit float to `DefaultAudioSink` (float output), handling encoder delay/padding trimming itself so gapless still works. Installed in `AudifacApplication.onCreate`.
+- [x] Chain: preamp → parametric EQ (≤ 20 bands: peak, low/high shelf, low/high-pass, notch; RBJ biquads, TDF-II, double) → mono / balance → crossfeed → peak limiter (−0.1 dBFS)
+- [x] Bit-exact pass-through when off / flat (limiter skipped); ~20 ms cross-fade on every change (no clicks); A/B "hold to compare"
+- [x] 11 JVM tests (`android/gradlew :app:testDebugUnitTest`) measure real signals: +6 dB really is +6.0 ± 0.1 dB, shelves, passes, preamp, limiter ceiling, mono/balance, crossfeed, click-free changes, bypass
+- [x] Two layers: **device correction** (auto-selected per output: phone speaker, wired, each Bluetooth / USB device by name) + **sound preset**; combined with automatic headroom (never stacks on an existing preamp)
+- [x] 16 built-in sound presets + "No correction"; custom presets (duplicate, rename, delete), 10-band graphic or free parametric mode
+- [x] AutoEQ / Equalizer APO `ParametricEQ.txt`: import from file or clipboard, export to clipboard
+- [x] Rules: song → album → artist → genre → source → all music; "this session" choice overrides until a new queue
+- [x] Start-of-listening picker (only when a new queue starts, you have your own presets, and no rule decides; "don't ask" option)
+- [x] UI: equalizer screen (live response curve with draggable / pinchable points, layer cards, gain, crossfeed / balance / mono), quick preset sheet (player chip, song menu, prompt), rules & devices screen, Settings entry
+- [x] Verified on the Nokia: FLAC decoded straight to float into the DSP, Bass boost active with −7.1 dB auto headroom, no errors / underruns, live curve editing heard instantly
+- [ ] Later: ReplayGain (needs own tag reader), DSP on the notification "preset" action, per-preset loudness compensation
+
+### Phase 2e — Gapless tuning (planned, not started)
+Today: ExoPlayer plays the queue as one concatenated timeline and pre-buffers the next track; `DspAudioSink` trims encoder delay / padding (MP3 LAME/Xing & iTunSMPB, AAC edit lists, Opus pre-skip come from the extractors) and keeps the DSP filter state across tracks of the same rate. What's left is *proving* it and fixing the edge cases:
+1. **Test set + measurement (first, so every fix is verified).** Generate a continuous 440 Hz sine (and a pink-noise "live album" crossfade) split into 5 tracks, encoded as MP3 (LAME), AAC (iTunes-style), FLAC, Opus and Vorbis. Add a debug-only PCM tap in `DspAudioSink` that writes what reaches the AudioTrack; a JVM/desktop check finds phase jumps or silence at boundaries (gap in ms, click energy). Run on the Nokia + an emulator.
+2. **Track boundaries in the sink.** Verify the held-back padding is dropped exactly once (also on skip-next, seek near the end, and when the next track's `configure` arrives early); unit-test `DspAudioSink` with synthetic buffers.
+3. **Sample-rate / channel changes** (e.g. 44.1 kHz album → 48 kHz track) force an AudioTrack rebuild = audible gap. Option: resample to a fixed output rate inside the DSP (high-quality polyphase/sinc) when the rate changes mid-queue, or only flag it ("not gapless: rate change") in the queue.
+4. **Album-aware shuffle.** Shuffle breaks gapless albums; add "Shuffle albums" (album order shuffled, tracks kept in order) and keep consecutive tracks of one album together.
+5. **Optional crossfade** (0–12 s, off by default, automatically disabled between consecutive tracks of the same album) using the DSP sink — the only place where two tracks' PCM can be mixed.
+6. **Pre-load earlier** for slow storage (SD cards): raise the playlist's look-ahead buffer in the load control so the next track is decoded before the current one ends.
+7. Settings: "Gapless playback" (on), "Crossfade" (off), "Keep albums together when shuffling" (on).
+
+### Phase 3 — Persistence & remaining features ✅
+- [x] Local DB (sqflite): favorites, playlists, recently played, key/value settings
+- [x] Favorites: heart in the player, song menu, Favorites tab + Home tile
+- [x] Playlists: create, rename, delete, add (from any song menu), swipe to remove, drag to reorder
+- [x] Home: Shuffle all, Favorites, Recently played, Recently added albums, Your playlists
+- [x] Restore last queue + track + position + shuffle/repeat on app start
+- [x] Queue sheet: Now playing / Up next in real play order, drag to reorder, swipe to remove, tap to jump
+- [x] Song menu (long-press or ⋮): Play next, Add to queue, Add to playlist, Favorite, Go to album / artist
+- [x] "Play next" / "Add to queue" also work while shuffling (custom `QueueShuffleOrder`)
+
+### Phase 4 — Make it slick ✅
+- [x] Mini player → full player: slide-up route + Hero artwork (tap or flick up)
+- [x] Full player follows the finger when dragged down (rounded corners, springs back or closes)
+- [x] Dynamic colors extracted from artwork (`material_color_utilities`), animated on track change
+- [x] `AnimatedSwitcher` on title/artwork, artwork scale on pause, swipe artwork / mini player to skip
+- [x] Animated equalizer as "now playing" indicator in lists and queue
+- [x] Seek bar: track thickens and thumb grows while scrubbing, accent-tinted
+- [x] Staggered list entrance animations (first display only, respects "reduce motion")
+- [x] Dark mode (System / Light / Dark in Settings, persisted)
+- [x] Heart pop animation, press-scale + haptics on controls, tabs and menus
+- [ ] Later: interactive drag *up* from the mini player; real waveform via `just_waveform`
+
+### Phase 5 — MVP release checklist
+- [x] Unplayable/corrupt file → skipped with a snackbar, never stuck
+- [x] App icon: adaptive + Android 13 themed icon + legacy PNGs; splash screen for Android 12+ and older, light/dark
+- [x] Unit tests: queue / shuffle / repeat logic, session & settings persistence, parsing (24 tests)
+- [x] Release signing config (reads `android/key.properties`, falls back to the debug key)
+- [ ] **Hands-on test on device** (owner: you) — see checklist below
+- [x] App ID `com.gtongfa.audifac` (Android applicationId / namespace / Kotlin package, iOS / macOS bundle id, Linux id, notification channel)
+- [x] Release keystore created (`C:\Users\Georges\.audifac-signing\audifac-release.jks`, RSA 4096, alias `audifac`) — **back it up** with its password (in `android/key.properties`)
+- [x] GitHub Actions CI/CD (`.github/workflows/ci.yml`) — see "Release & CI" below
+- [ ] iOS code signing (needs an Apple Developer account)
+
+### Device test checklist
+1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".
+2. Deny, then "Allow access" → after "Don't ask again", "Open settings" → enable → come back: library loads.
+3. Play from Songs / album / artist / search / favorites / playlist; shuffle all.
+4. Mini player: tap and flick up open the player; swipe sideways skips.
+5. Player: drag down slowly (springs back) and quickly (closes); colors follow artwork; heart; shuffle/repeat; seek.
+6. Queue sheet: reorder, swipe to remove, tap to jump; "Play next" / "Add to queue" from a song menu (with and without shuffle).
+7. Background: lock the screen, use notification and lock-screen controls, Bluetooth/headset buttons, unplug headphones (pauses), receive a call (pauses).
+8. Kill the app and reopen: same queue, track and position; theme and sort kept; favorites, playlists and history kept.
+9. Settings: System / Light / Dark.
+10. A large library (1000+ songs): scan time, smooth scrolling.
+11. A broken / renamed-extension file: skipped with a message.
+
+### Known limitations / tech notes
+- `permission_handler` pinned to ^12 — v13+ pulls an Android plugin compiled against SDK 37, which AGP 8.11 can't resolve. Revisit when moving to AGP 9.
+- Flutter warns that Gradle < 9.1 / AGP < 9.0.1 support will be dropped soon: plan an AGP 9 migration (new DSL, built-in Kotlin) after the MVP.
+- No "All files access" (`MANAGE_EXTERNAL_STORAGE`) by design — Google Play rejects it for music players. Consequence: other apps' private data (`Android/data`) is never scanned, and hidden folders need a one-time "Add a folder".
+- WMA / APE / DSD / MIDI files are not listed (ExoPlayer can't play them); supporting them means adding `media_kit`.
+- Reordering the queue is disabled while shuffling (the order is random by design); removing still works.
+- Playlists reference MediaStore ids: a song deleted from the device disappears from playlists (kept in storage, hidden).
+- Smoke-tested on a Nokia G100 (Android 12): launches, Home renders, permission prompt appears.
+- Old Flutter launcher PNGs backed up in `legacy/android-icons/`.
+
+- `packages/just_audio` is a patched copy of just_audio 0.10.6: when upgrading just_audio, re-apply the `JustAudioHooks` patch (AudioPlayer.ensurePlayerInitialized + `api` media3 dependency) and keep the app's media3 version (android/app/build.gradle.kts) identical.
+- Android resamples to its mixer rate (usually 48 kHz); no bit-perfect USB DAC output.
+- Gradle wrapper must stay on 8.14.3 while AGP is 8.11 (an IDE extension rewrote it to 9.7.1 once; AGP 8.x can't run on Gradle ≥ 9.6).
+
+### Out of scope for MVP
+Lyrics, gapless tuning, streaming/cloud, tag editing, iOS polish, desktop.
+
+## Release & CI
+
+### What runs (`.github/workflows/ci.yml`)
+| Trigger | Jobs |
+|---|---|
+| Push to `main`/`master`, pull request, manual run | **Analyze & test** (`flutter analyze`, Dart tests + coverage) · **Changes** (commits + files changed since the last `v*` tag → run summary + `CHANGES.md`) · **Android** (signed split APKs + AAB, DSP JVM tests, SHA-256 sums) · **iOS** (release build, unsigned IPA) |
+| Push a tag `v1.2.3` | All of the above, then **GitHub Release** "audifac 1.2.3" with every APK/AAB/IPA, `CHANGES.md` as notes + GitHub's generated notes |
+
+Build artifacts are on each run's page (Actions → run → Artifacts). Version = pubspec version (or the tag), build number = CI run number.
+
+### One-time setup
+1. Create the GitHub repo, `git init`, commit, push (owner: you). Before the first commit, check `git status` does **not** list `android/key.properties` or any `.jks` (both are git-ignored).
+2. Repo → Settings → Secrets and variables → Actions → *New repository secret*:
+   | Secret | Value |
+   |---|---|
+   | `ANDROID_KEYSTORE_BASE64` | contents of `C:\Users\Georges\.audifac-signing\keystore.base64.txt` |
+   | `ANDROID_KEYSTORE_PASSWORD` | `storePassword` from `android/key.properties` |
+   | `ANDROID_KEY_PASSWORD` | `keyPassword` from `android/key.properties` (same value) |
+   | `ANDROID_KEY_ALIAS` | `audifac` |
+   Without these, CI still builds but signs with the debug key (warning in the log).
+3. Back up `audifac-release.jks` + the password somewhere safe (password manager / encrypted drive). Losing them = you can never update the app on Google Play.
+
+### Releasing
+```
+# bump "version:" in pubspec.yaml if you like (CI uses the tag anyway)
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+### iOS signing (later)
+The IPA from CI is **unsigned**: it proves the iOS build compiles and can be sideloaded with a re-signing tool (e.g. Sideloadly / AltStore with your Apple ID), but can't be installed directly or sent to TestFlight. Real signing needs an Apple Developer account ($99/year): export a distribution certificate (`.p12`) + provisioning profile, add them as secrets (`IOS_CERTIFICATE_P12_BASE64`, `IOS_CERTIFICATE_PASSWORD`, `IOS_PROVISIONING_PROFILE_BASE64`), import them into a temporary keychain in the iOS job and switch to `flutter build ipa --export-options-plist ios/ExportOptions.plist`.
+**Note:** the library scanner, folder picker and DSP are Android-native code; on iOS the app builds and opens, but it has no music source until an iOS media layer (Files / MPMediaLibrary) is written.
+
+## Running
+
+```
+flutter pub get
+flutter run        # on an Android device/emulator with some music in its storage
+```
+
+Release build for testing: `flutter build apk --release --split-per-abi` (smaller APKs), or `flutter build appbundle` for Google Play.
+
+To sign releases, create a keystore (keep it and its passwords safe — losing it means you can't update the app on Play):
+```
+keytool -genkey -v -keystore %USERPROFILE%\audifac.jks -keyalg RSA -keysize 2048 -validity 10000 -alias audifac
+```
+then `android/key.properties` (already git-ignored):
+```
+storeFile=C:/Users/<you>/audifac.jks
+storePassword=...
+keyAlias=audifac
+keyPassword=...
+```
+
+On an emulator, push test files with `adb push song.mp3 /sdcard/Music/` then trigger a media scan (or reboot the emulator).

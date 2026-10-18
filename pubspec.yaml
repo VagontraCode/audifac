@@ -1,0 +1,33 @@
+name: audifac
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  audio_service: ^0.18.19
+  audio_session: ^0.2.4
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^3.4.3
+  hugeicons: ^1.0.2
+  just_audio: ^0.10.6
+  material_color_utilities: any
+  path: ^1.9.1
+  permission_handler: ^12.0.1
+  sqflite: ^2.4.4+2
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+
+# audifac patch of just_audio (audio sink hook for the DSP / equalizer).
+# See packages/just_audio/android/.../JustAudioHooks.java.
+dependency_overrides:
+  just_audio:
+    path: packages/just_audio
