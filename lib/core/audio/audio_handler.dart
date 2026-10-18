@@ -47,6 +47,12 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
   /// Index of the current item in the source order.
   int? get currentIndex => _player.currentIndex;
 
+  /// Playback speed (pitch kept).
+  @override
+  Future<void> setSpeed(double speed) => _player.setSpeed(speed.clamp(0.5, 3.0).toDouble());
+
+  double get speed => _player.speed;
+
   /// Player volume (0–1), used for fades; the DSP gain is separate.
   Future<void> setVolume(double volume) => _player.setVolume(volume.clamp(0, 1).toDouble());
 
@@ -70,6 +76,7 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
       _player.shuffleModeEnabledStream.listen((_) => _broadcastState()),
       _player.shuffleIndicesStream.listen((_) => _broadcastState()),
       _player.loopModeStream.listen((_) => _broadcastState()),
+      _player.speedStream.listen((_) => _broadcastState()),
       _player.currentIndexStream.listen(_onCurrentIndexChanged),
       _player.durationStream.listen(_onDurationChanged),
       _player.errorStream.listen(_onError),

@@ -113,6 +113,17 @@ class MediaLibraryChannel(
                 val location = call.argument<String>("location") ?: return result.error("bad_args", "Missing location", null)
                 runIn(executor, result) { com.gtongfa.audifac.extract.Lyrics.read(context, location, call.argument<String>("path")) }
             }
+            "readChapters" -> {
+                val location = call.argument<String>("location") ?: return result.error("bad_args", "Missing location", null)
+                runIn(executor, result) {
+                    try {
+                        com.gtongfa.audifac.extract.Mp4Chapters.read(context, location)
+                            .map { mapOf("startMs" to it.startMs, "title" to it.title) }
+                    } catch (e: Exception) {
+                        emptyList<Map<String, Any>>()
+                    }
+                }
+            }
             "appVersion" -> {
                 val info = context.packageManager.getPackageInfo(context.packageName, 0)
                 @Suppress("DEPRECATION")

@@ -801,7 +801,12 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
                     return decorator.decorate(ctx, sink);
                 }
             };
-            if (decorator != null) baseFactory.setEnableAudioFloatOutput(decorator.enableFloatOutput());
+            if (decorator != null) {
+                baseFactory.setEnableAudioFloatOutput(decorator.enableFloatOutput());
+                // Float output skips ExoPlayer's own speed processor (Sonic):
+                // let the AudioTrack change speed instead (pitch kept).
+                baseFactory.setEnableAudioTrackPlaybackParams(true);
+            }
             baseFactory.setExtensionRendererMode(JustAudioHooks.extensionRendererMode);
             RenderersFactory renderersFactory = (eventHandler, videoListener, audioListener, textOutput, metadataOutput) -> {
                 Renderer[] defaultRenderers = baseFactory

@@ -16,6 +16,8 @@ import '../../widgets/artwork.dart';
 import '../../widgets/seek_bar.dart';
 import '../../widgets/lyrics_sheet.dart';
 import '../../widgets/sleep_timer_sheet.dart';
+import '../../widgets/spoken_widgets.dart';
+import '../../providers/spoken_providers.dart';
 import '../../widgets/song_actions_sheet.dart';
 import '../equalizer/equalizer_screen.dart';
 import '../equalizer/quick_eq_sheet.dart';
@@ -59,10 +61,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
   /// How far the page has been dragged down, in pixels.
   double _drag = 0;
   double _settleFrom = 0;
-  late final AnimationController _settle = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 280),
-  )..addListener(() {
+  late final AnimationController _settle = AnimationController(vsync: this, duration: const Duration(milliseconds: 280))
+    ..addListener(() {
       setState(() => _drag = _settleFrom * (1 - Curves.easeOutCubic.transform(_settle.value)));
     });
 
@@ -145,10 +145,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
                 child: SafeArea(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final artSize = math.min(
-                        constraints.maxWidth - 64,
-                        constraints.maxHeight * 0.42,
-                      );
+                      final artSize = math.min(constraints.maxWidth - 64, constraints.maxHeight * 0.42);
                       return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 28),
                         child: Column(
@@ -169,6 +166,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
                                 Flexible(child: _EqChip()),
                                 SizedBox(width: 8),
                                 SleepChip(),
+                                SpeedChip(),
+                                ChapterChip(),
                               ],
                             ),
                             const Spacer(),
@@ -300,10 +299,7 @@ class _AnimatedArtwork extends ConsumerWidget {
             duration: const Duration(milliseconds: 350),
             transitionBuilder: (child, a) => FadeTransition(
               opacity: a,
-              child: ScaleTransition(
-                scale: Tween(begin: 0.94, end: 1.0).animate(a),
-                child: child,
-              ),
+              child: ScaleTransition(scale: Tween(begin: 0.94, end: 1.0).animate(a), child: child),
             ),
             child: Artwork(
               key: ValueKey(item.id),
@@ -383,10 +379,7 @@ class _TrackInfo extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: palette.inkMuted,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: theme.textTheme.titleMedium?.copyWith(color: palette.inkMuted, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -394,14 +387,8 @@ class _TrackInfo extends ConsumerWidget {
         ),
         IconButton(
           tooltip: 'More',
-          onPressed: song == null
-              ? null
-              : () => SongActionsSheet.show(context, song, allowNavigation: false),
-          icon: HugeIcon(
-            icon: HugeIcons.strokeRoundedMoreHorizontalCircle01,
-            color: palette.ink,
-            size: 26,
-          ),
+          onPressed: song == null ? null : () => SongActionsSheet.show(context, song, allowNavigation: false),
+          icon: HugeIcon(icon: HugeIcons.strokeRoundedMoreHorizontalCircle01, color: palette.ink, size: 26),
         ),
       ],
     );
@@ -422,17 +409,31 @@ class _Controls extends ConsumerWidget {
     final playing = state?.playing ?? false;
     final shuffle = state?.shuffleMode == AudioServiceShuffleMode.all;
     final repeat = state?.repeatMode ?? AudioServiceRepeatMode.none;
+    final spoken = ref.watch(currentIsLongFormProvider);
+    void skip(int seconds) {
+      final target = handler.position + Duration(seconds: seconds);
+      handler.seek(target < Duration.zero ? Duration.zero : target);
+    }
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _ToggleButton(
-          tooltip: 'Shuffle',
-          icon: HugeIcons.strokeRoundedShuffle,
-          active: shuffle,
-          activeColor: accent,
-          onPressed: handler.toggleShuffle,
-        ),
+        if (spoken)
+          _ToggleButton(
+            tooltip: 'Back 15 seconds',
+            icon: HugeIcons.strokeRoundedGoBackward15Sec,
+            active: false,
+            activeColor: accent,
+            onPressed: () => skip(-15),
+          )
+        else
+          _ToggleButton(
+            tooltip: 'Shuffle',
+            icon: HugeIcons.strokeRoundedShuffle,
+            active: shuffle,
+            activeColor: accent,
+            onPressed: handler.toggleShuffle,
+          ),
         _PressScale(
           onTap: handler.skipToPrevious,
           child: HugeIcon(icon: HugeIcons.strokeRoundedPrevious, color: palette.ink, size: 36),
@@ -448,13 +449,7 @@ class _Controls extends ConsumerWidget {
             decoration: BoxDecoration(
               color: accent,
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: accent.withValues(alpha: 0.35),
-                  blurRadius: 22,
-                  offset: const Offset(0, 8),
-                ),
-              ],
+              boxShadow: [BoxShadow(color: accent.withValues(alpha: 0.35), blurRadius: 22, offset: const Offset(0, 8))],
             ),
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 220),
@@ -476,15 +471,24 @@ class _Controls extends ConsumerWidget {
           onTap: handler.skipToNext,
           child: HugeIcon(icon: HugeIcons.strokeRoundedNext, color: palette.ink, size: 36),
         ),
-        _ToggleButton(
-          tooltip: 'Repeat',
-          icon: repeat == AudioServiceRepeatMode.one
-              ? HugeIcons.strokeRoundedRepeatOne01
-              : HugeIcons.strokeRoundedRepeat,
-          active: repeat != AudioServiceRepeatMode.none,
-          activeColor: accent,
-          onPressed: handler.cycleRepeat,
-        ),
+        if (spoken)
+          _ToggleButton(
+            tooltip: 'Forward 30 seconds',
+            icon: HugeIcons.strokeRoundedGoForward30Sec,
+            active: false,
+            activeColor: accent,
+            onPressed: () => skip(30),
+          )
+        else
+          _ToggleButton(
+            tooltip: 'Repeat',
+            icon: repeat == AudioServiceRepeatMode.one
+                ? HugeIcons.strokeRoundedRepeatOne01
+                : HugeIcons.strokeRoundedRepeat,
+            active: repeat != AudioServiceRepeatMode.none,
+            activeColor: accent,
+            onPressed: handler.cycleRepeat,
+          ),
       ],
     );
   }

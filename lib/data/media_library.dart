@@ -168,6 +168,21 @@ class MediaLibrary {
     }
   }
 
+  /// MP4 / M4B chapters, empty when there are none.
+  Future<List<({int startMs, String title})>> readChapters(Song song) async {
+    try {
+      final raw = await _channel.invokeListMethod<Map<dynamic, dynamic>>('readChapters', {'location': song.location});
+      return [
+        for (final c in raw ?? const <Map<dynamic, dynamic>>[])
+          (startMs: (c['startMs'] as num).toInt(), title: c['title'] as String? ?? ''),
+      ];
+    } on PlatformException {
+      return const [];
+    } on MissingPluginException {
+      return const [];
+    }
+  }
+
   /// `0.1.0+3`.
   Future<String> appVersion() async {
     try {
