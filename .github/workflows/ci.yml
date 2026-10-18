@@ -153,6 +153,11 @@ jobs:
               echo "keyPassword=$KEY_PASSWORD"
             } > android/key.properties
             echo "Release key installed."
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            # A release signed with the debug key could never be updated with
+            # the real key: refuse instead of publishing it.
+            echo "::error::Release builds need the ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_PASSWORD / ANDROID_KEY_ALIAS secrets."
+            exit 1
           else
             echo "::warning::No ANDROID_KEYSTORE_BASE64 secret: APKs are signed with the debug key (fine for testing, not for Play)."
           fi
