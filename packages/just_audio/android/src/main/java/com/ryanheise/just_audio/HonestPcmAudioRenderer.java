@@ -36,10 +36,14 @@ final class HonestPcmAudioRenderer extends MediaCodecAudioRenderer {
         super(context, codecAdapterFactory, mediaCodecSelector, enableDecoderFallback, eventHandler, eventListener, audioSink);
     }
 
-    /** Decoders whose float output can't be trusted. */
+    /**
+     * Decoders whose float output can't be trusted: Samsung's, and any the
+     * app caught mislabelling 16-bit PCM as float (JustAudioHooks).
+     */
     static boolean distrustsFloat(String codecName) {
         String name = codecName.toLowerCase(java.util.Locale.ROOT);
-        return name.startsWith("c2.sec.") || name.startsWith("omx.sec.");
+        return name.startsWith("c2.sec.") || name.startsWith("omx.sec.")
+            || JustAudioHooks.untrustedFloatDecoders.contains(codecName);
     }
 
     @Override
@@ -47,6 +51,7 @@ final class HonestPcmAudioRenderer extends MediaCodecAudioRenderer {
             MediaCodecInfo codecInfo, Format format, @Nullable MediaCrypto crypto, float codecOperatingRate) {
         MediaCodecAdapter.Configuration configuration =
             super.getMediaCodecConfiguration(codecInfo, format, crypto, codecOperatingRate);
+        JustAudioHooks.currentAudioDecoder = codecInfo.name;
         MediaFormat mediaFormat = configuration.mediaFormat;
         if (distrustsFloat(codecInfo.name) && mediaFormat.containsKey(MediaFormat.KEY_PCM_ENCODING)) {
             if (Build.VERSION.SDK_INT >= 29) {

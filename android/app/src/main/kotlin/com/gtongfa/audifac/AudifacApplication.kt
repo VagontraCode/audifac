@@ -27,6 +27,7 @@ class AudifacApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         com.gtongfa.audifac.dsp.BitPerfect.context = applicationContext
+        com.gtongfa.audifac.dsp.DecoderQuirks.load(applicationContext)
         JustAudioHooks.audioSinkDecorator = object : JustAudioHooks.AudioSinkDecorator {
             override fun decorate(context: Context, sink: AudioSink): AudioSink = DspAudioSink(sink)
         }

@@ -213,6 +213,31 @@ class DspAudioSinkTest {
     }
 
     @Test
+    fun sixteenBitPcmLabelledAsFloatIsReadAs16Bit() {
+        // What a Samsung decoder does: reports float, writes 16-bit.
+        val r = Recorder()
+        val sink = DspAudioSink(r.sink)
+        sink.configure(format().buildUpon().setPcmEncoding(C.ENCODING_PCM_FLOAT).build(), 0, null)
+        feed(sink, 1000, 0L, value = -8192)
+        assertEquals(1000, r.left.size)
+        assertTrue(r.left.all { abs(it + 0.25f) < 1e-3f })
+    }
+
+    @Test
+    fun realFloatInputIsLeftAlone() {
+        val r = Recorder()
+        val sink = DspAudioSink(r.sink)
+        sink.configure(format().buildUpon().setPcmEncoding(C.ENCODING_PCM_FLOAT).build(), 0, null)
+        val b = ByteBuffer.allocate(1000 * 8).order(ByteOrder.LITTLE_ENDIAN)
+        repeat(1000) { i -> val v = if (i % 2 == 0) -0.5f else 0.9f; b.putFloat(v).putFloat(v) }
+        b.flip()
+        assertTrue(sink.handleBuffer(b, 0L, 1))
+        assertEquals(1000, r.left.size)
+        assertEquals(-0.5f, r.left[0], 1e-6f)
+        assertEquals(0.9f, r.left[1], 1e-6f)
+    }
+
+    @Test
     fun speedSetBeforeTheTrackConfigures16Bit() {
         val r = Recorder()
         val sink = DspAudioSink(r.sink)

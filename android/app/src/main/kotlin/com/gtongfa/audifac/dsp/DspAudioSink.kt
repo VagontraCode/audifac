@@ -11,6 +11,7 @@ import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.ForwardingAudioSink
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
@@ -50,6 +51,10 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
 
     /** The current input buffer was taken in; waiting for the delegate to accept it all. */
     private var pending = false
+
+    // Is "float" input really float? (see checkFloatLabel)
+    private var floatLabelChecked = true
+    private var floatEvidence = 0
 
     // Crossfade.
     private var held: HeldAudio? = null
@@ -115,6 +120,8 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         val sameOutput = active && rate == inputFormat.sampleRate && channels == inputFormat.channelCount
         active = true
         encoding = inputFormat.pcmEncoding
+        floatLabelChecked = encoding != C.ENCODING_PCM_FLOAT
+        floatEvidence = 0
         channels = inputFormat.channelCount
         rate = inputFormat.sampleRate
         inFrameBytes = bytesPerSample(encoding) * channels
@@ -258,6 +265,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
 
     /** Decodes [buffer] to float, trims, processes, mixes, and appends to the held audio. */
     private fun prepareOutput(buffer: ByteBuffer, pts: Long) {
+        if (!floatLabelChecked) checkFloatLabel(buffer)
         val frames = buffer.remaining() / inFrameBytes
         ensureSamples((frames + tailFrames) * channels)
 
@@ -302,6 +310,31 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
             if (m.done) mixer = null
         }
         h.append(samples, emit, startPts)
+    }
+
+    /**
+     * Some phone decoders report float while writing 16-bit PCM (Samsung's,
+     * found on a Galaxy S24). Real float audio is finite and near ±1; 16-bit
+     * pairs read as float soon give NaN or huge values. The first seconds of
+     * each float stream are checked; on a mismatch the bytes are read as
+     * 16-bit from this buffer on, and the decoder is no longer asked for float.
+     */
+    private fun checkFloatLabel(buffer: ByteBuffer) {
+        val f = buffer.duplicate().order(ByteOrder.LITTLE_ENDIAN)
+        while (f.remaining() >= 4) {
+            val v = f.float
+            if (v.isNaN() || v.isInfinite() || abs(v) > 8f) {
+                Log.w(TAG, "\"float\" input is 16-bit PCM: reading it as such")
+                encoding = C.ENCODING_PCM_16BIT
+                inFrameBytes = 2 * channels
+                SignalPath.pcmEncoding = encoding
+                floatLabelChecked = true
+                DecoderQuirks.reportMislabelledFloat()
+                return
+            }
+            if (abs(v) > 1e-6f) floatEvidence++
+        }
+        if (floatEvidence >= FLOAT_EVIDENCE_SAMPLES) floatLabelChecked = true
     }
 
     private fun ensureSamples(size: Int) {
@@ -374,6 +407,9 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
 
     companion object {
         private const val TAG = "AudifacDsp"
+
+        /** Non-silent samples that must look like real float before the check stops. */
+        private const val FLOAT_EVIDENCE_SAMPLES = 1 shl 16
 
         fun isSupportedPcm(encoding: Int) = encoding == C.ENCODING_PCM_16BIT ||
             encoding == C.ENCODING_PCM_24BIT || encoding == C.ENCODING_PCM_32BIT ||

@@ -37,4 +37,15 @@ public final class JustAudioHooks {
      * whether decoder extensions on the classpath (e.g. FFmpeg) are used.
      */
     public static volatile int extensionRendererMode = DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF;
+
+    /**
+     * Decoders (by codec name) caught writing 16-bit PCM while reporting
+     * float: they are no longer asked for float output. The app fills and
+     * persists it.
+     */
+    public static final java.util.Set<String> untrustedFloatDecoders =
+        java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+
+    /** The audio decoder most recently configured (null for extension decoders). */
+    public static volatile String currentAudioDecoder;
 }
