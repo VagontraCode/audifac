@@ -83,6 +83,16 @@ class DspChannel {
 
   /// Crossfade length (0 = off) and the album of each queued file (no
   /// crossfade between tracks of one album).
+  /// Bit-perfect USB output when nothing needs processing; false when the
+  /// phone can't (Android < 14).
+  Future<bool> setBitPerfect(bool on) async {
+    try {
+      return await _channel.invokeMethod<bool>('setBitPerfect', on) ?? false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
   Future<void> setCrossfade(int seconds, Map<String, int> albums) =>
       _invoke('setCrossfade', {'seconds': seconds, 'albums': albums});
 

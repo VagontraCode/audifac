@@ -164,6 +164,7 @@ object SignalPath {
     @Volatile var channels = 0
     @Volatile var processing = false
     @Volatile var gainDb = 0.0
+    @Volatile var bitPerfect = false
 
     fun toMap(): Map<String, Any?> = mapOf(
         "bits" to when (pcmEncoding) {
@@ -180,5 +181,8 @@ object SignalPath {
         "processing" to processing,
         "gainDb" to gainDb,
         "crossfade" to Crossfade.seconds,
+        "bitPerfect" to bitPerfect,
+        "bitPerfectReason" to BitPerfect.reason,
+        "bitPerfectSupported" to BitPerfect.supported,
     )
 }

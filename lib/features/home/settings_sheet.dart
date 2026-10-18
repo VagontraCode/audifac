@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -159,6 +161,16 @@ class SettingsSheet extends ConsumerWidget {
                 value: settings.keepAlbumsTogether,
                 onChanged: notifier.setKeepAlbumsTogether,
               ),
+              if (Platform.isAndroid)
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  activeThumbColor: palette.onInk,
+                  activeTrackColor: palette.ink,
+                  title: Text(context.l10n.bitPerfect, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(context.l10n.bitPerfectHint),
+                  value: settings.bitPerfectUsb,
+                  onChanged: notifier.setBitPerfectUsb,
+                ),
               heading(context.l10n.tabLibrary),
               ListTile(
                 contentPadding: EdgeInsets.zero,

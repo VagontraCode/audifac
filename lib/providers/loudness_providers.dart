@@ -160,7 +160,8 @@ final volumeSyncProvider = Provider<void>((ref) {
 
 /// Crossfade length, album keys for the queue and album-aware shuffle.
 final playbackOptionsSyncProvider = Provider<void>((ref) {
-  final settings = ref.watch(settingsProvider.select((s) => (s.crossfadeSeconds, s.keepAlbumsTogether)));
+  final settings = ref.watch(settingsProvider.select((s) => (s.crossfadeSeconds, s.keepAlbumsTogether, s.bitPerfectUsb)));
+  ref.read(dspChannelProvider).setBitPerfect(settings.$3);
   final queue = ref.watch(playQueueProvider);
   ref.read(audioHandlerProvider).keepAlbumsTogether = settings.$2;
   ref.read(dspChannelProvider).setCrossfade(settings.$1, {

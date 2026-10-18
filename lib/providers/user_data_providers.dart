@@ -41,6 +41,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   void setLanguage(String code) => _update(state.copyWith(languageCode: code));
 
+  void setBitPerfectUsb(bool on) => _update(state.copyWith(bitPerfectUsb: on));
+
   /// Restore from a backup.
   void replace(AppSettings settings) => _update(settings);
 

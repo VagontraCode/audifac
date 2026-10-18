@@ -100,6 +100,11 @@ class DspChannel(private val context: Context) : MethodChannel.MethodCallHandler
                 Loudness.putGains(gains, replace = call.argument<Boolean>("replace") ?: false)
                 result.success(null)
             }
+            "setBitPerfect" -> {
+                BitPerfect.enabled = call.arguments as? Boolean ?: false
+                if (!BitPerfect.enabled) BitPerfect.release("off")
+                result.success(BitPerfect.supported)
+            }
             "setCrossfade" -> {
                 Crossfade.seconds = ((call.argument<Number>("seconds"))?.toDouble() ?: 0.0).coerceIn(0.0, 12.0)
                 @Suppress("UNCHECKED_CAST")

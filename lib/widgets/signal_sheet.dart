@@ -169,6 +169,7 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
     final gain = (p?['gainDb'] as num?)?.toDouble() ?? 0;
     final crossfade = (p?['crossfade'] as num?)?.toDouble() ?? 0;
     final processing = p?['processing'] == true;
+    final bitPerfect = p?['bitPerfect'] == true;
     String khz(int hz) => '${AudioInfo.formatSampleRate(hz)} kHz';
 
     final dspParts = [
@@ -203,12 +204,14 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
       ),
       _Step(
         title: l10n.androidMixer,
-        value: mixer == null || rate == 0
+        value: bitPerfect
+            ? l10n.bitPerfectOn
+            : mixer == null || rate == 0
             ? '—'
             : mixer == rate
                 ? l10n.noResampling(khz(mixer))
                 : l10n.resampled(khz(rate), khz(mixer)),
-        good: mixer != null && mixer == rate,
+        good: bitPerfect || (mixer != null && mixer == rate),
       ),
       _Step(
         title: l10n.output,

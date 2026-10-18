@@ -3037,6 +3037,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Songs downloaded in the Apple Music app appear automatically. To add your own files (FLAC, WAV, ALAC…), copy them into audifac with the Files app (On My iPhone → audifac) or from a computer with Finder / iTunes file sharing.'**
   String get iosFilesHint;
+
+  /// No description provided for @bitPerfect.
+  ///
+  /// In en, this message translates to:
+  /// **'Bit-perfect USB output'**
+  String get bitPerfect;
+
+  /// No description provided for @bitPerfectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Android 14+ with a USB DAC: the file\'s samples reach the DAC untouched, at their own rate, whenever the EQ, volume matching and crossfade are off.'**
+  String get bitPerfectHint;
+
+  /// No description provided for @bitPerfectOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Bypassed — bit-perfect to the USB DAC'**
+  String get bitPerfectOn;
 }
 
 class _AppLocalizationsDelegate

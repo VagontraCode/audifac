@@ -105,6 +105,20 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         SignalPath.sampleRate = rate
         SignalPath.channels = channels
 
+        // Bit-perfect USB: when our processing would change nothing, the
+        // decoder's PCM goes straight on and the mixer is set to leave it alone.
+        val untouched = Crossfade.seconds <= 0 && processor?.isPassThrough() == true
+        if (BitPerfect.enabled && untouched && BitPerfect.prepare(rate, channels, encoding)) {
+            SignalPath.bitPerfect = true
+            active = false
+            held?.clear()
+            mixer = null
+            delegate.configure(inputFormat, specifiedBufferSize, outputChannels)
+            return
+        }
+        SignalPath.bitPerfect = false
+        if (BitPerfect.active) BitPerfect.release(if (untouched) "not available" else "processing is on")
+
         val floatFormat = inputFormat.buildUpon()
             .setPcmEncoding(C.ENCODING_PCM_FLOAT)
             .setEncoderDelay(0)

@@ -489,5 +489,8 @@
   "previous": "Previous",
   "cast": "Play on a TV or speaker",
   "iosAddMusic": "Adding music",
-  "iosFilesHint": "Songs downloaded in the Apple Music app appear automatically. To add your own files (FLAC, WAV, ALAC…), copy them into audifac with the Files app (On My iPhone → audifac) or from a computer with Finder / iTunes file sharing."
+  "iosFilesHint": "Songs downloaded in the Apple Music app appear automatically. To add your own files (FLAC, WAV, ALAC…), copy them into audifac with the Files app (On My iPhone → audifac) or from a computer with Finder / iTunes file sharing.",
+  "bitPerfect": "Bit-perfect USB output",
+  "bitPerfectHint": "Android 14+ with a USB DAC: the file's samples reach the DAC untouched, at their own rate, whenever the EQ, volume matching and crossfade are off.",
+  "bitPerfectOn": "Bypassed — bit-perfect to the USB DAC"
 }

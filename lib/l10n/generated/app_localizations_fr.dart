@@ -1867,4 +1867,14 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get iosFilesHint =>
       'Les titres téléchargés dans l\'app Musique apparaissent automatiquement. Pour ajouter vos propres fichiers (FLAC, WAV, ALAC…), copiez-les dans audifac avec l\'app Fichiers (Sur mon iPhone → audifac) ou depuis un ordinateur avec le partage de fichiers du Finder / d\'iTunes.';
+
+  @override
+  String get bitPerfect => 'Sortie USB bit-perfect';
+
+  @override
+  String get bitPerfectHint =>
+      'Android 14+ avec un DAC USB : les échantillons du fichier arrivent intacts au DAC, à leur propre fréquence, dès que l\'égaliseur, l\'égalisation du volume et le fondu sont désactivés.';
+
+  @override
+  String get bitPerfectOn => 'Contourné — bit-perfect vers le DAC USB';
 }

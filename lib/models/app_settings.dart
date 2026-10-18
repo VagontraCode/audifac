@@ -102,6 +102,9 @@ class AppSettings {
   /// UI language: '' = the system's, 'en', 'fr'.
   final String languageCode;
 
+  /// Bit-perfect USB DAC output when nothing needs processing (Android 14+).
+  final bool bitPerfectUsb;
+
   const AppSettings({
     this.themeMode = ThemeMode.system,
     this.songSort = SongSort.title,
@@ -113,6 +116,7 @@ class AppSettings {
     this.keepAlbumsTogether = false,
     this.crossfadeSeconds = 0,
     this.languageCode = '',
+    this.bitPerfectUsb = false,
   });
 
   static const crossfadeChoices = [0, 2, 4, 6, 8, 12];
@@ -130,6 +134,7 @@ class AppSettings {
     bool? keepAlbumsTogether,
     int? crossfadeSeconds,
     String? languageCode,
+    bool? bitPerfectUsb,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -142,6 +147,7 @@ class AppSettings {
         keepAlbumsTogether: keepAlbumsTogether ?? this.keepAlbumsTogether,
         crossfadeSeconds: crossfadeSeconds ?? this.crossfadeSeconds,
         languageCode: languageCode ?? this.languageCode,
+        bitPerfectUsb: bitPerfectUsb ?? this.bitPerfectUsb,
       );
 
   /// Whether [folder] (or one of its parents) is excluded.
@@ -161,6 +167,7 @@ class AppSettings {
         'keepAlbumsTogether': '$keepAlbumsTogether',
         'crossfadeSeconds': '$crossfadeSeconds',
         'languageCode': languageCode,
+        'bitPerfectUsb': '$bitPerfectUsb',
       };
 
   factory AppSettings.fromKeyValues(Map<String, String> kv) {
@@ -186,6 +193,7 @@ class AppSettings {
       keepAlbumsTogether: kv['keepAlbumsTogether'] == 'true',
       crossfadeSeconds: (int.tryParse(kv['crossfadeSeconds'] ?? '') ?? 0).clamp(0, 12),
       languageCode: const {'en', 'fr'}.contains(kv['languageCode']) ? kv['languageCode']! : '',
+      bitPerfectUsb: kv['bitPerfectUsb'] == 'true',
     );
   }
 }

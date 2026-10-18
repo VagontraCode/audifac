@@ -489,5 +489,8 @@
   "previous": "Précédent",
   "cast": "Lire sur un téléviseur ou une enceinte",
   "iosAddMusic": "Ajouter de la musique",
-  "iosFilesHint": "Les titres téléchargés dans l'app Musique apparaissent automatiquement. Pour ajouter vos propres fichiers (FLAC, WAV, ALAC…), copiez-les dans audifac avec l'app Fichiers (Sur mon iPhone → audifac) ou depuis un ordinateur avec le partage de fichiers du Finder / d'iTunes."
+  "iosFilesHint": "Les titres téléchargés dans l'app Musique apparaissent automatiquement. Pour ajouter vos propres fichiers (FLAC, WAV, ALAC…), copiez-les dans audifac avec l'app Fichiers (Sur mon iPhone → audifac) ou depuis un ordinateur avec le partage de fichiers du Finder / d'iTunes.",
+  "bitPerfect": "Sortie USB bit-perfect",
+  "bitPerfectHint": "Android 14+ avec un DAC USB : les échantillons du fichier arrivent intacts au DAC, à leur propre fréquence, dès que l'égaliseur, l'égalisation du volume et le fondu sont désactivés.",
+  "bitPerfectOn": "Contourné — bit-perfect vers le DAC USB"
 }
