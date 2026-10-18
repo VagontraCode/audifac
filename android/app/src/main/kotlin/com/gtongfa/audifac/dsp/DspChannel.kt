@@ -16,6 +16,7 @@ import java.util.concurrent.Executors
  * Methods: setConfig(map), setBypass(bool), outputDevice() -> map,
  * setVolumeMatching(map), setGains({gains: {uriKey: map}, replace: bool}),
  * analyseLoudness({locations}) -> list of maps
+ * setCrossfade({seconds, albums: {uriKey: albumId}})
  * Calls Dart: outputChanged(map)
  */
 class DspChannel(private val context: Context) : MethodChannel.MethodCallHandler {
@@ -64,6 +65,13 @@ class DspChannel(private val context: Context) : MethodChannel.MethodCallHandler
                 val gains = (call.argument<Map<String, Map<*, *>>>("gains") ?: emptyMap())
                     .mapValues { Gains.fromMap(it.value) }
                 Loudness.putGains(gains, replace = call.argument<Boolean>("replace") ?: false)
+                result.success(null)
+            }
+            "setCrossfade" -> {
+                Crossfade.seconds = ((call.argument<Number>("seconds"))?.toDouble() ?: 0.0).coerceIn(0.0, 12.0)
+                @Suppress("UNCHECKED_CAST")
+                val albums = (call.argument<Map<String, Number>>("albums") ?: emptyMap()).mapValues { it.value.toLong() }
+                Crossfade.setAlbums(albums)
                 result.success(null)
             }
             "analyseLoudness" -> {

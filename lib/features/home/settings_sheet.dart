@@ -109,6 +109,38 @@ class SettingsSheet extends ConsumerWidget {
                   VolumeMatchingSheet.show(context);
                 },
               ),
+              const SizedBox(height: 8),
+              const Text('Crossfade', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<int>(
+                  showSelectedIcon: false,
+                  style: segmentedStyle,
+                  segments: [
+                    for (final s in AppSettings.crossfadeChoices)
+                      ButtonSegment(value: s, label: Text(s == 0 ? 'Off' : '$s s')),
+                  ],
+                  selected: {settings.crossfadeSeconds},
+                  onSelectionChanged: (s) => notifier.setCrossfade(s.first),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                settings.crossfadeSeconds == 0
+                    ? 'Off: songs play gaplessly, exactly as mastered.'
+                    : 'Songs blend into each other — except tracks of the same album, which stay gapless.',
+                style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                activeThumbColor: palette.onInk,
+                activeTrackColor: palette.ink,
+                title: const Text('Keep albums together when shuffling', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Shuffles whole albums; each plays in order'),
+                value: settings.keepAlbumsTogether,
+                onChanged: notifier.setKeepAlbumsTogether,
+              ),
               heading('Library'),
               ListTile(
                 contentPadding: EdgeInsets.zero,

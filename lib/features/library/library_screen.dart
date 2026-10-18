@@ -249,10 +249,34 @@ class _AlbumsTab extends ConsumerWidget {
     final palette = context.palette;
 
     return _Refreshable(
-      child: GridView.builder(
+      child: CustomScrollView(
         key: const PageStorageKey('albums'),
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: Row(
+                children: [
+                  Expanded(child: Text(pluralize(albums.length, 'album'), style: theme.textTheme.titleSmall)),
+                  PillButton(
+                    icon: HugeIcons.strokeRoundedShuffle,
+                    label: 'Shuffle albums',
+                    onPressed: albums.isEmpty
+                        ? null
+                        : () => ref.read(audioHandlerProvider).playSongs(
+                              [for (final a in albums) ...a.songs],
+                              shuffle: true,
+                              albumShuffle: true,
+                            ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            sliver: SliverGrid.builder(
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: 220,
           mainAxisSpacing: 20,
@@ -298,6 +322,9 @@ class _AlbumsTab extends ConsumerWidget {
             ),
           );
         },
+            ),
+          ),
+        ],
       ),
     );
   }

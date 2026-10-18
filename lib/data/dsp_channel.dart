@@ -57,6 +57,11 @@ class DspChannel {
         'replace': replace,
       });
 
+  /// Crossfade length (0 = off) and the album of each queued file (no
+  /// crossfade between tracks of one album).
+  Future<void> setCrossfade(int seconds, Map<String, int> albums) =>
+      _invoke('setCrossfade', {'seconds': seconds, 'albums': albums});
+
   /// Tags or an R128 measurement for each location (slow for untagged files:
   /// they are decoded).
   Future<List<Map<dynamic, dynamic>>> analyseLoudness(List<String> locations) async {

@@ -88,6 +88,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     ref.listen(dspSyncProvider, (_, _) {});
     // Volume matching settings and per-song gains for the queue.
     ref.listen(volumeSyncProvider, (_, _) {});
+    // Crossfade and album-aware shuffle.
+    ref.listen(playbackOptionsSyncProvider, (_, _) {});
     // Play counts and listening time.
     ref.listen(playTrackerProvider, (_, _) {});
     // Audiobooks & podcasts: speed and resume.

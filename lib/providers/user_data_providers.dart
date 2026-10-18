@@ -35,6 +35,10 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   void setShowLabels(bool show) => _update(state.copyWith(showLabels: show));
 
+  void setKeepAlbumsTogether(bool keep) => _update(state.copyWith(keepAlbumsTogether: keep));
+
+  void setCrossfade(int seconds) => _update(state.copyWith(crossfadeSeconds: seconds));
+
   /// Restore from a backup.
   void replace(AppSettings settings) => _update(settings);
 

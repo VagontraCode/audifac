@@ -93,6 +93,12 @@ class AppSettings {
   final bool showLabels;
   final SongFilter songFilter;
 
+  /// Shuffle keeps each album's tracks together, in order.
+  final bool keepAlbumsTogether;
+
+  /// Seconds of crossfade between songs (0 = gapless, no crossfade).
+  final int crossfadeSeconds;
+
   const AppSettings({
     this.themeMode = ThemeMode.system,
     this.songSort = SongSort.title,
@@ -101,7 +107,11 @@ class AppSettings {
     this.excludedFolders = const {},
     this.showLabels = true,
     this.songFilter = const SongFilter(),
+    this.keepAlbumsTogether = false,
+    this.crossfadeSeconds = 0,
   });
+
+  static const crossfadeChoices = [0, 2, 4, 6, 8, 12];
 
   static const minDurationChoices = [0, 15, 30, 60];
 
@@ -113,6 +123,8 @@ class AppSettings {
     Set<String>? excludedFolders,
     bool? showLabels,
     SongFilter? songFilter,
+    bool? keepAlbumsTogether,
+    int? crossfadeSeconds,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -122,6 +134,8 @@ class AppSettings {
         excludedFolders: excludedFolders ?? this.excludedFolders,
         showLabels: showLabels ?? this.showLabels,
         songFilter: songFilter ?? this.songFilter,
+        keepAlbumsTogether: keepAlbumsTogether ?? this.keepAlbumsTogether,
+        crossfadeSeconds: crossfadeSeconds ?? this.crossfadeSeconds,
       );
 
   /// Whether [folder] (or one of its parents) is excluded.
@@ -138,6 +152,8 @@ class AppSettings {
         'excludedFolders': jsonEncode(excludedFolders.toList()..sort()),
         'showLabels': '$showLabels',
         'songFilter': songFilter.encode(),
+        'keepAlbumsTogether': '$keepAlbumsTogether',
+        'crossfadeSeconds': '$crossfadeSeconds',
       };
 
   factory AppSettings.fromKeyValues(Map<String, String> kv) {
@@ -160,6 +176,8 @@ class AppSettings {
       excludedFolders: folders(),
       showLabels: kv['showLabels'] != 'false',
       songFilter: SongFilter.decode(kv['songFilter']),
+      keepAlbumsTogether: kv['keepAlbumsTogether'] == 'true',
+      crossfadeSeconds: (int.tryParse(kv['crossfadeSeconds'] ?? '') ?? 0).clamp(0, 12),
     );
   }
 }

@@ -20,12 +20,17 @@ import java.nio.ByteOrder
  * the delegate (built with float output enabled). It also performs the
  * encoder delay / padding trimming that DefaultAudioSink skips on its float
  * path, so gapless albums stay gapless.
+ *
+ * Crossfade: with [Crossfade.seconds] > 0 the last seconds of output are held
+ * back; when the next song starts (same format, not the same album) its
+ * beginning is mixed with that tail on equal-power curves.
  */
 @OptIn(UnstableApi::class)
 class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delegate) {
     private var active = false
     private var encoding = C.ENCODING_INVALID
     private var channels = 0
+    private var rate = 0
     private var inFrameBytes = 0
     private var processor: DspProcessor? = null
 
@@ -34,10 +39,25 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
     private var paddingFrames = 0
     private var tail = FloatArray(0)
     private var tailFrames = 0
+    private var tailPts = 0L
 
     private var samples = FloatArray(0)
+    private var chunk = FloatArray(0)
     private var output: ByteBuffer = ByteBuffer.allocateDirect(0)
+    private var outputPts = 0L
+
+    /** The current input buffer was taken in; waiting for the delegate to accept it all. */
     private var pending = false
+
+    // Crossfade.
+    private var held: HeldAudio? = null
+    private var mixer: FadeMixer? = null
+    private var fadeArmed = false
+
+    /** A format change: the held audio must play out before the delegate is reconfigured. */
+    private var pendingDelegateFormat: Format? = null
+
+    private fun holdFrames() = if (Crossfade.seconds > 0 && rate > 0) (Crossfade.seconds * rate).toInt() else 0
 
     override fun supportsFormat(format: Format): Boolean = delegate.supportsFormat(format)
 
@@ -54,16 +74,21 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         // A new item starts: its predecessor's held-back tail is encoder padding.
         tailFrames = 0
         pending = false
+        val previous = trackFormat
         if (!pcm) {
             active = false
             processor = null
+            held?.clear()
+            mixer = null
             delegate.configure(inputFormat, specifiedBufferSize, outputChannels)
             return
         }
         Log.i(TAG, "PCM in: encoding=${inputFormat.pcmEncoding} ${inputFormat.sampleRate} Hz × ${inputFormat.channelCount}, delay=${inputFormat.encoderDelay} padding=${inputFormat.encoderPadding} → float")
+        val sameOutput = active && rate == inputFormat.sampleRate && channels == inputFormat.channelCount
         active = true
         encoding = inputFormat.pcmEncoding
         channels = inputFormat.channelCount
+        rate = inputFormat.sampleRate
         inFrameBytes = bytesPerSample(encoding) * channels
         trimStartRemaining = inputFormat.encoderDelay
         paddingFrames = inputFormat.encoderPadding
@@ -76,12 +101,27 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         // Configured at this track's first sample: its own volume matching gain.
         trackFormat = inputFormat
         applyGain(immediate = fresh)
+
         val floatFormat = inputFormat.buildUpon()
             .setPcmEncoding(C.ENCODING_PCM_FLOAT)
             .setEncoderDelay(0)
             .setEncoderPadding(0)
             .build()
-        delegate.configure(floatFormat, 0, null)
+        val h = held
+        if (sameOutput && h != null && h.frames > 0) {
+            // The previous song's tail is held: fade into this one?
+            fadeArmed = previous != null && Crossfade.between(SourceUri.of(previous), SourceUri.of(inputFormat))
+            delegate.configure(floatFormat, 0, null)
+        } else if (h != null && h.frames > 0) {
+            // Different rate / channels: play the tail out first, unmixed.
+            fadeArmed = false
+            pendingDelegateFormat = floatFormat
+        } else {
+            fadeArmed = false
+            held = HeldAudio(channels, rate)
+            delegate.configure(floatFormat, 0, null)
+        }
+        mixer = null
     }
 
     // Same rate & channels between tracks: keep the processor (and its filter
@@ -109,30 +149,60 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
     override fun handleBuffer(buffer: ByteBuffer, presentationTimeUs: Long, encodedAccessUnitCount: Int): Boolean {
         if (!active) return delegate.handleBuffer(buffer, presentationTimeUs, encodedAccessUnitCount)
 
+        // A format change waits for the held tail to play out under the old one.
+        pendingDelegateFormat?.let { format ->
+            if (!drain(keep = 0)) return false
+            delegate.configure(format, 0, null)
+            pendingDelegateFormat = null
+            held = HeldAudio(channels, rate)
+        }
+
         if (!pending) {
             if (loudnessVersion != Loudness.version) applyGain(immediate = false)
-            prepareOutput(buffer)
+            prepareOutput(buffer, presentationTimeUs)
             pending = true
         }
-        if (!output.hasRemaining()) {
-            pending = false
-            buffer.position(buffer.limit())
-            return true
-        }
-        val consumed = delegate.handleBuffer(output, presentationTimeUs, encodedAccessUnitCount)
-        if (consumed) {
-            pending = false
-            buffer.position(buffer.limit())
-        }
-        return consumed
+        if (!drain(keep = holdFrames())) return false
+        pending = false
+        buffer.position(buffer.limit())
+        return true
     }
 
-    /** Decodes [buffer] to float, trims, processes, and fills [output]. */
-    private fun prepareOutput(buffer: ByteBuffer) {
+    /**
+     * Sends held audio to the delegate until only [keep] frames remain, one
+     * continuous run at a time (each with its own timestamp). False if the
+     * delegate is full (call again later).
+     */
+    private fun drain(keep: Int): Boolean {
+        val h = held ?: return true
+        while (true) {
+            if (output.hasRemaining()) {
+                if (!delegate.handleBuffer(output, outputPts, 1)) return false
+                if (output.hasRemaining()) return false
+            }
+            val n = h.runLength(maxOf(0, h.frames - keep))
+            if (n <= 0) return true
+            outputPts = h.frontPts()
+            if (chunk.size < n * channels) chunk = FloatArray(n * channels)
+            h.copyOut(chunk, 0, n)
+            h.drop(n)
+            val bytes = n * channels * 4
+            if (output.capacity() < bytes) output = ByteBuffer.allocateDirect(bytes * 2).order(ByteOrder.nativeOrder())
+            output.clear()
+            output.order(ByteOrder.nativeOrder())
+            output.asFloatBuffer().put(chunk, 0, n * channels)
+            output.limit(bytes)
+        }
+    }
+
+    private fun usFor(frames: Int) = frames * 1_000_000L / rate
+
+    /** Decodes [buffer] to float, trims, processes, mixes, and appends to the held audio. */
+    private fun prepareOutput(buffer: ByteBuffer, pts: Long) {
         val frames = buffer.remaining() / inFrameBytes
         ensureSamples((frames + tailFrames) * channels)
 
-        // Held-back tail of the previous buffer goes first.
+        // Held-back padding tail of the previous buffer goes first.
         System.arraycopy(tail, 0, samples, 0, tailFrames * channels)
         var count = tailFrames
 
@@ -142,6 +212,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         src.position(src.position() + skip * inFrameBytes)
         val decoded = frames - skip
         readFloats(src, samples, count * channels, decoded * channels)
+        val startPts = if (tailFrames > 0) tailPts else pts + usFor(skip)
 
         // Process only the new frames (the held tail was processed last time).
         processor?.let { p -> if (!p.isPassThrough()) p.process(samples, decoded, count * channels) }
@@ -154,15 +225,20 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         if (tail.size < hold * channels) tail = FloatArray(hold * channels)
         System.arraycopy(samples, emit * channels, tail, 0, hold * channels)
         tailFrames = hold
+        tailPts = startPts + usFor(emit)
 
-        val bytes = emit * channels * 4
-        if (output.capacity() < bytes) {
-            output = ByteBuffer.allocateDirect(bytes * 2).order(ByteOrder.nativeOrder())
+        val h = held ?: HeldAudio(channels, rate).also { held = it }
+        if (fadeArmed && emit > 0) {
+            // The previous song's tail fades out under this one's start.
+            fadeArmed = false
+            mixer = FadeMixer(h.takeAll(), channels)
+            Log.i(TAG, "crossfade into ${trackFormat?.let { SourceUri.of(it) }}")
         }
-        output.clear()
-        output.order(ByteOrder.nativeOrder())
-        output.asFloatBuffer().put(samples, 0, emit * channels)
-        output.limit(bytes)
+        mixer?.let { m ->
+            m.mix(samples, 0, emit)
+            if (m.done) mixer = null
+        }
+        h.append(samples, emit, startPts)
     }
 
     private fun ensureSamples(size: Int) {
@@ -187,14 +263,30 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
 
     override fun playToEndOfStream() {
         tailFrames = 0 // The held-back frames are encoder padding: dropped.
+        mixer = null
+        if (active && !drain(keep = 0)) return // Called again until everything is out.
         delegate.playToEndOfStream()
     }
+
+    override fun isEnded(): Boolean = (held?.frames ?: 0) == 0 && !output.hasRemaining() && delegate.isEnded()
+
+    override fun hasPendingData(): Boolean = (held?.frames ?: 0) > 0 || delegate.hasPendingData()
 
     override fun flush() {
         pending = false
         tailFrames = 0
         trimStartRemaining = 0
         processor?.reset()
+        held?.clear()
+        output.clear().limit(0)
+        mixer = null
+        fadeArmed = false
+        pendingDelegateFormat?.let { format ->
+            // Nothing left to play out: switch now.
+            delegate.configure(format, 0, null)
+            pendingDelegateFormat = null
+            held = HeldAudio(channels, rate)
+        }
         delegate.flush()
     }
 
@@ -204,6 +296,11 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         processor = null
         trackFormat = null
         active = false
+        held = null
+        output.clear().limit(0)
+        mixer = null
+        fadeArmed = false
+        pendingDelegateFormat = null
         delegate.reset()
     }
 

@@ -91,10 +91,15 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
     List<Song> songs, {
     int startIndex = 0,
     bool shuffle = false,
+    bool albumShuffle = false,
   }) async {
     if (songs.isEmpty) return;
-    final start = shuffle ? Random().nextInt(songs.length) : startIndex;
-    await _load(songs, index: start, shuffle: shuffle);
+    var start = shuffle ? Random().nextInt(songs.length) : startIndex;
+    if (shuffle && (albumShuffle || _keepAlbumsTogether)) {
+      // Albums start from their first track.
+      start = songs.indexWhere((s) => s.albumId == songs[start].albumId);
+    }
+    await _load(songs, index: start, shuffle: shuffle, albumShuffle: albumShuffle);
     _queueStarts.add(songs[_player.currentIndex ?? start]);
     unawaited(_player.play());
   }
@@ -217,10 +222,12 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
     required int index,
     Duration position = Duration.zero,
     bool shuffle = false,
+    bool albumShuffle = false,
   }) async {
     final items = songs.map(_toMediaItem).toList();
     queue.add(items);
     _shuffleOrder = QueueShuffleOrder();
+    _applyAlbumShuffle(force: albumShuffle);
 
     await _player.setShuffleModeEnabled(false);
     await _player.setAudioSources(
@@ -233,6 +240,24 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
       await _player.shuffle();
       await _player.setShuffleModeEnabled(true);
     }
+  }
+
+  /// Shuffle keeps each album's tracks together and in order.
+  bool get keepAlbumsTogether => _keepAlbumsTogether;
+  bool _keepAlbumsTogether = false;
+  set keepAlbumsTogether(bool value) {
+    _keepAlbumsTogether = value;
+    _applyAlbumShuffle();
+  }
+
+  void _applyAlbumShuffle({bool force = false}) {
+    Object? albumOf(int i) {
+      final items = queue.value;
+      if (i >= items.length) return null;
+      return items[i].extras?['albumId'];
+    }
+
+    _shuffleOrder.albumOf = (force || _keepAlbumsTogether) ? albumOf : null;
   }
 
   Future<void> _insert(List<Song> songs, InsertPlacement placement) async {

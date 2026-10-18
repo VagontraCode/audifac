@@ -157,3 +157,14 @@ final volumeSyncProvider = Provider<void>((ref) {
   scheduleMicrotask(() => ref.read(loudnessProvider.notifier).prioritise(upcoming));
   channel.setGains(gainsFor(queue.songs, known: known, library: ref.read(songsProvider)));
 });
+
+/// Crossfade length, album keys for the queue and album-aware shuffle.
+final playbackOptionsSyncProvider = Provider<void>((ref) {
+  final settings = ref.watch(settingsProvider.select((s) => (s.crossfadeSeconds, s.keepAlbumsTogether)));
+  final queue = ref.watch(playQueueProvider);
+  ref.read(audioHandlerProvider).keepAlbumsTogether = settings.$2;
+  ref.read(dspChannelProvider).setCrossfade(settings.$1, {
+    if (settings.$1 > 0)
+      for (final s in queue.songs) nativeKey(s.uri): s.albumId,
+  });
+});

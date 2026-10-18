@@ -57,6 +57,10 @@ class QueueShuffleOrder extends ShuffleOrder {
   @override
   final indices = <int>[];
 
+  /// Album of each sequence index; when set, shuffling keeps each album's
+  /// tracks together and in order (gapless albums stay gapless).
+  Object? Function(int index)? albumOf;
+
   /// Sequence index of the track playing when the next insert happens.
   int? currentIndex;
   InsertPlacement placement = InsertPlacement.end;
@@ -64,12 +68,37 @@ class QueueShuffleOrder extends ShuffleOrder {
   @override
   void shuffle({int? initialIndex}) {
     if (indices.length <= 1) return;
+    final album = albumOf;
+    if (album != null) {
+      _shuffleAlbums(album, initialIndex);
+      return;
+    }
     indices.shuffle(_random);
     if (initialIndex == null) return;
     final swapPos = indices.indexOf(initialIndex);
     if (swapPos < 0) return;
     indices[swapPos] = indices[0];
     indices[0] = initialIndex;
+  }
+
+  void _shuffleAlbums(Object? Function(int) album, int? initialIndex) {
+    final groups = <Object?, List<int>>{};
+    for (final i in [...indices]..sort()) {
+      groups.putIfAbsent(album(i), () => []).add(i);
+    }
+    final order = groups.values.toList()..shuffle(_random);
+    if (initialIndex != null) {
+      final first = order.indexWhere((g) => g.contains(initialIndex));
+      if (first >= 0) {
+        final g = order.removeAt(first);
+        // Start at the chosen track; the album's earlier tracks come last.
+        final at = g.indexOf(initialIndex);
+        order.insert(0, [...g.sublist(at), ...g.sublist(0, at)]);
+      }
+    }
+    indices
+      ..clear()
+      ..addAll(order.expand((g) => g));
   }
 
   @override
