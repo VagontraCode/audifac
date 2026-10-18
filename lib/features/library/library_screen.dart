@@ -20,6 +20,7 @@ import '../collection/collection_screen.dart';
 import '../collection/playlist_screen.dart';
 import '../collection/smart_playlist_screen.dart';
 import '../favorites/favorites_screen.dart';
+import 'folder_screen.dart';
 import 'library_gate.dart';
 import 'song_filter_bar.dart';
 
@@ -35,7 +36,7 @@ class LibraryScreen extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: DefaultTabController(
-          length: 4,
+          length: 5,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -70,6 +71,7 @@ class LibraryScreen extends ConsumerWidget {
                   Tab(text: 'ALBUMS'),
                   Tab(text: 'ARTISTS'),
                   Tab(text: 'PLAYLISTS'),
+                  Tab(text: 'FOLDERS'),
                 ],
               ),
               const SizedBox(height: 8),
@@ -82,6 +84,7 @@ class LibraryScreen extends ConsumerWidget {
                         _AlbumsTab(),
                         _ArtistsTab(),
                         PlaylistsTab(),
+                        FoldersTab(),
                       ],
                     ),
                   ),

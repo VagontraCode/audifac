@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_database.dart';
 import '../data/media_library.dart';
+import '../models/folder_tree.dart';
 import '../models/album.dart';
 import '../models/artist.dart';
 import '../models/app_settings.dart';
@@ -343,3 +344,6 @@ String _albumArtist(List<Song> songs) {
   final first = songs.first.artist;
   return songs.every((s) => s.artist == first) ? first : 'Various artists';
 }
+
+/// The library as folders (Library → Folders).
+final folderTreeProvider = Provider<FolderTree>((ref) => FolderTree.of(ref.watch(songsProvider)));
