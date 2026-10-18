@@ -149,22 +149,45 @@ Ordered so each step builds on the previous ones. Size: S ≈ hours, M ≈ a day
 | 6.3b ✅ | **AIFF + DSD** — own media3 extractors: AIFF/AIFC (PCM, sowt, fl32/fl64) and DSF/DFF → 176.4 kHz float (table-driven 512-tap FIR, ~48× real time on desktop, playback thread ~20–30 % on the G100); ID3 tags read by the app (Android ignores them) | L | verified on device |
 | 6.3c | **APE / WavPack / TTA / WMA** — need container parsing the Jellyfin build lacks: own FFmpeg build (libavformat + libavcodec) in CI, exposed as an extractor + decoder | L | NDK build job, ~10 MB per ABI |
 | 6.4 ✅ | **Volume matching** — ReplayGain tags (ID3 TXXX, Vorbis/FLAC comments, Opus R128_*, iTunes freeform, LAME header) read from ExoPlayer's own metadata + EBU R128 scan (MediaCodec decode, ~60× real time on the G100) for untagged files, cached (DB v6); Off / Track / Album / Smart, pre-amp, untagged gain, prevent clipping; album gain combined from tracks. Gain chosen at each track's first sample in the DSP sink (extractor tags every Format with its file → gapless-exact), glides 5 ms, limiter guards boosts | L | verified on device: tagged −8.3 dB, measured −11.8 / −10.6 dB per song |
-| 6.5 | **Play counts & stats** — count a play at 50 % / 4 min, last played; Stats screen (top songs/artists/albums, listening time) | M | DB v6 |
-| 6.6 | **Smart playlists** — rule builder (codec/quality, genre, artist, year, added, play count, last played, duration, source) + presets ("Lossless", "Most played", "Not played in 30 days", "Added this week") | M | 6.5, audio info |
-| 6.7 | **Sleep timer** — minutes / end of track / end of queue, gradual fade-out | S | DSP gain or player volume |
-| 6.8 | **Lyrics** — embedded (USLT / LYRICS / ©lyr) + `.lrc` beside the file; synced scrolling view in the player, tap a line to seek | M | native tag reader |
-| 6.9 | **Folder view** — browse by folder tree in Library | S | — |
-| 6.10 | **Audiobooks & podcasts** — speed (0.5–3×, pitch kept), per-book resume, `.m4b` chapters, skip ±15/30 s | M | — |
-| 6.11 | **Gapless tuning + crossfade + album shuffle** (Phase 2e) | L | DSP sink |
-| 6.12 | **Spectrum analyzer / VU meter + output info** — FFT tap in the DSP sink → player visualizer; "FLAC 24/96 → resampled 48 kHz → Bluetooth (codec)" panel | M | DSP sink |
-| 6.13 | **Home-screen widget** — artwork, title, play/pause/next | M | — |
-| 6.14 | **Android Auto** — browsable tree (recent, playlists, albums, artists) through audio_service | M | needs a car / DHU to verify |
-| 6.15 | **Translations** — move all UI text to ARB (gen-l10n), English + French | L | touches every screen |
-| 6.16 | **Last.fm scrobbling** — now playing + scrobble at 50 % / 4 min, offline queue | M | **you** register a Last.fm API key |
-| 6.17 | **Casting** — Chromecast (Cast SDK + local HTTP server for files) and DLNA/UPnP renderers | XL | Google Cast app ID (default receiver works for testing) |
-| 6.18 | **Google Play listing** — privacy policy, data-safety answers, store text, screenshots, feature graphic | M | **you** own the Play Console account ($25 once) |
-| 6.19 | **Real iOS support** — Files/Documents + Apple Music library source, AVAudioEngine EQ, background audio | XL | can't be built or tested on this Windows PC; needs a Mac or CI + a device |
-| 6.20 | **Bit-perfect USB DAC** — own USB Audio Class 2 driver (libusb) bypassing the Android mixer | XL | research spike first; few apps do this |
+| 6.5 ✅ | **Play counts & stats** — count a play at 50 % / 4 min, last played; Stats screen (top songs/artists/albums, listening time) | M | DB v6 |
+| 6.6 ✅ | **Smart playlists** — rule builder (codec/quality, genre, artist, year, added, play count, last played, duration, source) + presets ("Lossless", "Most played", "Not played in 30 days", "Added this week") | M | 6.5, audio info |
+| 6.7 ✅ | **Sleep timer** — minutes / end of track / end of queue, gradual fade-out | S | DSP gain or player volume |
+| 6.8 ✅ | **Lyrics** — embedded (USLT / LYRICS / ©lyr) + `.lrc` beside the file; synced scrolling view in the player, tap a line to seek | M | native tag reader |
+| 6.9 ✅ | **Folder view** — browse by folder tree in Library | S | — |
+| 6.10 ✅ | **Audiobooks & podcasts** — speed (0.5–3×, pitch kept), per-book resume, `.m4b` chapters, skip ±15/30 s | M | — |
+| 6.11 ✅ | **Gapless tuning + crossfade + album shuffle** (Phase 2e) | L | DSP sink |
+| 6.12 ✅ | **Spectrum analyzer / VU meter + output info** — FFT tap in the DSP sink → player visualizer; "FLAC 24/96 → resampled 48 kHz → Bluetooth (codec)" panel | M | DSP sink |
+| 6.13 ✅ | **Home-screen widget** — artwork, title, play/pause/next | M | — |
+| 6.14 ✅ | **Android Auto** — browsable tree (recent, playlists, albums, artists) through audio_service | M | needs a car / DHU to verify |
+| 6.15 ✅ | **Translations** — move all UI text to ARB (gen-l10n), English + French | L | touches every screen |
+| 6.16 ✅ | **Last.fm scrobbling** — now playing + scrobble at 50 % / 4 min, offline queue | M | **you** register a Last.fm API key |
+| 6.17 ✅ | **Casting** — Chromecast (Cast SDK + local HTTP server for files) and DLNA/UPnP renderers | XL | Google Cast app ID (default receiver works for testing) |
+| 6.18 ✅ | **Google Play listing** — privacy policy, data-safety answers, store text, screenshots, feature graphic | M | **you** own the Play Console account ($25 once) |
+| 6.19 ✅ | **Real iOS support** — Files/Documents + Apple Music library source, AVAudioEngine EQ, background audio | XL | can't be built or tested on this Windows PC; needs a Mac or CI + a device |
+| 6.20 ✅ | **Bit-perfect USB DAC** — own USB Audio Class 2 driver (libusb) bypassing the Android mixer | XL | research spike first; few apps do this |
+
+
+#### Phase 6 status (October 2026)
+All steps are implemented and committed one per step. Checked on the Nokia G100 (Android 12) unless noted:
+
+| Step | Verified on device | Not verified yet |
+|---|---|---|
+| 6.5 Stats | play counted after half the song, stats screen | — |
+| 6.6 Smart playlists | built-ins and descriptions | editor on a big library |
+| 6.7 Sleep timer | end-of-song fade + pause | long timers |
+| 6.8 Lyrics | attached .lrc, synced, tap to seek | embedded USLT / LYRICS from real files (unit-tested) |
+| 6.9 Folders | tab renders | big trees |
+| 6.10 Audiobooks | 2× speed on the float path, resume, skip buttons | .m4b chapters on a real book (parser unit-tested) |
+| 6.11 Crossfade | 4 s crossfade between two songs, seek while holding | sample-rate change mid-queue |
+| 6.12 Spectrum | analyzer, meters, signal path | — |
+| 6.13 Widget | pinned, shows artwork, next / pause work | other launchers |
+| 6.14 Android Auto | — | needs a car or the Desktop Head Unit |
+| 6.15 French | all screens switch | — |
+| 6.16 Last.fm | real API round trip (invalid key → error 10) | a real account (needs your API key) |
+| 6.17 Casting | discovery runs; DLNA flow end-to-end in a unit test | a real Chromecast / DLNA TV (none on the test Wi-Fi) |
+| 6.18 Play listing | graphics, screenshots, texts ready in `store/` | upload (your Play Console account) |
+| 6.19 iOS | — | compiled by CI only (no Mac here); needs an iPhone |
+| 6.20 Bit-perfect USB | harmless on Android 12 | Android 14+ with a USB DAC |
 
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".
@@ -186,6 +209,10 @@ Ordered so each step builds on the previous ones. Size: S ≈ hours, M ≈ a day
 - WMA / APE / WavPack / TTA / MIDI files are not listed yet (see 6.3c). AIFF and DSD (DSF/DFF, DSD64–256; not DST-compressed DFF) play through the app's own extractors.
 - Volume matching can't measure DSD / AIFF / FFmpeg-only files yet (Android's MediaCodec has no decoder): they use the "songs without loudness data" gain unless tagged. Fix: measure them through our own parsers (`DsdToPcm`, AIFF reader).
 - A song analysed while it's already playing changes level once, mid-song (5 ms glide); the next plays are right from the first sample.
+- Casting: the TV plays the original file (no EQ / volume matching); notification / headset buttons still control the phone while casting.
+- iOS: no DSP / EQ (needs an AVAudioEngine-based player), no document picker (backups are saved into Documents), no widget.
+- "Unknown artist" / "Unknown album" placeholders stay in English (they are data values).
+- Generated l10n methods take placeholders in **alphabetical** order — check call sites when adding multi-placeholder messages (`test/l10n_test.dart` covers the current ones).
 - UI rendering costs ~60–75 % of a core (raster thread) while the library is visible during playback, with any format — look at the now-playing indicator / progress animations (repaint boundaries, lower tick rate).
 - Reordering the queue is disabled while shuffling (the order is random by design); removing still works.
 - Playlists reference MediaStore ids: a song deleted from the device disappears from playlists (kept in storage, hidden).
