@@ -57,6 +57,30 @@ class DspChannel {
         'replace': replace,
       });
 
+  /// What the DSP sink is doing and where audio goes (see `SignalPath.kt`).
+  Future<Map<String, dynamic>?> signalPath() async {
+    try {
+      return await _channel.invokeMapMethod<String, dynamic>('signalPath');
+    } on MissingPluginException {
+      return null;
+    }
+  }
+
+  static const _visualizer = EventChannel('audifac/visualizer');
+
+  /// ~30 frames / s of spectrum bands and levels (dBFS) while listened to.
+  Stream<VisualizerFrame> get visualizer => _visualizer.receiveBroadcastStream().map((e) {
+        final m = e as Map;
+        double d(String k) => (m[k] as num).toDouble();
+        return VisualizerFrame(
+          bands: [for (final b in m['bands'] as List) (b as num).toDouble()],
+          peakL: d('peakL'),
+          peakR: d('peakR'),
+          rmsL: d('rmsL'),
+          rmsR: d('rmsR'),
+        );
+      });
+
   /// Crossfade length (0 = off) and the album of each queued file (no
   /// crossfade between tracks of one album).
   Future<void> setCrossfade(int seconds, Map<String, int> albums) =>
@@ -89,4 +113,16 @@ class DspChannel {
       // Tests / non-Android.
     }
   }
+}
+
+/// One visualizer frame: 32 log-spaced bands (30 Hz – 20 kHz) and per-channel
+/// peak / RMS, all in dBFS.
+class VisualizerFrame {
+  const VisualizerFrame({required this.bands, required this.peakL, required this.peakR, required this.rmsL, required this.rmsR});
+
+  final List<double> bands;
+  final double peakL;
+  final double peakR;
+  final double rmsL;
+  final double rmsR;
 }

@@ -15,6 +15,9 @@ import '../../providers/user_data_providers.dart';
 import '../../widgets/artwork.dart';
 import '../../widgets/seek_bar.dart';
 import '../../widgets/lyrics_sheet.dart';
+import '../../widgets/signal_sheet.dart';
+import '../../widgets/song_labels.dart';
+import '../../providers/audio_info_providers.dart';
 import '../../widgets/sleep_timer_sheet.dart';
 import '../../widgets/spoken_widgets.dart';
 import '../../providers/spoken_providers.dart';
@@ -381,6 +384,17 @@ class _TrackInfo extends ConsumerWidget {
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleMedium?.copyWith(color: palette.inkMuted, fontWeight: FontWeight.w500),
                 ),
+                if (song != null) ...[
+                  const SizedBox(height: 8),
+                  Semantics(
+                    button: true,
+                    label: 'Signal path and spectrum',
+                    child: GestureDetector(
+                      onTap: () => SignalSheet.show(context),
+                      child: QualityBadge(info: ref.watch(songAudioInfoProvider(song)), large: true),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

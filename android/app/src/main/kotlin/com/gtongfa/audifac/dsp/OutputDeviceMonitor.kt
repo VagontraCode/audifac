@@ -30,6 +30,17 @@ class OutputDeviceMonitor(context: Context, private val onChange: (Map<String, A
 
     fun current(): Map<String, Any?> = describe(activeDevice())
 
+    /// The device plus what it can take, and the rate Android's mixer runs at.
+    fun details(): Map<String, Any?> {
+        val device = activeDevice()
+        val mixer = audioManager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)?.toIntOrNull()
+        return describe(device) + mapOf(
+            "mixerRate" to mixer,
+            "deviceRates" to (device?.sampleRates?.toList() ?: emptyList()),
+            "deviceChannels" to (device?.channelCounts?.maxOrNull()),
+        )
+    }
+
     private fun check() {
         val now = current()
         if (now != last) {

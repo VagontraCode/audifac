@@ -6,6 +6,7 @@ import android.os.Looper
 import android.os.Process
 import android.util.Log
 import io.flutter.plugin.common.BinaryMessenger
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.util.concurrent.Executors
@@ -39,6 +40,37 @@ class DspChannel(private val context: Context) : MethodChannel.MethodCallHandler
     fun register(messenger: BinaryMessenger) {
         channel = MethodChannel(messenger, "audifac/dsp")
         channel.setMethodCallHandler(this)
+        EventChannel(messenger, "audifac/visualizer").setStreamHandler(object : EventChannel.StreamHandler {
+            private val tick = object : Runnable {
+                override fun run() {
+                    val sink = events ?: return
+                    Visualizer.snapshot()?.let { s ->
+                        sink.success(
+                            mapOf(
+                                "bands" to s.bands.map { it.toDouble() },
+                                "peakL" to s.peakL.toDouble(), "peakR" to s.peakR.toDouble(),
+                                "rmsL" to s.rmsL.toDouble(), "rmsR" to s.rmsR.toDouble(),
+                            ),
+                        )
+                    }
+                    mainHandler.postDelayed(this, 33)
+                }
+            }
+            private var events: EventChannel.EventSink? = null
+
+            override fun onListen(arguments: Any?, sink: EventChannel.EventSink) {
+                events = sink
+                Visualizer.enabled = true
+                mainHandler.post(tick)
+            }
+
+            override fun onCancel(arguments: Any?) {
+                events = null
+                Visualizer.enabled = false
+                Visualizer.reset()
+                mainHandler.removeCallbacks(tick)
+            }
+        })
         monitor.start()
     }
 
@@ -57,6 +89,7 @@ class DspChannel(private val context: Context) : MethodChannel.MethodCallHandler
                 result.success(null)
             }
             "outputDevice" -> result.success(monitor.current())
+            "signalPath" -> result.success(SignalPath.toMap() + mapOf("output" to monitor.details()))
             "setVolumeMatching" -> {
                 Loudness.update(VolumeMatching.fromMap(call.arguments as? Map<*, *> ?: emptyMap<String, Any?>()))
                 result.success(null)

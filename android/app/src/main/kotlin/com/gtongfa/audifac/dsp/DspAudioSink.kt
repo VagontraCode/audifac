@@ -101,6 +101,9 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         // Configured at this track's first sample: its own volume matching gain.
         trackFormat = inputFormat
         applyGain(immediate = fresh)
+        SignalPath.pcmEncoding = encoding
+        SignalPath.sampleRate = rate
+        SignalPath.channels = channels
 
         val floatFormat = inputFormat.buildUpon()
             .setPcmEncoding(C.ENCODING_PCM_FLOAT)
@@ -139,6 +142,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         val gains = Loudness.gainsFor(format)
         val linear = Loudness.settings.linearGain(gains)
         processor?.setGain(linear, immediate)
+        SignalPath.gainDb = 20 * kotlin.math.log10(linear)
         val changed = linear != loggedGain
         loggedGain = linear
         if (changed && Loudness.settings.mode != VolumeMatching.Mode.OFF) {
@@ -186,6 +190,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
             if (chunk.size < n * channels) chunk = FloatArray(n * channels)
             h.copyOut(chunk, 0, n)
             h.drop(n)
+            Visualizer.feed(chunk, n, channels, rate, outputPts)
             val bytes = n * channels * 4
             if (output.capacity() < bytes) output = ByteBuffer.allocateDirect(bytes * 2).order(ByteOrder.nativeOrder())
             output.clear()
@@ -215,7 +220,11 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         val startPts = if (tailFrames > 0) tailPts else pts + usFor(skip)
 
         // Process only the new frames (the held tail was processed last time).
-        processor?.let { p -> if (!p.isPassThrough()) p.process(samples, decoded, count * channels) }
+        processor?.let { p ->
+            val processing = !p.isPassThrough()
+            SignalPath.processing = processing
+            if (processing) p.process(samples, decoded, count * channels)
+        }
         count += decoded
 
         // Keep the last [paddingFrames] back: if the stream ends here they are
@@ -267,6 +276,9 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         if (active && !drain(keep = 0)) return // Called again until everything is out.
         delegate.playToEndOfStream()
     }
+
+    override fun getCurrentPositionUs(sourceEnded: Boolean): Long =
+        delegate.getCurrentPositionUs(sourceEnded).also { if (active) Visualizer.playheadUs = it }
 
     override fun isEnded(): Boolean = (held?.frames ?: 0) == 0 && !output.hasRemaining() && delegate.isEnded()
 
