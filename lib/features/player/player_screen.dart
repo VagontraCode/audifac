@@ -15,6 +15,10 @@ import '../../providers/user_data_providers.dart';
 import '../../widgets/artwork.dart';
 import '../../widgets/seek_bar.dart';
 import '../../widgets/lyrics_sheet.dart';
+import '../../widgets/cast_sheet.dart';
+import '../../providers/cast_provider.dart';
+import '../../cast/cast_target.dart';
+import '../../core/format.dart';
 import '../../widgets/signal_sheet.dart';
 import '../../widgets/song_labels.dart';
 import '../../providers/audio_info_providers.dart';
@@ -161,7 +165,21 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
                             const Spacer(),
                             _TrackInfo(item: item, songId: songId),
                             const SizedBox(height: 24),
-                            SeekBar(duration: item.duration, color: accent),
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final cast = ref.watch(castProvider);
+                                if (!cast.active) return SeekBar(duration: item.duration, color: accent);
+                                return ListTile(
+                                  onTap: () => CastSheet.show(context),
+                                  leading: HugeIcon(icon: HugeIcons.strokeRoundedCast, color: accent, size: 24),
+                                  title: Text(context.l10n.castingTo(cast.target!.name),
+                                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                                  subtitle: Text(
+                                    '${formatDuration(cast.status.position)} / ${formatDuration(cast.status.duration ?? item.duration ?? Duration.zero)}',
+                                  ),
+                                );
+                              },
+                            ),
                             const SizedBox(height: 20),
                             _Controls(accent: accent, onAccent: onAccent),
                             const SizedBox(height: 18),
@@ -253,6 +271,16 @@ class _Header extends StatelessWidget {
                   ),
               ],
             ),
+          ),
+          Consumer(
+            builder: (context, ref, _) {
+              final casting = ref.watch(castProvider.select((s) => s.active));
+              return IconButton(
+                tooltip: context.l10n.cast,
+                onPressed: () => CastSheet.show(context),
+                icon: HugeIcon(icon: HugeIcons.strokeRoundedCast, color: casting ? palette.hiRes : palette.ink, size: 24),
+              );
+            },
           ),
           IconButton(
             tooltip: context.l10n.lyrics,
@@ -422,13 +450,17 @@ class _Controls extends ConsumerWidget {
     final handler = ref.read(audioHandlerProvider);
     final palette = context.palette;
     final state = ref.watch(playbackStateProvider).value;
-    final playing = state?.playing ?? false;
+    final cast = ref.watch(castProvider);
+    final castNotifier = ref.read(castProvider.notifier);
+    final playing = cast.active ? cast.status.playback == CastPlayback.playing : (state?.playing ?? false);
     final shuffle = state?.shuffleMode == AudioServiceShuffleMode.all;
     final repeat = state?.repeatMode ?? AudioServiceRepeatMode.none;
     final spoken = ref.watch(currentIsLongFormProvider);
     void skip(int seconds) {
-      final target = handler.position + Duration(seconds: seconds);
-      handler.seek(target < Duration.zero ? Duration.zero : target);
+      final from = cast.active ? cast.status.position : handler.position;
+      var target = from + Duration(seconds: seconds);
+      if (target < Duration.zero) target = Duration.zero;
+      cast.active ? castNotifier.seek(target) : handler.seek(target);
     }
 
     return Row(
@@ -451,13 +483,13 @@ class _Controls extends ConsumerWidget {
             onPressed: handler.toggleShuffle,
           ),
         _PressScale(
-          onTap: handler.skipToPrevious,
+          onTap: cast.active ? castNotifier.previous : handler.skipToPrevious,
           child: HugeIcon(icon: HugeIcons.strokeRoundedPrevious, color: palette.ink, size: 36),
         ),
         _PressScale(
           onTap: () {
             HapticFeedback.mediumImpact();
-            handler.togglePlayPause();
+            cast.active ? castNotifier.togglePlay() : handler.togglePlayPause();
           },
           child: Container(
             width: 76,
@@ -484,7 +516,7 @@ class _Controls extends ConsumerWidget {
           ),
         ),
         _PressScale(
-          onTap: handler.skipToNext,
+          onTap: cast.active ? castNotifier.next : handler.skipToNext,
           child: HugeIcon(icon: HugeIcons.strokeRoundedNext, color: palette.ink, size: 36),
         ),
         if (spoken)

@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 import '../l10n/l10n.dart';
+import '../providers/cast_provider.dart';
+import '../cast/cast_target.dart';
 
 import '../core/theme/app_colors.dart';
 import '../features/player/player_screen.dart';
@@ -41,7 +43,9 @@ class _MiniPlayerBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final handler = ref.read(audioHandlerProvider);
-    final playing = ref.watch(isPlayingProvider);
+    final cast = ref.watch(castProvider);
+    final castNotifier = ref.read(castProvider.notifier);
+    final playing = cast.active ? cast.status.playback == CastPlayback.playing : ref.watch(isPlayingProvider);
     final theme = Theme.of(context);
     final palette = context.palette;
     final fg = palette.onElevated;
@@ -53,7 +57,7 @@ class _MiniPlayerBar extends ConsumerWidget {
       },
       onHorizontalDragEnd: (d) {
         final v = d.primaryVelocity ?? 0;
-        if (v < -300) handler.skipToNext();
+        if (v < -300) cast.active ? castNotifier.next() : handler.skipToNext();
         if (v > 300) handler.skipToPrevious();
       },
       child: Container(
@@ -123,7 +127,7 @@ class _MiniPlayerBar extends ConsumerWidget {
                     tooltip: playing ? context.l10n.pause : context.l10n.play,
                     onPressed: () {
                       HapticFeedback.selectionClick();
-                      handler.togglePlayPause();
+                      cast.active ? castNotifier.togglePlay() : handler.togglePlayPause();
                     },
                     icon: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 200),
@@ -138,7 +142,7 @@ class _MiniPlayerBar extends ConsumerWidget {
                   ),
                   IconButton(
                     tooltip: context.l10n.next,
-                    onPressed: handler.skipToNext,
+                    onPressed: cast.active ? castNotifier.next : handler.skipToNext,
                     icon: HugeIcon(icon: HugeIcons.strokeRoundedNext, color: fg, size: 24),
                   ),
                 ],

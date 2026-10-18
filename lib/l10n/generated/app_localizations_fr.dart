@@ -1828,4 +1828,36 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get lastFmOff => 'Non connecté';
+
+  @override
+  String get castTitle => 'Lire sur…';
+
+  @override
+  String get castIntro =>
+      'Téléviseurs, Chromecast et enceintes réseau sur ce Wi-Fi. L\'appareil lit le fichier d\'origine (l\'égaliseur et l\'égalisation du volume de l\'app ne s\'appliquent pas).';
+
+  @override
+  String castingTo(Object device) {
+    return 'Lecture sur $device';
+  }
+
+  @override
+  String get castingHint =>
+      'Le téléphone reste en pause ; la file continue sur l\'appareil.';
+
+  @override
+  String get noCastDevices =>
+      'Rien trouvé. Vérifiez que le téléviseur ou l\'enceinte est allumé et sur le même Wi-Fi.';
+
+  @override
+  String get searchAgain => 'Rechercher à nouveau';
+
+  @override
+  String get playOnPhone => 'Lire sur ce téléphone';
+
+  @override
+  String get previous => 'Précédent';
+
+  @override
+  String get cast => 'Lire sur un téléviseur ou une enceinte';
 }

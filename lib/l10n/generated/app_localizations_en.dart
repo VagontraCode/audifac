@@ -1793,4 +1793,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lastFmOff => 'Not connected';
+
+  @override
+  String get castTitle => 'Play on…';
+
+  @override
+  String get castIntro =>
+      'TVs, Chromecasts and network speakers on this Wi-Fi. The device plays the original file (the app\'s EQ and volume matching don\'t apply).';
+
+  @override
+  String castingTo(Object device) {
+    return 'Playing on $device';
+  }
+
+  @override
+  String get castingHint =>
+      'The phone stays paused; the queue continues on the device.';
+
+  @override
+  String get noCastDevices =>
+      'Nothing found. Check that the TV or speaker is on and on the same Wi-Fi.';
+
+  @override
+  String get searchAgain => 'Search again';
+
+  @override
+  String get playOnPhone => 'Play on this phone';
+
+  @override
+  String get previous => 'Previous';
+
+  @override
+  String get cast => 'Play on a TV or speaker';
 }

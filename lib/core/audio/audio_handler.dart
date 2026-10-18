@@ -187,6 +187,13 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
     }
   }
 
+  /// Goes to [index] / [position] without starting playback (casting keeps
+  /// the local queue in step with the TV this way).
+  Future<void> moveTo(int index, [Duration position = Duration.zero]) async {
+    if (index < 0 || index >= queue.value.length) return;
+    await _player.seek(position, index: index);
+  }
+
   @override
   Future<void> skipToQueueItem(int index) async {
     if (index < 0 || index >= queue.value.length) return;

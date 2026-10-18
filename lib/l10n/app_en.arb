@@ -478,5 +478,14 @@
   "lastFmUser": "Last.fm username",
   "lastFmPassword": "Password",
   "lastFmConnect": "Connect",
-  "lastFmOff": "Not connected"
+  "lastFmOff": "Not connected",
+  "castTitle": "Play on…",
+  "castIntro": "TVs, Chromecasts and network speakers on this Wi-Fi. The device plays the original file (the app's EQ and volume matching don't apply).",
+  "castingTo": "Playing on {device}",
+  "castingHint": "The phone stays paused; the queue continues on the device.",
+  "noCastDevices": "Nothing found. Check that the TV or speaker is on and on the same Wi-Fi.",
+  "searchAgain": "Search again",
+  "playOnPhone": "Play on this phone",
+  "previous": "Previous",
+  "cast": "Play on a TV or speaker"
 }

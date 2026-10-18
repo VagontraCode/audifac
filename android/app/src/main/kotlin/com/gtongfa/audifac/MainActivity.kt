@@ -17,6 +17,7 @@ class MainActivity : AudioServiceActivity() {
         }
         DspChannel(applicationContext).register(flutterEngine.dartExecutor.binaryMessenger)
         PlayerWidget.register(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
+        NetChannel.register(applicationContext, flutterEngine.dartExecutor.binaryMessenger)
     }
 
     @Deprecated("Needed for the system folder picker result")

@@ -478,5 +478,14 @@
   "lastFmUser": "Nom d'utilisateur Last.fm",
   "lastFmPassword": "Mot de passe",
   "lastFmConnect": "Se connecter",
-  "lastFmOff": "Non connecté"
+  "lastFmOff": "Non connecté",
+  "castTitle": "Lire sur…",
+  "castIntro": "Téléviseurs, Chromecast et enceintes réseau sur ce Wi-Fi. L'appareil lit le fichier d'origine (l'égaliseur et l'égalisation du volume de l'app ne s'appliquent pas).",
+  "castingTo": "Lecture sur {device}",
+  "castingHint": "Le téléphone reste en pause ; la file continue sur l'appareil.",
+  "noCastDevices": "Rien trouvé. Vérifiez que le téléviseur ou l'enceinte est allumé et sur le même Wi-Fi.",
+  "searchAgain": "Rechercher à nouveau",
+  "playOnPhone": "Lire sur ce téléphone",
+  "previous": "Précédent",
+  "cast": "Lire sur un téléviseur ou une enceinte"
 }

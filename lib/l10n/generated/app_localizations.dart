@@ -2971,6 +2971,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not connected'**
   String get lastFmOff;
+
+  /// No description provided for @castTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Play on…'**
+  String get castTitle;
+
+  /// No description provided for @castIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'TVs, Chromecasts and network speakers on this Wi-Fi. The device plays the original file (the app\'s EQ and volume matching don\'t apply).'**
+  String get castIntro;
+
+  /// No description provided for @castingTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Playing on {device}'**
+  String castingTo(Object device);
+
+  /// No description provided for @castingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The phone stays paused; the queue continues on the device.'**
+  String get castingHint;
+
+  /// No description provided for @noCastDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found. Check that the TV or speaker is on and on the same Wi-Fi.'**
+  String get noCastDevices;
+
+  /// No description provided for @searchAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Search again'**
+  String get searchAgain;
+
+  /// No description provided for @playOnPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Play on this phone'**
+  String get playOnPhone;
+
+  /// No description provided for @previous.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get previous;
+
+  /// No description provided for @cast.
+  ///
+  /// In en, this message translates to:
+  /// **'Play on a TV or speaker'**
+  String get cast;
 }
 
 class _AppLocalizationsDelegate
