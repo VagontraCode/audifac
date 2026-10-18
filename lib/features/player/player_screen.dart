@@ -14,6 +14,7 @@ import '../../providers/player_providers.dart';
 import '../../providers/user_data_providers.dart';
 import '../../widgets/artwork.dart';
 import '../../widgets/seek_bar.dart';
+import '../../widgets/sleep_timer_sheet.dart';
 import '../../widgets/song_actions_sheet.dart';
 import '../equalizer/equalizer_screen.dart';
 import '../equalizer/quick_eq_sheet.dart';
@@ -161,7 +162,14 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
                             const SizedBox(height: 20),
                             _Controls(accent: accent, onAccent: onAccent),
                             const SizedBox(height: 18),
-                            const _EqChip(),
+                            const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(child: _EqChip()),
+                                SizedBox(width: 8),
+                                SleepChip(),
+                              ],
+                            ),
                             const Spacer(),
                           ],
                         ),

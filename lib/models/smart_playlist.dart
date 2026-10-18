@@ -86,7 +86,19 @@ class SmartRule {
         SmartKind.text => SmartRule(field, SmartOp.contains),
       };
 
-  String describe() => '${field.label} ${op.label}${op.needsValue && value.isNotEmpty ? ' $value' : ''}';
+  String describe() {
+    final shown = field.kind == SmartKind.choice
+        ? field.choices(const []).where((c) => c.$1 == value).firstOrNull?.$2 ?? value
+        : value;
+    return switch (op) {
+      SmartOp.within => '${field.label} in the last $value days',
+      SmartOp.notWithin => '${field.label} over $value days ago',
+      SmartOp.never => field == SmartField.lastPlayed ? 'Never played' : '${field.label} never',
+      SmartOp.yes => field.label,
+      SmartOp.no => 'Not ${field.label.toLowerCase()}',
+      _ => '${field.label} ${op.label}${shown.isEmpty ? '' : ' $shown'}',
+    };
+  }
 
   Map<String, Object?> toJson() => {'field': field.name, 'op': op.name, 'value': value};
 

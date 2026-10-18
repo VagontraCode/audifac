@@ -41,6 +41,15 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
   Stream<Duration> get positionStream => _player.positionStream;
   Duration get position => _player.position;
 
+  /// Current item's length, when known.
+  Duration? get duration => _player.duration;
+
+  /// Index of the current item in the source order.
+  int? get currentIndex => _player.currentIndex;
+
+  /// Player volume (0–1), used for fades; the DSP gain is separate.
+  Future<void> setVolume(double volume) => _player.setVolume(volume.clamp(0, 1).toDouble());
+
   /// Human-readable messages about tracks that could not be played.
   Stream<String> get errors => _errors.stream;
 
