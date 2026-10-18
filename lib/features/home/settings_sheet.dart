@@ -13,6 +13,7 @@ import '../equalizer/equalizer_screen.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/loudness_providers.dart';
 import '../../providers/user_data_providers.dart';
+import '../../providers/widget_provider.dart';
 import 'folders_screen.dart';
 import 'volume_matching_sheet.dart';
 
@@ -208,6 +209,19 @@ class SettingsSheet extends ConsumerWidget {
               Text(
                 'Ringtones, alarms and notification sounds are always hidden.',
                 style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: HugeIcon(icon: HugeIcons.strokeRoundedDashboardSquare02, color: palette.ink, size: 22),
+                title: const Text('Add player widget to home screen', style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  if (!await pinHomeWidget()) {
+                    messenger.showSnackBar(const SnackBar(
+                      content: Text('Long-press your home screen → Widgets → audifac'),
+                    ));
+                  }
+                },
               ),
               heading('Backup'),
               ListTile(
