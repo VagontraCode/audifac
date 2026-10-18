@@ -4,6 +4,7 @@ import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.Metadata
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.exoplayer.audio.AudioSink
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -23,17 +24,30 @@ class DspAudioSinkTest {
         val left = ArrayList<Float>()
         val pts = ArrayList<Pair<Int, Long>>() // (sample index where the buffer starts, pts)
         var acceptLimit = Int.MAX_VALUE // buffers accepted before refusing (backpressure test)
+        val encodings = ArrayList<Int>() // each configure's PCM encoding
 
         val sink: AudioSink = Proxy.newProxyInstance(AudioSink::class.java.classLoader, arrayOf(AudioSink::class.java)) { _, m, args ->
             when (m.name) {
+                "configure" -> {
+                    encodings += (args[0] as Format).pcmEncoding
+                    null
+                }
                 "handleBuffer" -> {
                     if (acceptLimit-- <= 0) return@newProxyInstance false
                     val b = (args[0] as ByteBuffer).order(ByteOrder.nativeOrder())
                     pts += left.size to (args[1] as Long)
-                    val f = b.asFloatBuffer()
-                    while (f.hasRemaining()) {
-                        left += f.get()
-                        f.get() // right
+                    if (encodings.lastOrNull() == C.ENCODING_PCM_16BIT) {
+                        val s = b.asShortBuffer()
+                        while (s.hasRemaining()) {
+                            left += s.get() / 32768f
+                            s.get() // right
+                        }
+                    } else {
+                        val f = b.asFloatBuffer()
+                        while (f.hasRemaining()) {
+                            left += f.get()
+                            f.get() // right
+                        }
                     }
                     b.position(b.limit())
                     true
@@ -180,5 +194,30 @@ class DspAudioSinkTest {
         b.rewind()
         assertTrue(sink.handleBuffer(b, pts, 1))
         assertEquals(4000, r.left.size)
+    }
+
+    @Test
+    fun changedSpeedSwitchesTheDelegateTo16BitAndBack() {
+        val r = Recorder()
+        val sink = DspAudioSink(r.sink)
+        sink.configure(format(), 0, null)
+        feed(sink, 1000, 0L, value = 8192)
+        sink.setPlaybackParameters(PlaybackParameters(1.5f))
+        feed(sink, 1000, 1000 * 1_000_000L / rate, value = 8192)
+        sink.setPlaybackParameters(PlaybackParameters.DEFAULT)
+        feed(sink, 1000, 2000 * 1_000_000L / rate, value = 8192)
+        // Float, then 16-bit for ExoPlayer's Sonic, then float again: nothing lost, same level.
+        assertEquals(listOf(C.ENCODING_PCM_FLOAT, C.ENCODING_PCM_16BIT, C.ENCODING_PCM_FLOAT), r.encodings)
+        assertEquals(3000, r.left.size)
+        assertTrue(r.left.all { abs(it - 0.25f) < 1e-3f })
+    }
+
+    @Test
+    fun speedSetBeforeTheTrackConfigures16Bit() {
+        val r = Recorder()
+        val sink = DspAudioSink(r.sink)
+        sink.setPlaybackParameters(PlaybackParameters(0.8f))
+        sink.configure(format(), 0, null)
+        assertEquals(listOf(C.ENCODING_PCM_16BIT), r.encodings)
     }
 }

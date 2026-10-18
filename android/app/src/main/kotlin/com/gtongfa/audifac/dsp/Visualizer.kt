@@ -166,6 +166,9 @@ object SignalPath {
     @Volatile var gainDb = 0.0
     @Volatile var bitPerfect = false
 
+    /** What the AudioTrack gets: float, or 16-bit while the speed is changed. */
+    @Volatile var outputEncoding = androidx.media3.common.C.ENCODING_PCM_FLOAT
+
     fun toMap(): Map<String, Any?> = mapOf(
         "bits" to when (pcmEncoding) {
             androidx.media3.common.C.ENCODING_PCM_8BIT -> 8
@@ -182,6 +185,7 @@ object SignalPath {
         "gainDb" to gainDb,
         "crossfade" to Crossfade.seconds,
         "bitPerfect" to bitPerfect,
+        "output16" to (outputEncoding == androidx.media3.common.C.ENCODING_PCM_16BIT),
         "bitPerfectReason" to BitPerfect.reason,
         "bitPerfectSupported" to BitPerfect.supported,
     )

@@ -5,11 +5,13 @@ import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.ForwardingAudioSink
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.math.roundToInt
 
 /**
  * Sits between the decoder and ExoPlayer's DefaultAudioSink.
@@ -56,6 +58,32 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
 
     /** A format change: the held audio must play out before the delegate is reconfigured. */
     private var pendingDelegateFormat: Format? = null
+
+    /**
+     * What the delegate is configured with: float, or 16-bit while the speed
+     * or pitch is changed (only then does DefaultAudioSink run its Sonic
+     * speed processor; asking the AudioTrack to change speed distorts on some
+     * phones, e.g. Samsung).
+     */
+    private var delegateFormat: Format? = null
+    private var outEncoding = C.ENCODING_PCM_FLOAT
+    private var playbackParameters = PlaybackParameters.DEFAULT
+
+    private fun wantedEncoding() =
+        if (playbackParameters == PlaybackParameters.DEFAULT) C.ENCODING_PCM_FLOAT else C.ENCODING_PCM_16BIT
+
+    private fun configureDelegate(format: Format) {
+        val out = format.buildUpon().setPcmEncoding(wantedEncoding()).build()
+        delegate.configure(out, 0, null)
+        delegateFormat = out
+        outEncoding = out.pcmEncoding
+        SignalPath.outputEncoding = outEncoding
+    }
+
+    override fun setPlaybackParameters(playbackParameters: PlaybackParameters) {
+        this.playbackParameters = playbackParameters
+        delegate.setPlaybackParameters(playbackParameters)
+    }
 
     private fun holdFrames() = if (Crossfade.seconds > 0 && rate > 0) (Crossfade.seconds * rate).toInt() else 0
 
@@ -107,7 +135,8 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
 
         // Bit-perfect USB: when our processing would change nothing, the
         // decoder's PCM goes straight on and the mixer is set to leave it alone.
-        val untouched = Crossfade.seconds <= 0 && processor?.isPassThrough() == true
+        val untouched = Crossfade.seconds <= 0 && processor?.isPassThrough() == true &&
+            playbackParameters == PlaybackParameters.DEFAULT
         if (BitPerfect.enabled && untouched && BitPerfect.prepare(rate, channels, encoding)) {
             SignalPath.bitPerfect = true
             active = false
@@ -128,7 +157,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         if (sameOutput && h != null && h.frames > 0) {
             // The previous song's tail is held: fade into this one?
             fadeArmed = previous != null && Crossfade.between(SourceUri.of(previous), SourceUri.of(inputFormat))
-            delegate.configure(floatFormat, 0, null)
+            configureDelegate(floatFormat)
         } else if (h != null && h.frames > 0) {
             // Different rate / channels: play the tail out first, unmixed.
             fadeArmed = false
@@ -136,7 +165,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         } else {
             fadeArmed = false
             held = HeldAudio(channels, rate)
-            delegate.configure(floatFormat, 0, null)
+            configureDelegate(floatFormat)
         }
         mixer = null
     }
@@ -170,9 +199,15 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         // A format change waits for the held tail to play out under the old one.
         pendingDelegateFormat?.let { format ->
             if (!drain(keep = 0)) return false
-            delegate.configure(format, 0, null)
+            configureDelegate(format)
             pendingDelegateFormat = null
             held = HeldAudio(channels, rate)
+        }
+
+        // The speed changed: switch the delegate between float and 16-bit
+        // once the bytes already prepared in the old encoding are taken.
+        if (wantedEncoding() != outEncoding && !output.hasRemaining()) {
+            delegateFormat?.let { configureDelegate(it) }
         }
 
         if (!pending) {
@@ -205,11 +240,16 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
             h.copyOut(chunk, 0, n)
             h.drop(n)
             Visualizer.feed(chunk, n, channels, rate, outputPts)
-            val bytes = n * channels * 4
+            val count = n * channels
+            val bytes = count * (if (outEncoding == C.ENCODING_PCM_16BIT) 2 else 4)
             if (output.capacity() < bytes) output = ByteBuffer.allocateDirect(bytes * 2).order(ByteOrder.nativeOrder())
             output.clear()
             output.order(ByteOrder.nativeOrder())
-            output.asFloatBuffer().put(chunk, 0, n * channels)
+            if (outEncoding == C.ENCODING_PCM_16BIT) {
+                for (i in 0 until count) output.putShort(i * 2, toPcm16(chunk[i]))
+            } else {
+                output.asFloatBuffer().put(chunk, 0, count)
+            }
             output.limit(bytes)
         }
     }
@@ -314,6 +354,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
             held = HeldAudio(channels, rate)
         }
         delegate.flush()
+        if (active && wantedEncoding() != outEncoding) delegateFormat?.let { configureDelegate(it) }
     }
 
     override fun reset() {
@@ -327,6 +368,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         mixer = null
         fadeArmed = false
         pendingDelegateFormat = null
+        delegateFormat = null
         delegate.reset()
     }
 
@@ -336,6 +378,8 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         fun isSupportedPcm(encoding: Int) = encoding == C.ENCODING_PCM_16BIT ||
             encoding == C.ENCODING_PCM_24BIT || encoding == C.ENCODING_PCM_32BIT ||
             encoding == C.ENCODING_PCM_FLOAT || encoding == C.ENCODING_PCM_8BIT
+
+        fun toPcm16(x: Float): Short = (x.coerceIn(-1f, 1f) * 32767f).roundToInt().toShort()
 
         fun bytesPerSample(encoding: Int) = when (encoding) {
             C.ENCODING_PCM_8BIT -> 1

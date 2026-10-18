@@ -803,9 +803,9 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
             };
             if (decorator != null) {
                 baseFactory.setEnableAudioFloatOutput(decorator.enableFloatOutput());
-                // Float output skips ExoPlayer's own speed processor (Sonic):
-                // let the AudioTrack change speed instead (pitch kept).
-                baseFactory.setEnableAudioTrackPlaybackParams(true);
+                // No AudioTrack playback params: they distort on some phones
+                // (Samsung). The DSP sink switches to 16-bit while the speed is
+                // changed, so ExoPlayer's own Sonic processor applies it.
             }
             baseFactory.setExtensionRendererMode(JustAudioHooks.extensionRendererMode);
             RenderersFactory renderersFactory = (eventHandler, videoListener, audioListener, textOutput, metadataOutput) -> {
