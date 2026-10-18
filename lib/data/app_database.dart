@@ -6,6 +6,7 @@ import 'package:sqflite/sqflite.dart';
 import '../models/audio_info.dart';
 import '../models/eq.dart';
 import '../models/eq_rules.dart';
+import '../models/loudness.dart';
 import '../models/playlist.dart';
 
 /// Everything the app stores itself: favorites, playlists, play history and
@@ -21,7 +22,7 @@ class AppDatabase {
     final path = p.join(await getDatabasesPath(), 'audifac.db');
     final db = await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: (db, _) async {
         final batch = db.batch()
@@ -56,6 +57,7 @@ class AppDatabase {
         _createFileMeta(batch);
         _createAudioInfo(batch);
         _createEq(batch);
+        _createLoudness(batch);
         await batch.commit(noResult: true);
       },
       onUpgrade: (db, from, _) async {
@@ -67,6 +69,7 @@ class AppDatabase {
         }
         if (from < 4) _createAudioInfo(batch);
         if (from < 5) _createEq(batch);
+        if (from < 6) _createLoudness(batch);
         await batch.commit(noResult: true);
       },
     );
@@ -89,6 +92,15 @@ class AppDatabase {
           json TEXT NOT NULL,
           PRIMARY KEY (scope, key)
         )''');
+  }
+
+  /// v6: ReplayGain tags / R128 measurement per file (JSON), keyed by location.
+  static void _createLoudness(Batch batch) {
+    batch.execute('''
+      CREATE TABLE loudness (
+        location TEXT PRIMARY KEY,
+        json TEXT NOT NULL
+      )''');
   }
 
   /// v4: codec / sample rate / bit depth per file (JSON), keyed by location.
@@ -213,6 +225,17 @@ class AppDatabase {
     );
   }
 
+  /// Rewrites the history in [songIds] order (newest first).
+  Future<void> setRecentOrder(List<int> songIds) => _db.transaction((txn) async {
+        await txn.delete('recent');
+        final now = _now;
+        final batch = txn.batch();
+        for (final (i, id) in songIds.indexed) {
+          batch.insert('recent', {'song_id': id, 'played_at': now - i * 1000});
+        }
+        await batch.commit(noResult: true);
+      });
+
   // --- Files outside MediaStore ----------------------------------------------
 
   /// Every cached file, keyed by location.
@@ -273,6 +296,28 @@ class AppDatabase {
       batch.delete('audio_info', where: 'location = ?', whereArgs: [l]);
     }
     await batch.commit(noResult: true);
+  }
+
+  // --- Loudness ----------------------------------------------------------------
+
+  Future<Map<String, LoudnessInfo>> loudness() async {
+    final rows = await _db.query('loudness');
+    return {
+      for (final r in rows)
+        if (_tryJson(r['json'] as String) case final j?) r['location'] as String: LoudnessInfo.fromJson(j),
+    };
+  }
+
+  Future<void> putLoudness(Map<String, LoudnessInfo> entries) {
+    final batch = _db.batch();
+    entries.forEach((location, info) {
+      batch.insert(
+        'loudness',
+        {'location': location, 'json': jsonEncode(info.toJson())},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    });
+    return batch.commit(noResult: true);
   }
 
   // --- Equalizer ---------------------------------------------------------------
@@ -365,7 +410,11 @@ class Bootstrap {
     required this.audioInfo,
     required this.eqPresets,
     required this.eqRules,
+    this.loudness = const {},
   });
+
+  /// Cached ReplayGain / loudness scans, by file location.
+  final Map<String, LoudnessInfo> loudness;
 
   /// User-made EQ presets (built-ins live in code) and preset rules.
   final List<EqPreset> eqPresets;
@@ -380,7 +429,7 @@ class Bootstrap {
   final Map<String, AudioInfo> audioInfo;
 
   static Future<Bootstrap> load(AppDatabase db) async {
-    final (favoriteIds, playlists, recentIds, values, audioInfo, eqPresets, eqRules) = await (
+    final (favoriteIds, playlists, recentIds, values, audioInfo, eqPresets, eqRules, loudness) = await (
       db.favoriteIds(),
       db.playlists(),
       db.recentIds(),
@@ -388,6 +437,7 @@ class Bootstrap {
       db.audioInfo(),
       db.eqPresets(),
       db.eqRules(),
+      db.loudness(),
     ).wait;
     return Bootstrap(
       favoriteIds: favoriteIds,
@@ -397,6 +447,7 @@ class Bootstrap {
       audioInfo: audioInfo,
       eqPresets: eqPresets,
       eqRules: eqRules,
+      loudness: loudness,
     );
   }
 }

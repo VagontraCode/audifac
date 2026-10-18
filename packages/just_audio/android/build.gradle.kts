@@ -41,7 +41,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 android {
     namespace = "com.ryanheise.just_audio"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 16
@@ -68,7 +68,7 @@ android {
 }
 
 dependencies {
-    val exoplayerVersion = "1.4.1"
+    val exoplayerVersion = "1.9.4" // audifac patch: was 1.4.1 (FFmpeg decoder needs >= 1.5)
     // audifac patch: "api" so the app can implement an AudioSink wrapper (DSP).
     api("androidx.media3:media3-exoplayer:$exoplayerVersion")
     implementation("androidx.media3:media3-exoplayer-dash:$exoplayerVersion")

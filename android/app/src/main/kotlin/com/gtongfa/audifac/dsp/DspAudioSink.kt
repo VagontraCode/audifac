@@ -67,11 +67,15 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         inFrameBytes = bytesPerSample(encoding) * channels
         trimStartRemaining = inputFormat.encoderDelay
         paddingFrames = inputFormat.encoderPadding
-        if (processor == null || processorRate != inputFormat.sampleRate || processorChannels != channels) {
+        val fresh = processor == null || processorRate != inputFormat.sampleRate || processorChannels != channels
+        if (fresh) {
             processor = DspProcessor(inputFormat.sampleRate, channels)
             processorRate = inputFormat.sampleRate
             processorChannels = channels
         }
+        // Configured at this track's first sample: its own volume matching gain.
+        trackFormat = inputFormat
+        applyGain(immediate = fresh)
         val floatFormat = inputFormat.buildUpon()
             .setPcmEncoding(C.ENCODING_PCM_FLOAT)
             .setEncoderDelay(0)
@@ -85,10 +89,28 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
     private var processorRate = 0
     private var processorChannels = 0
 
+    private var trackFormat: Format? = null
+    private var loudnessVersion = -1L
+    private var loggedGain = Double.NaN
+
+    private fun applyGain(immediate: Boolean) {
+        val format = trackFormat ?: return
+        loudnessVersion = Loudness.version
+        val gains = Loudness.gainsFor(format)
+        val linear = Loudness.settings.linearGain(gains)
+        processor?.setGain(linear, immediate)
+        val changed = linear != loggedGain
+        loggedGain = linear
+        if (changed && Loudness.settings.mode != VolumeMatching.Mode.OFF) {
+            Log.i(TAG, "volume matching ${Loudness.settings.mode}: ${"%.2f".format(20 * kotlin.math.log10(linear))} dB ($gains) for ${SourceUri.of(format)}")
+        }
+    }
+
     override fun handleBuffer(buffer: ByteBuffer, presentationTimeUs: Long, encodedAccessUnitCount: Int): Boolean {
         if (!active) return delegate.handleBuffer(buffer, presentationTimeUs, encodedAccessUnitCount)
 
         if (!pending) {
+            if (loudnessVersion != Loudness.version) applyGain(immediate = false)
             prepareOutput(buffer)
             pending = true
         }
@@ -180,6 +202,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         pending = false
         tailFrames = 0
         processor = null
+        trackFormat = null
         active = false
         delegate.reset()
     }

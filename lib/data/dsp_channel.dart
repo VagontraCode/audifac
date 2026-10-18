@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 import '../models/eq.dart';
+import '../models/loudness.dart';
 
 /// Talks to the native DSP (`DspChannel.kt`): applies settings and reports the
 /// current audio output.
@@ -35,6 +36,41 @@ class DspChannel {
   Future<void> setConfig(Map<String, Object> config) async {
     try {
       await _channel.invokeMethod('setConfig', config);
+    } on MissingPluginException {
+      // Tests / non-Android.
+    }
+  }
+
+  Future<void> setVolumeMatching(Map<String, Object> settings) => _invoke('setVolumeMatching', settings);
+
+  /// Per-file gains by native key; [replace] drops files not in [gains].
+  Future<void> setGains(Map<String, Gains> gains, {bool replace = true}) => _invoke('setGains', {
+        'gains': {
+          for (final e in gains.entries)
+            e.key: {
+              'trackGainDb': e.value.trackGainDb,
+              'trackPeak': e.value.trackPeak,
+              'albumGainDb': e.value.albumGainDb,
+              'albumPeak': e.value.albumPeak,
+            },
+        },
+        'replace': replace,
+      });
+
+  /// Tags or an R128 measurement for each location (slow for untagged files:
+  /// they are decoded).
+  Future<List<Map<dynamic, dynamic>>> analyseLoudness(List<String> locations) async {
+    try {
+      final raw = await _channel.invokeListMethod<Map<dynamic, dynamic>>('analyseLoudness', {'locations': locations});
+      return raw ?? const [];
+    } on MissingPluginException {
+      return const [];
+    }
+  }
+
+  Future<void> _invoke(String method, Object arguments) async {
+    try {
+      await _channel.invokeMethod(method, arguments);
     } on MissingPluginException {
       // Tests / non-Android.
     }

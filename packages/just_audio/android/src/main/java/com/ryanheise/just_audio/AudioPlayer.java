@@ -32,6 +32,7 @@ import androidx.media3.exoplayer.NoSampleRenderer;
 import androidx.media3.exoplayer.Renderer;
 import androidx.media3.exoplayer.RenderersFactory;
 import androidx.media3.extractor.DefaultExtractorsFactory;
+import androidx.media3.extractor.ExtractorsFactory;
 import androidx.media3.common.Metadata;
 import androidx.media3.exoplayer.metadata.MetadataOutput;
 import androidx.media3.extractor.metadata.icy.IcyHeaders;
@@ -612,7 +613,14 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
         return mediaSource;
     }
 
-    private DefaultExtractorsFactory buildExtractorsFactory(Map<?, ?> options) {
+    // audifac patch: lets the app add its own container parsers (JustAudioHooks).
+    private ExtractorsFactory buildExtractorsFactory(Map<?, ?> options) {
+        DefaultExtractorsFactory defaults = buildDefaultExtractorsFactory(options);
+        JustAudioHooks.ExtractorsDecorator decorator = JustAudioHooks.extractorsDecorator;
+        return decorator != null ? decorator.decorate(defaults) : defaults;
+    }
+
+    private DefaultExtractorsFactory buildDefaultExtractorsFactory(Map<?, ?> options) {
         DefaultExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
         boolean constantBitrateSeekingEnabled = true;
         boolean constantBitrateSeekingAlwaysEnabled = false;
@@ -794,6 +802,7 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
                 }
             };
             if (decorator != null) baseFactory.setEnableAudioFloatOutput(decorator.enableFloatOutput());
+            baseFactory.setExtensionRendererMode(JustAudioHooks.extensionRendererMode);
             RenderersFactory renderersFactory = (eventHandler, videoListener, audioListener, textOutput, metadataOutput) -> {
                 Renderer[] defaultRenderers = baseFactory
                     .createRenderers(eventHandler, videoListener, audioListener, textOutput, metadataOutput);

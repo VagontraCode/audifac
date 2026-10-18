@@ -6,6 +6,7 @@ import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
+import com.gtongfa.audifac.extract.AudioHeaders
 import java.io.FileInputStream
 import java.io.InputStream
 
@@ -25,11 +26,29 @@ class AudioInspector(private val context: Context) {
             readStream(location, info)
             readTags(location, info)
             readHeaderBitDepth(location, info)
-            info["ok"] = info["codecMime"] != null
         } catch (e: Exception) {
-            info["ok"] = false
+            // Android can't open it — maybe AIFF / DSD, handled below.
         }
+        if (info["codecMime"] == null) readOwnFormats(location, info)
+        info["ok"] = info["codecMime"] != null
         return info
+    }
+
+    /** AIFF / DSD: formats Android's MediaExtractor doesn't know. */
+    private fun readOwnFormats(location: String, info: MutableMap<String, Any?>) {
+        val h = AudioHeaders.probe(context, location) ?: return
+        info["codecMime"] = h.codecMime
+        info["containerMime"] = h.codecMime
+        info["sampleRate"] = h.sampleRate
+        info["channels"] = h.channels
+        info["bitDepth"] = h.bitDepth
+        info["bitrate"] = h.bitrate
+        info["durationMs"] = h.durationMs
+        info["genre"] = h.tags["genre"]
+        info["year"] = h.tags["year"]?.take(4)
+        info["composer"] = h.tags["composer"]
+        info["albumArtist"] = h.tags["albumArtist"]
+        info["disc"] = h.tags["disc"]
     }
 
     private fun isContent(location: String) = location.startsWith("content://")

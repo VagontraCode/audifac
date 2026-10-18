@@ -127,7 +127,12 @@ class LibraryNotifier extends AsyncNotifier<List<Song>> {
   }
 
   Future<void> _scan() async {
-    if (state.error is LibraryAccessDenied) return;
+    // Only after a successful, permitted load: e.g. returning from the
+    // permission dialog resumes the app (which requests a scan) while the
+    // first load is still waiting for the answer. Without permission Android
+    // returns empty results, which would wrongly show "No audio found".
+    if (!state.hasValue || state.hasError) return;
+    if (await _library.checkAccess() != LibraryAccess.granted) return;
     final statusNotifier = ref.read(scanStatusProvider.notifier);
     statusNotifier.set(ref.read(scanStatusProvider).copyWith(running: true));
     try {
@@ -166,7 +171,7 @@ class LibraryNotifier extends AsyncNotifier<List<Song>> {
 
   /// Quick re-read of MediaStore + cached files (e.g. after a download).
   Future<void> reload() async {
-    if (state.error is LibraryAccessDenied) return;
+    if (!state.hasValue || state.hasError) return;
     final result = await AsyncValue.guard(() => _loadIndexed(request: false));
     state = result;
   }

@@ -149,6 +149,20 @@ class MediaLibrary {
     return (name: raw['name'] as String?, text: raw['text'] as String);
   }
 
+  /// "Save as" dialog writing [text]; returns the saved file name, or null if
+  /// cancelled.
+  Future<String?> saveTextDocument({required String name, required String text, String mime = 'application/json'}) =>
+      _channel.invokeMethod<String>('saveTextDocument', {'name': name, 'text': text, 'mime': mime});
+
+  /// `0.1.0+3`.
+  Future<String> appVersion() async {
+    try {
+      return await _channel.invokeMethod<String>('appVersion') ?? '?';
+    } on PlatformException {
+      return '?';
+    }
+  }
+
   Future<List<GrantedFolder>> grantedFolders() async {
     final raw = await _channel.invokeListMethod<Map<dynamic, dynamic>>('grantedFolders');
     return [

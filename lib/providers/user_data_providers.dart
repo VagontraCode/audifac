@@ -35,6 +35,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   void setShowLabels(bool show) => _update(state.copyWith(showLabels: show));
 
+  /// Restore from a backup.
+  void replace(AppSettings settings) => _update(settings);
+
   void setSongFilter(SongFilter filter) => _update(state.copyWith(songFilter: filter));
 
   void setFolderExcluded(String folder, bool excluded) {
@@ -59,6 +62,19 @@ class FavoritesNotifier extends Notifier<List<int>> {
   List<int> build() => ref.read(bootstrapProvider).favoriteIds;
 
   bool isFavorite(int songId) => state.contains(songId);
+
+  /// Adds [songIds] that aren't favorites yet (backup restore); returns how many.
+  int addAll(List<int> songIds) {
+    final fresh = songIds.where((id) => !state.contains(id)).toList();
+    if (fresh.isEmpty) return 0;
+    state = [...fresh, ...state];
+    final db = ref.read(databaseProvider);
+    // Oldest first so the newest ends up on top (ordered by added_at).
+    for (final id in fresh.reversed) {
+      db.setFavorite(id, true);
+    }
+    return fresh.length;
+  }
 
   /// Returns the new state (true = now a favorite).
   bool toggle(int songId) {
@@ -157,6 +173,15 @@ final recentIdsProvider = NotifierProvider<RecentNotifier, List<int>>(RecentNoti
 class RecentNotifier extends Notifier<List<int>> {
   @override
   List<int> build() => ref.read(bootstrapProvider).recentIds;
+
+  /// Puts restored history after (older than) the current one.
+  Future<int> restore(List<int> songIds) async {
+    final fresh = songIds.where((id) => !state.contains(id)).toList();
+    if (fresh.isEmpty) return 0;
+    state = [...state, ...fresh].take(100).toList();
+    await ref.read(databaseProvider).setRecentOrder(state);
+    return fresh.length;
+  }
 
   void record(int songId) {
     if (state.isNotEmpty && state.first == songId) return;

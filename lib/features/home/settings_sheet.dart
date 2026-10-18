@@ -5,12 +5,16 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/app_settings.dart';
+import '../../models/backup.dart';
+import '../../providers/backup_provider.dart';
 import '../../providers/audio_info_providers.dart';
 import '../../providers/eq_providers.dart';
 import '../equalizer/equalizer_screen.dart';
 import '../../providers/library_providers.dart';
+import '../../providers/loudness_providers.dart';
 import '../../providers/user_data_providers.dart';
 import 'folders_screen.dart';
+import 'volume_matching_sheet.dart';
 
 class SettingsSheet extends ConsumerWidget {
   const SettingsSheet({super.key});
@@ -94,6 +98,17 @@ class SettingsSheet extends ConsumerWidget {
                   EqualizerScreen.open(context);
                 },
               ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: HugeIcon(icon: HugeIcons.strokeRoundedVolumeHigh, color: palette.ink, size: 22),
+                title: const Text('Volume matching', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(VolumeMatchingSheet.describe(ref.watch(volumeMatchingProvider))),
+                trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  VolumeMatchingSheet.show(context);
+                },
+              ),
               heading('Library'),
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -162,6 +177,21 @@ class SettingsSheet extends ConsumerWidget {
                 'Ringtones, alarms and notification sounds are always hidden.',
                 style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted),
               ),
+              heading('Backup'),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: HugeIcon(icon: HugeIcons.strokeRoundedCloudUpload, color: palette.ink, size: 22),
+                title: const Text('Back up to a file', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Favorites, playlists, history, EQ presets & rules, settings'),
+                onTap: () => _backup(context, ref),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: HugeIcon(icon: HugeIcons.strokeRoundedCloudDownload, color: palette.ink, size: 22),
+                title: const Text('Restore from a file', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Merges with what you have — nothing is deleted'),
+                onTap: () => _restore(context, ref),
+              ),
               heading('About'),
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -172,6 +202,68 @@ class SettingsSheet extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _backup(BuildContext context, WidgetRef ref) async {
+    // Grab everything before closing the sheet (its ref dies with it), and
+    // close it so the confirmation is visible.
+    final messenger = ScaffoldMessenger.of(context);
+    final library = ref.read(mediaLibraryProvider);
+    final backup = ref.read(backupServiceProvider);
+    Navigator.of(context).pop();
+    try {
+      final data = backup.create(appVersion: await library.appVersion());
+      final d = data.exportedAt;
+      String two(int n) => n.toString().padLeft(2, '0');
+      final saved = await library.saveTextDocument(
+        name: 'audifac-backup-${d.year}-${two(d.month)}-${two(d.day)}.json',
+        text: data.encode(),
+      );
+      if (saved == null) return; // Cancelled.
+      messenger.showSnackBar(SnackBar(
+        content: Text('Backed up ${pluralize(data.favorites.length, 'favorite')}, '
+            '${pluralize(data.playlists.length, 'playlist')}, ${pluralize(data.eqPresets.length, 'EQ preset')}'),
+      ));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Backup failed: $e')));
+    }
+  }
+
+  Future<void> _restore(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final root = Navigator.of(context, rootNavigator: true);
+    final library = ref.read(mediaLibraryProvider);
+    final backup = ref.read(backupServiceProvider);
+    Navigator.of(context).pop();
+    final doc = await library.openTextDocument();
+    if (doc == null) return;
+    final BackupData data;
+    try {
+      data = BackupData.decode(doc.text);
+    } on FormatException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Can\'t restore: ${e.message}')));
+      return;
+    }
+    final report = await backup.restore(data);
+    if (!root.mounted) return;
+    await showDialog<void>(
+      context: root.context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restored'),
+        content: Text([
+          'From a backup of ${data.exportedAt.toLocal().toString().substring(0, 16)} (audifac ${data.appVersion}):',
+          '',
+          '• ${pluralize(report.favorites, 'new favorite')}',
+          '• ${pluralize(report.playlists, 'playlist')} (${pluralize(report.playlistSongs, 'song')})',
+          '• ${pluralize(report.presets, 'EQ preset')}, ${pluralize(report.rules, 'rule')}',
+          '• ${pluralize(report.recent, 'history entry', 'history entries')}',
+          if (report.settings) '• Settings',
+          if (report.missingSongs > 0)
+            '\n${pluralize(report.missingSongs, 'song')} from the backup aren\'t on this device and were skipped.',
+        ].join('\n')),
+        actions: [FilledButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
       ),
     );
   }

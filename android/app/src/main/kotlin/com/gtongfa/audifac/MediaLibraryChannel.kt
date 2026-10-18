@@ -17,6 +17,7 @@ import android.os.Looper
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.util.Size
+import com.gtongfa.audifac.extract.AudioHeaders
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -102,6 +103,18 @@ class MediaLibraryChannel(
             }
             "pickFolder" -> pickFolder(result)
             "openTextDocument" -> openTextDocument(result)
+            "saveTextDocument" -> {
+                val name = call.argument<String>("name") ?: "audifac.txt"
+                val mime = call.argument<String>("mime") ?: "text/plain"
+                val text = call.argument<String>("text") ?: ""
+                saveTextDocument(name, mime, text, result)
+            }
+            "appVersion" -> {
+                val info = context.packageManager.getPackageInfo(context.packageName, 0)
+                @Suppress("DEPRECATION")
+                val code = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode else info.versionCode.toLong()
+                result.success("${info.versionName}+$code")
+            }
             "grantedFolders" -> runIn(executor, result) { grantedFolders() }
             "removeFolder" -> {
                 val uri = call.argument<String>("uri") ?: return result.error("bad_args", "Missing uri", null)
@@ -182,18 +195,27 @@ class MediaLibraryChannel(
 
             while (c.moveToNext()) {
                 val id = c.getLong(idCol)
+                val path = c.getString(dataCol)
+                val artist = c.getString(artistCol)
+                // Android doesn't read AIFF / DSD ID3 tags: use our reader when
+                // MediaStore came back without an artist (only for these formats).
+                val own = if (path != null && (artist.isNullOrBlank() || artist == "<unknown>")) {
+                    path?.takeIf { AudioHeaders.isOwnFormat(it) }?.let { AudioHeaders.probe(context, it) }
+                } else {
+                    null
+                }
                 songs.add(
                     mapOf(
                         "id" to id,
                         "uri" to ContentUris.withAppendedId(collection, id).toString(),
-                        "path" to c.getString(dataCol),
-                        "title" to c.getString(titleCol),
-                        "artist" to c.getString(artistCol),
+                        "path" to path,
+                        "title" to (own?.tags?.get("title") ?: c.getString(titleCol)),
+                        "artist" to (own?.tags?.get("artist") ?: own?.tags?.get("albumArtist") ?: artist),
                         "artistId" to c.getLong(artistIdCol),
-                        "album" to c.getString(albumCol),
+                        "album" to (own?.tags?.get("album") ?: c.getString(albumCol)),
                         "albumId" to c.getLong(albumIdCol),
-                        "durationMs" to c.getLong(durationCol),
-                        "track" to c.getInt(trackCol),
+                        "durationMs" to c.getLong(durationCol).takeIf { it > 0 }.let { it ?: own?.durationMs ?: 0L },
+                        "track" to (own?.tags?.get("track")?.substringBefore('/')?.toIntOrNull() ?: c.getInt(trackCol)),
                         "dateAdded" to c.getLong(dateAddedCol),
                         "mimeType" to c.getString(mimeCol),
                         "size" to c.getLong(sizeCol),
@@ -382,6 +404,10 @@ class MediaLibraryChannel(
         return try {
             retriever.open(location)
             fun meta(key: Int) = retriever.extractMetadata(key)?.trim()?.takeIf { it.isNotEmpty() }
+            // Opened but understood nothing (AIFF / DSD on many phones).
+            if (meta(MediaMetadataRetriever.METADATA_KEY_DURATION) == null) {
+                ownFormatMetadata(location)?.let { return it }
+            }
             mapOf(
                 "path" to location,
                 "title" to meta(MediaMetadataRetriever.METADATA_KEY_TITLE),
@@ -395,10 +421,25 @@ class MediaLibraryChannel(
                 "readable" to true,
             )
         } catch (e: Exception) {
-            mapOf("path" to location, "readable" to false)
+            ownFormatMetadata(location) ?: mapOf("path" to location, "readable" to false)
         } finally {
             retriever.release()
         }
+    }
+
+    /** AIFF / DSD tags and duration (MediaMetadataRetriever can't read them). */
+    private fun ownFormatMetadata(location: String): Map<String, Any?>? {
+        val h = AudioHeaders.probe(context, location) ?: return null
+        return mapOf(
+            "path" to location,
+            "title" to h.tags["title"],
+            "artist" to (h.tags["artist"] ?: h.tags["albumArtist"]),
+            "album" to h.tags["album"],
+            "durationMs" to h.durationMs,
+            "track" to h.tags["track"]?.substringBefore('/')?.toIntOrNull(),
+            "mimeType" to h.codecMime,
+            "readable" to true,
+        )
     }
 
     // --- Folder picker -------------------------------------------------------
@@ -422,12 +463,44 @@ class MediaLibraryChannel(
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
             .addCategory(Intent.CATEGORY_OPENABLE)
             .setType("*/*")
-            .putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("text/plain", "application/octet-stream", "text/*"))
+            // AutoEQ .txt files and audifac .json backups.
+            .putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("text/*", "application/json", "application/octet-stream"))
         @Suppress("DEPRECATION")
         host.startActivityForResult(intent, OPEN_DOCUMENT_REQUEST)
     }
 
     private var pendingDocument: MethodChannel.Result? = null
+    private var pendingSave: Pair<MethodChannel.Result, String>? = null
+
+    /** "Save as" dialog; writes [text] to the chosen file. Returns the file name or null. */
+    private fun saveTextDocument(name: String, mime: String, text: String, result: MethodChannel.Result) {
+        val host = activity() ?: return result.error("no_activity", "No foreground activity", null)
+        if (pendingSave != null) return result.error("busy", "Picker already open", null)
+        pendingSave = result to text
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType(mime)
+            .putExtra(Intent.EXTRA_TITLE, name)
+        @Suppress("DEPRECATION")
+        host.startActivityForResult(intent, SAVE_DOCUMENT_REQUEST)
+    }
+
+    private fun onSaveResult(resultCode: Int, data: Intent?) {
+        val (result, text) = pendingSave ?: return
+        pendingSave = null
+        val uri = data?.data
+        if (resultCode != Activity.RESULT_OK || uri == null) return result.success(null)
+        executor.execute {
+            try {
+                context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(text.toByteArray(Charsets.UTF_8)) }
+                    ?: throw IllegalStateException("Cannot open file for writing")
+                val name = uri.lastPathSegment?.substringAfterLast('/')
+                mainHandler.post { result.success(name ?: "") }
+            } catch (e: Exception) {
+                mainHandler.post { result.error("write_failed", e.message, null) }
+            }
+        }
+    }
 
     private fun onDocumentResult(resultCode: Int, data: Intent?) {
         val result = pendingDocument ?: return
@@ -455,6 +528,10 @@ class MediaLibraryChannel(
     fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
         if (requestCode == OPEN_DOCUMENT_REQUEST) {
             onDocumentResult(resultCode, data)
+            return true
+        }
+        if (requestCode == SAVE_DOCUMENT_REQUEST) {
+            onSaveResult(resultCode, data)
             return true
         }
         if (requestCode != PICK_FOLDER_REQUEST) return false
@@ -550,14 +627,22 @@ class MediaLibraryChannel(
         const val CHANNEL = "audifac/media_library"
         private const val PICK_FOLDER_REQUEST = 4711
         private const val OPEN_DOCUMENT_REQUEST = 4712
-        private const val MAX_TEXT_BYTES = 1 shl 20
+        private const val SAVE_DOCUMENT_REQUEST = 4713
+
+        // Large enough for a backup of a big library (tens of thousands of refs).
+        private const val MAX_TEXT_BYTES = 32 shl 20
         private const val MAX_DEPTH = 14
         private const val SCAN_TIMEOUT_SECONDS = 120L
 
-        // Formats ExoPlayer (just_audio) can play. WMA/APE/DSD would need another engine.
+        // Formats the player can open: ExoPlayer containers, decoded by the
+        // phone or by the bundled FFmpeg decoders (AC-3, E-AC-3, MP1/MP2,
+        // DTS / TrueHD inside MKA…). APE, WavPack, TTA, WMA need FFmpeg
+        // container support (roadmap 6.3c).
         private val AUDIO_EXTENSIONS = setOf(
             "mp3", "m4a", "m4b", "aac", "flac", "ogg", "oga", "opus", "wav", "wave",
             "amr", "awb", "3gp", "3ga", "mka", "weba",
+            "ac3", "eac3", "ec3", "mp1", "mp2", "mpa", "m2a",
+            "aif", "aiff", "aifc", "dsf", "dff", // own extractors (extract/)
         )
     }
 }

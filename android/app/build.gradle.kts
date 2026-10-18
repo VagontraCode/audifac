@@ -68,6 +68,10 @@ flutter {
 dependencies {
     // Same version as the vendored just_audio (packages/just_audio): the DSP
     // sink wraps its DefaultAudioSink.
-    implementation("androidx.media3:media3-exoplayer:1.4.1")
+    implementation("androidx.media3:media3-exoplayer:1.9.4")
+    implementation("androidx.media3:media3-extractor:1.9.4") // AIFF / DSD extractors
+    // FFmpeg audio decoders (AC-3, E-AC-3, DTS, TrueHD, MP2, ALAC, …) built by
+    // Jellyfin against media3 1.9.
+    implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.9.0+1")
     testImplementation("junit:junit:4.13.2")
 }

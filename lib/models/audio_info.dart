@@ -31,6 +31,7 @@ class AudioInfo {
     this.analysed = true,
     this.sizeBytes = 0,
     this.modifiedMs = 0,
+    this.schema = currentSchema,
   });
 
   /// Display name: FLAC, ALAC, WAV, MP3, AAC, HE-AAC, Opus, Vorbis, AMR-WB…
@@ -56,7 +57,12 @@ class AudioInfo {
   final int sizeBytes;
   final int modifiedMs;
 
-  static const losslessCodecs = {'FLAC', 'ALAC', 'WAV'};
+  /// Analysis logic version; bump [currentSchema] to re-analyse every file
+  /// (e.g. after adding a format).
+  final int schema;
+  static const currentSchema = 2;
+
+  static const losslessCodecs = {'FLAC', 'ALAC', 'WAV', 'AIFF', 'TrueHD', 'DSD'};
 
   AudioQuality get quality {
     if (!losslessCodecs.contains(codec)) {
@@ -67,10 +73,13 @@ class AudioInfo {
   }
 
   bool describes(Song song) =>
+      schema == currentSchema &&
       analysed && sizeBytes == song.sizeBytes && modifiedMs == song.modifiedMs;
 
   /// Short label for song rows: `MP3 320`, `AAC 256`, `FLAC 16/44.1`, `FLAC 24/96`.
   String get badge {
+    // DSD is named by its rate multiple: DSD64 = 2.8224 MHz, DSD128…
+    if (codec == 'DSD' && sampleRate != null) return 'DSD${(sampleRate! / 44100).round()}';
     if (quality.isLossless) {
       final rate = sampleRate == null ? null : formatSampleRate(sampleRate!);
       if (bitDepth != null && rate != null) return '$codec $bitDepth/$rate';
@@ -128,7 +137,20 @@ class AudioInfo {
       case 'audio/ac3':
         return 'AC-3';
       case 'audio/eac3':
+      case 'audio/eac3-joc':
         return 'E-AC-3';
+      case 'audio/true-hd':
+        return 'TrueHD';
+      case 'audio/vnd.dts':
+        return 'DTS';
+      case 'audio/vnd.dts.hd':
+        return 'DTS-HD';
+      case 'audio/mpeg-l1':
+        return 'MP1';
+      case 'audio/x-aiff':
+        return 'AIFF';
+      case 'audio/x-dsd':
+        return 'DSD';
       case null:
         return 'Unknown';
       default:
@@ -152,9 +174,21 @@ class AudioInfo {
       ('audio/ogg' || 'application/ogg', _) || (_, 'ogg' || 'oga') => 'Vorbis',
       ('audio/amr' || 'audio/3gpp', _) || (_, 'amr' || '3gp' || '3ga') => 'AMR',
       ('audio/amr-wb', _) || (_, 'awb') => 'AMR-WB',
+      ('audio/ac3', _) || (_, 'ac3') => 'AC-3',
+      ('audio/eac3', _) || (_, 'eac3' || 'ec3') => 'E-AC-3',
+      (_, 'mp2' || 'mpa' || 'm2a') => 'MP2',
+      (_, 'mp1') => 'MP1',
+      ('audio/x-aiff' || 'audio/aiff', _) || (_, 'aif' || 'aiff' || 'aifc') => 'AIFF',
+      (_, 'dsf' || 'dff') => 'DSD',
       _ => 'Unknown',
     };
     return AudioInfo(codec: codec, containerMime: song.mimeType, analysed: false);
+  }
+
+  /// Android reports AIFF's big-endian PCM as plain "audio/raw" (= WAV).
+  static String _aiffFix(String codec, Song song) {
+    final ext = (song.path ?? song.uri).split('.').last.toLowerCase();
+    return codec == 'WAV' && (ext == 'aif' || ext == 'aiff' || ext == 'aifc') ? 'AIFF' : codec;
   }
 
   /// From the native `inspectAudio` result.
@@ -169,7 +203,7 @@ class AudioInfo {
       bitrate = (song.sizeBytes * 8 * 1000 / durationMs).round();
     }
     return AudioInfo(
-      codec: codecFromMime(codecMime, aacProfile: asInt(m['aacProfile'])),
+      codec: _aiffFix(codecFromMime(codecMime, aacProfile: asInt(m['aacProfile'])), song),
       codecMime: codecMime,
       containerMime: m['containerMime'] as String?,
       sampleRate: asInt(m['sampleRate']),
@@ -201,6 +235,7 @@ class AudioInfo {
         'disc': disc,
         'sizeBytes': sizeBytes,
         'modifiedMs': modifiedMs,
+        'schema': schema,
       };
 
   factory AudioInfo.fromJson(Map<String, dynamic> j) {
@@ -220,6 +255,7 @@ class AudioInfo {
       disc: j['disc'] as String?,
       sizeBytes: asInt(j['sizeBytes']) ?? 0,
       modifiedMs: asInt(j['modifiedMs']) ?? 0,
+      schema: asInt(j['schema']) ?? 1,
     );
   }
 }

@@ -1,0 +1,166 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../models/app_settings.dart';
+import '../models/backup.dart';
+import '../models/eq.dart';
+import '../models/eq_rules.dart';
+import '../models/loudness.dart';
+import '../models/song.dart';
+import 'eq_providers.dart';
+import 'library_providers.dart';
+import 'loudness_providers.dart';
+import 'user_data_providers.dart';
+
+final backupServiceProvider = Provider<BackupService>(BackupService.new);
+
+/// Builds and restores [BackupData] from the app's live state.
+class BackupService {
+  BackupService(this._ref);
+
+  final Ref _ref;
+
+  BackupData create({required String appVersion}) {
+    final byId = _ref.read(songsByIdProvider);
+    final albums = {for (final a in _ref.read(albumsProvider)) a.id: a};
+    List<SongRef> refs(Iterable<int> ids) => [
+          for (final id in ids)
+            if (byId[id] case final song?) SongRef.of(song),
+        ];
+
+    final rules = <RuleBackup>[];
+    for (final r in _ref.read(eqRulesProvider)) {
+      switch (r.scope) {
+        case EqScope.song:
+          final song = byId[int.tryParse(r.key) ?? 0];
+          if (song != null) rules.add(RuleBackup(scope: r.scope.name, presetId: r.presetId, label: r.label, song: SongRef.of(song)));
+        case EqScope.album:
+          final album = albums[int.tryParse(r.key) ?? 0];
+          if (album != null) {
+            rules.add(RuleBackup(
+              scope: r.scope.name,
+              presetId: r.presetId,
+              label: r.label,
+              album: album.title,
+              albumArtist: album.artist,
+            ));
+          }
+        case EqScope.artist || EqScope.genre || EqScope.source:
+          rules.add(RuleBackup(scope: r.scope.name, presetId: r.presetId, key: r.key, label: r.label));
+      }
+    }
+
+    return BackupData(
+      exportedAt: DateTime.now(),
+      appVersion: appVersion,
+      favorites: refs(_ref.read(favoritesProvider)),
+      recent: refs(_ref.read(recentIdsProvider)),
+      playlists: [
+        for (final p in _ref.read(playlistsProvider)) PlaylistBackup(name: p.name, songs: refs(p.songIds)),
+      ],
+      eqPresets: [
+        for (final p in _ref.read(eqPresetsProvider))
+          if (!p.builtIn) p.toJson().cast<String, dynamic>(),
+      ],
+      eqRules: rules,
+      eqSettings: _ref.read(eqSettingsProvider).encode(),
+      settings: {
+        ..._ref.read(settingsProvider).toKeyValues(),
+        VolumeMatchingNotifier.key: _ref.read(volumeMatchingProvider).encode(),
+      },
+    );
+  }
+
+  /// Merges [data] into the app: nothing existing is deleted.
+  Future<RestoreReport> restore(BackupData data) async {
+    final report = RestoreReport();
+    final matcher = SongMatcher(_ref.read(songsProvider));
+
+    List<Song> resolve(List<SongRef> refs) {
+      final out = <Song>[];
+      for (final r in refs) {
+        final s = matcher.match(r);
+        if (s == null) {
+          report.missingSongs++;
+        } else {
+          out.add(s);
+        }
+      }
+      return out;
+    }
+
+    // Favorites & history.
+    report.favorites = _ref.read(favoritesProvider.notifier).addAll([for (final s in resolve(data.favorites)) s.id]);
+    report.recent = await _ref.read(recentIdsProvider.notifier).restore([for (final s in resolve(data.recent)) s.id]);
+
+    // Playlists: same name + same songs = already there; otherwise add.
+    final playlists = _ref.read(playlistsProvider.notifier);
+    for (final p in data.playlists) {
+      final songs = [for (final s in resolve(p.songs)) s.id];
+      final existing = _ref.read(playlistsProvider).where((x) => x.name == p.name).toList();
+      if (existing.any((x) => _sameSongs(x.songIds, songs))) continue;
+      final name = existing.isEmpty ? p.name : '${p.name} (restored)';
+      await playlists.create(name, songIds: songs);
+      report.playlists++;
+      report.playlistSongs += songs.length;
+    }
+
+    // EQ presets keep their ids, so rules / device assignments still point at them.
+    final presets = _ref.read(eqPresetsProvider.notifier);
+    for (final json in data.eqPresets) {
+      try {
+        await presets.save(EqPreset.fromJson(json).copyWith(builtIn: false));
+        report.presets++;
+      } catch (_) {
+        // Skip a malformed preset rather than failing the whole restore.
+      }
+    }
+    if (data.eqSettings != null) {
+      _ref.read(eqSettingsProvider.notifier).restore(EqSettings.decode(data.eqSettings));
+    }
+
+    // Rules: re-target song / album rules at this device's ids.
+    final rules = _ref.read(eqRulesProvider.notifier);
+    final albums = _ref.read(albumsProvider);
+    for (final r in data.eqRules) {
+      final scope = EqScope.values.where((s) => s.name == r.scope).firstOrNull;
+      if (scope == null) continue;
+      String? key;
+      switch (scope) {
+        case EqScope.song:
+          key = r.song == null ? null : matcher.match(r.song!)?.id.toString();
+        case EqScope.album:
+          key = albums
+              .where((a) => a.title.toLowerCase() == r.album?.toLowerCase() && a.artist.toLowerCase() == r.albumArtist?.toLowerCase())
+              .firstOrNull
+              ?.id
+              .toString();
+        case EqScope.artist || EqScope.genre || EqScope.source:
+          key = r.key;
+      }
+      if (key == null) {
+        report.missingSongs++;
+        continue;
+      }
+      await rules.put(EqRule(scope: scope, key: key, label: r.label, presetId: r.presetId));
+      report.rules++;
+    }
+
+    // App settings.
+    if (data.settings.isNotEmpty) {
+      _ref.read(settingsProvider.notifier).replace(AppSettings.fromKeyValues(data.settings));
+      if (data.settings[VolumeMatchingNotifier.key] case final volume?) {
+        _ref.read(volumeMatchingProvider.notifier).set(VolumeMatching.decode(volume));
+      }
+      report.settings = true;
+    }
+    return report;
+  }
+
+  static bool _sameSongs(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+}

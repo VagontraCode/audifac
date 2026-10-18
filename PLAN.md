@@ -138,6 +138,34 @@ Today: ExoPlayer plays the queue as one concatenated timeline and pre-buffers th
 - [x] GitHub Actions CI/CD (`.github/workflows/ci.yml`) — see "Release & CI" below
 - [ ] iOS code signing (needs an Apple Developer account)
 
+### Phase 6 — Post-release roadmap (v0.2 → v1.0)
+Ordered so each step builds on the previous ones. Size: S ≈ hours, M ≈ a day, L ≈ days, XL ≈ weeks.
+
+| # | Feature | Size | Depends on / notes |
+|---|---|---|---|
+| 6.1 ✅ | **CI upkeep** — current action majors (Node 24), Ubuntu runner pin | S | — |
+| 6.2 ✅ | **Backup & restore** — favorites, playlists, history, EQ presets/rules/devices, settings → one JSON file (SAF save/open) | M | — |
+| 6.3a ✅ | **FFmpeg fallback decoder** — Jellyfin media3-ffmpeg-decoder 1.9.0+1 (media3 1.9.4) as extension renderer: AC-3/E-AC-3/DTS/TrueHD/ALAC/MP2… wherever the phone's codecs fail | M | vendored just_audio (renderers + extractors hooks) |
+| 6.3b ✅ | **AIFF + DSD** — own media3 extractors: AIFF/AIFC (PCM, sowt, fl32/fl64) and DSF/DFF → 176.4 kHz float (table-driven 512-tap FIR, ~48× real time on desktop, playback thread ~20–30 % on the G100); ID3 tags read by the app (Android ignores them) | L | verified on device |
+| 6.3c | **APE / WavPack / TTA / WMA** — need container parsing the Jellyfin build lacks: own FFmpeg build (libavformat + libavcodec) in CI, exposed as an extractor + decoder | L | NDK build job, ~10 MB per ABI |
+| 6.4 ✅ | **Volume matching** — ReplayGain tags (ID3 TXXX, Vorbis/FLAC comments, Opus R128_*, iTunes freeform, LAME header) read from ExoPlayer's own metadata + EBU R128 scan (MediaCodec decode, ~60× real time on the G100) for untagged files, cached (DB v6); Off / Track / Album / Smart, pre-amp, untagged gain, prevent clipping; album gain combined from tracks. Gain chosen at each track's first sample in the DSP sink (extractor tags every Format with its file → gapless-exact), glides 5 ms, limiter guards boosts | L | verified on device: tagged −8.3 dB, measured −11.8 / −10.6 dB per song |
+| 6.5 | **Play counts & stats** — count a play at 50 % / 4 min, last played; Stats screen (top songs/artists/albums, listening time) | M | DB v6 |
+| 6.6 | **Smart playlists** — rule builder (codec/quality, genre, artist, year, added, play count, last played, duration, source) + presets ("Lossless", "Most played", "Not played in 30 days", "Added this week") | M | 6.5, audio info |
+| 6.7 | **Sleep timer** — minutes / end of track / end of queue, gradual fade-out | S | DSP gain or player volume |
+| 6.8 | **Lyrics** — embedded (USLT / LYRICS / ©lyr) + `.lrc` beside the file; synced scrolling view in the player, tap a line to seek | M | native tag reader |
+| 6.9 | **Folder view** — browse by folder tree in Library | S | — |
+| 6.10 | **Audiobooks & podcasts** — speed (0.5–3×, pitch kept), per-book resume, `.m4b` chapters, skip ±15/30 s | M | — |
+| 6.11 | **Gapless tuning + crossfade + album shuffle** (Phase 2e) | L | DSP sink |
+| 6.12 | **Spectrum analyzer / VU meter + output info** — FFT tap in the DSP sink → player visualizer; "FLAC 24/96 → resampled 48 kHz → Bluetooth (codec)" panel | M | DSP sink |
+| 6.13 | **Home-screen widget** — artwork, title, play/pause/next | M | — |
+| 6.14 | **Android Auto** — browsable tree (recent, playlists, albums, artists) through audio_service | M | needs a car / DHU to verify |
+| 6.15 | **Translations** — move all UI text to ARB (gen-l10n), English + French | L | touches every screen |
+| 6.16 | **Last.fm scrobbling** — now playing + scrobble at 50 % / 4 min, offline queue | M | **you** register a Last.fm API key |
+| 6.17 | **Casting** — Chromecast (Cast SDK + local HTTP server for files) and DLNA/UPnP renderers | XL | Google Cast app ID (default receiver works for testing) |
+| 6.18 | **Google Play listing** — privacy policy, data-safety answers, store text, screenshots, feature graphic | M | **you** own the Play Console account ($25 once) |
+| 6.19 | **Real iOS support** — Files/Documents + Apple Music library source, AVAudioEngine EQ, background audio | XL | can't be built or tested on this Windows PC; needs a Mac or CI + a device |
+| 6.20 | **Bit-perfect USB DAC** — own USB Audio Class 2 driver (libusb) bypassing the Android mixer | XL | research spike first; few apps do this |
+
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".
 2. Deny, then "Allow access" → after "Don't ask again", "Open settings" → enable → come back: library loads.
@@ -155,7 +183,10 @@ Today: ExoPlayer plays the queue as one concatenated timeline and pre-buffers th
 - `permission_handler` pinned to ^12 — v13+ pulls an Android plugin compiled against SDK 37, which AGP 8.11 can't resolve. Revisit when moving to AGP 9.
 - Flutter warns that Gradle < 9.1 / AGP < 9.0.1 support will be dropped soon: plan an AGP 9 migration (new DSL, built-in Kotlin) after the MVP.
 - No "All files access" (`MANAGE_EXTERNAL_STORAGE`) by design — Google Play rejects it for music players. Consequence: other apps' private data (`Android/data`) is never scanned, and hidden folders need a one-time "Add a folder".
-- WMA / APE / DSD / MIDI files are not listed (ExoPlayer can't play them); supporting them means adding `media_kit`.
+- WMA / APE / WavPack / TTA / MIDI files are not listed yet (see 6.3c). AIFF and DSD (DSF/DFF, DSD64–256; not DST-compressed DFF) play through the app's own extractors.
+- Volume matching can't measure DSD / AIFF / FFmpeg-only files yet (Android's MediaCodec has no decoder): they use the "songs without loudness data" gain unless tagged. Fix: measure them through our own parsers (`DsdToPcm`, AIFF reader).
+- A song analysed while it's already playing changes level once, mid-song (5 ms glide); the next plays are right from the first sample.
+- UI rendering costs ~60–75 % of a core (raster thread) while the library is visible during playback, with any format — look at the now-playing indicator / progress animations (repaint boundaries, lower tick rate).
 - Reordering the queue is disabled while shuffling (the order is random by design); removing still works.
 - Playlists reference MediaStore ids: a song deleted from the device disappears from playlists (kept in storage, hidden).
 - Smoke-tested on a Nokia G100 (Android 12): launches, Home renders, permission prompt appears.

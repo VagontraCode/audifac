@@ -49,6 +49,22 @@ void main() {
     });
   });
 
+  test('new formats: AIFF, DSD, AC-3, MP2, TrueHD', () {
+    expect(AudioInfo.codecFromMime('audio/x-aiff'), 'AIFF');
+    expect(AudioInfo.codecFromMime('audio/x-dsd'), 'DSD');
+    expect(AudioInfo.codecFromMime('audio/true-hd'), 'TrueHD');
+    expect(AudioInfo.codecFromMime('audio/vnd.dts'), 'DTS');
+    expect(const AudioInfo(codec: 'DSD', sampleRate: 2822400, bitDepth: 1).badge, 'DSD64');
+    expect(const AudioInfo(codec: 'DSD', sampleRate: 5644800, bitDepth: 1).badge, 'DSD128');
+    expect(const AudioInfo(codec: 'DSD', sampleRate: 2822400).quality, AudioQuality.hiRes);
+    expect(const AudioInfo(codec: 'AIFF', sampleRate: 44100, bitDepth: 16).badge, 'AIFF 16/44.1');
+    expect(const AudioInfo(codec: 'TrueHD', sampleRate: 48000, bitDepth: 24).quality, AudioQuality.hiRes);
+    expect(AudioInfo.guess(_song('/x/a.dsf')).codec, 'DSD');
+    expect(AudioInfo.guess(_song('/x/a.aiff')).codec, 'AIFF');
+    expect(AudioInfo.guess(_song('/x/a.ac3')).codec, 'AC-3');
+    expect(AudioInfo.guess(_song('/x/a.mp2')).codec, 'MP2');
+  });
+
   test('codec names come from the stream, not the extension', () {
     expect(AudioInfo.codecFromMime('audio/flac'), 'FLAC');
     expect(AudioInfo.codecFromMime('audio/alac'), 'ALAC');

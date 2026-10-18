@@ -42,6 +42,10 @@ class EqSettingsNotifier extends Notifier<EqSettings> {
     _set(state.copyWith(devices: {...state.devices, device.key: device}));
   }
 
+  /// Restore from a backup: flags & default from [restored], devices merged
+  /// (restored assignments win).
+  void restore(EqSettings restored) => _set(restored.copyWith(devices: {...state.devices, ...restored.devices}));
+
   void forgetDevice(String key) => _set(state.copyWith(devices: {...state.devices}..remove(key)));
 
   /// After a preset is deleted, fall back to defaults wherever it was used.

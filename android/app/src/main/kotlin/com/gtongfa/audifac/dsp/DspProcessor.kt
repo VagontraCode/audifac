@@ -8,7 +8,7 @@ import kotlin.math.pow
 
 /**
  * Processes interleaved float PCM in place:
- * preamp → parametric EQ → mono / balance → crossfeed → limiter.
+ * volume matching → preamp → parametric EQ → mono / balance → crossfeed → limiter.
  *
  * Settings changes cross-fade from the old to the new filter chain so moving a
  * slider never clicks. When the settings are transparent the samples are left
@@ -94,6 +94,17 @@ class DspProcessor(
     private val release = exp(-1.0 / (0.08 * sampleRate))
     private var limiterGain = 1.0
 
+    // Volume matching gain (linear): glides ~5 ms to its target.
+    private var gain = 1.0
+    private var gainTarget = 1.0
+    private val gainGlide = 1.0 - exp(-1.0 / (0.005 * sampleRate))
+
+    /** Sets the track's volume matching gain; [immediate] skips the glide (new playback). */
+    fun setGain(linear: Double, immediate: Boolean) {
+        gainTarget = linear
+        if (immediate) gain = linear
+    }
+
     private val inFrame = DoubleArray(channels)
     private val outCurrent = DoubleArray(channels)
     private val outPrevious = DoubleArray(channels)
@@ -113,7 +124,8 @@ class DspProcessor(
     fun isPassThrough(): Boolean {
         refresh()
         val c = current
-        return c != null && c.transparent && previous == null && limiterGain == 1.0
+        return c != null && c.transparent && previous == null && limiterGain == 1.0 &&
+            gain == 1.0 && gainTarget == 1.0
     }
 
     /** Processes [frameCount] interleaved frames starting at sample [offset]. */
@@ -121,10 +133,17 @@ class DspProcessor(
         refresh()
         val chain = current ?: return
         // Never limit untouched audio: keeps pass-through bit-exact.
-        val useLimiter = chain.config.enabled && chain.config.limiter && !chain.transparent
+        // A volume boost can clip even with the EQ off.
+        val useLimiter = chain.config.limiter &&
+            ((chain.config.enabled && !chain.transparent) || gainTarget > 1.0 || gain > 1.0)
         var idx = offset
         for (frame in 0 until frameCount) {
-            for (ch in 0 until channels) inFrame[ch] = samples[idx + ch].toDouble()
+            if (gain != gainTarget) {
+                gain += (gainTarget - gain) * gainGlide
+                if (abs(gainTarget - gain) < 1e-6) gain = gainTarget
+            }
+            val g = gain
+            for (ch in 0 until channels) inFrame[ch] = samples[idx + ch] * g
 
             chain.frame(inFrame, outCurrent)
             val prev = previous
@@ -138,8 +157,9 @@ class DspProcessor(
             if (useLimiter || limiterGain < 1.0) {
                 var peak = 0.0
                 for (ch in 0 until channels) peak = max(peak, abs(outCurrent[ch]))
-                val target = if (useLimiter && peak * limiterGain > ceiling) ceiling / peak else 1.0
-                limiterGain = if (target < limiterGain) target else min(1.0, target - (target - limiterGain) * release)
+                // Release towards unity first, then clamp: never above the ceiling.
+                val released = min(1.0, 1.0 - (1.0 - limiterGain) * release)
+                limiterGain = if (useLimiter && peak * released > ceiling) ceiling / peak else released
                 for (ch in 0 until channels) outCurrent[ch] *= limiterGain
             }
 
