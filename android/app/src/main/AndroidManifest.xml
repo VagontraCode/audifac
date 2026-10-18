@@ -55,6 +55,11 @@
             </intent-filter>
         </receiver>
 
+        <!-- Android Auto: audifac is a media app (browsing through audio_service). -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+
         <!-- Home-screen player widget -->
         <receiver
             android:name=".PlayerWidget"

@@ -6,6 +6,7 @@ import 'package:audio_session/audio_session.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../../models/song.dart';
+import 'browse_tree.dart';
 import 'queue_logic.dart';
 
 /// Starts the background audio service. Call once, before `runApp`.
@@ -241,6 +242,45 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
       await _player.setShuffleModeEnabled(true);
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Media browsing (Android Auto, Assistant, other media apps)
+
+  /// Set by the app whenever the library changes.
+  BrowseTree? browseTree;
+
+  @override
+  Future<List<MediaItem>> getChildren(String parentMediaId, [Map<String, dynamic>? options]) async =>
+      browseTree?.children(parentMediaId) ?? const [];
+
+  @override
+  Future<MediaItem?> getMediaItem(String mediaId) async {
+    final hit = browseTree?.playable(mediaId);
+    return hit == null ? null : _toMediaItem(hit.songs[hit.index]);
+  }
+
+  @override
+  Future<void> playFromMediaId(String mediaId, [Map<String, dynamic>? extras]) async {
+    final hit = browseTree?.playable(mediaId);
+    if (hit == null) return;
+    await playSongs(hit.songs, startIndex: hit.index, shuffle: hit.shuffle);
+  }
+
+  @override
+  Future<void> playFromSearch(String query, [Map<String, dynamic>? extras]) async {
+    final tree = browseTree;
+    if (tree == null) return;
+    // "Play music" with nothing specific: shuffle everything.
+    final hits = query.trim().isEmpty ? tree.all : tree.search(query);
+    if (hits.isEmpty) return;
+    await playSongs(hits, shuffle: query.trim().isEmpty);
+  }
+
+  @override
+  Future<List<MediaItem>> search(String query, [Map<String, dynamic>? extras]) async => [
+        for (final s in browseTree?.search(query).take(BrowseTree.maxItems) ?? const <Song>[])
+          MediaItem(id: '${BrowseTree.shuffleId}|song:${s.id}', title: s.title, artist: s.artist, album: s.album, playable: true),
+      ];
 
   /// Shuffle keeps each album's tracks together and in order.
   bool get keepAlbumsTogether => _keepAlbumsTogether;
