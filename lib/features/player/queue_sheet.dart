@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../../l10n/l10n.dart';
 
 import '../../core/audio/queue_logic.dart';
 import '../../core/theme/app_colors.dart';
@@ -63,23 +64,23 @@ class QueueSheet extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (nowPlaying != null) ...[
-            titleStyle('Now playing'),
+            titleStyle(context.l10n.nowPlaying),
             _QueueRow(item: nowPlaying, trailing: NowPlayingBars(playing: playing)),
           ],
           Padding(
             padding: const EdgeInsets.only(right: 24),
             child: Row(
               children: [
-                Expanded(child: titleStyle('Up next')),
+                Expanded(child: titleStyle(context.l10n.upNext)),
                 if (shuffling)
-                  Text('Shuffled', style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted)),
+                  Text(context.l10n.shuffled, style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted)),
               ],
             ),
           ),
           if (next.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-              child: Text('Nothing else queued.', style: theme.textTheme.bodyMedium),
+              child: Text(context.l10n.nothingQueued, style: theme.textTheme.bodyMedium),
             ),
         ],
       ),

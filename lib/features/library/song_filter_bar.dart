@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../../l10n/l10n.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../models/app_settings.dart';
@@ -10,6 +11,7 @@ import '../../models/song_source.dart';
 import '../../providers/audio_info_providers.dart';
 import '../../providers/user_data_providers.dart';
 import '../../widgets/song_labels.dart';
+import '../../l10n/labels.dart';
 
 /// Quality, codec and source chips for the Songs tab.
 class SongFilterBar extends ConsumerWidget {
@@ -48,14 +50,14 @@ class SongFilterBar extends ConsumerWidget {
 
     final qualityChips = <Widget>[
       _Chip(
-        label: 'All',
+        label: context.l10n.all,
         selected: filter.quality == null,
         onTap: () => set(filter.copyWith(quality: () => null)),
       ),
       for (final q in [AudioQuality.hiRes, AudioQuality.lossless, AudioQuality.lossy])
         if ((counts.quality[q] ?? 0) > 0 || filter.quality == q)
           _Chip(
-            label: q.label,
+            label: context.l10n.quality(q),
             count: counts.quality[q] ?? 0,
             color: q.color(palette),
             icon: q == AudioQuality.hiRes ? HugeIcons.strokeRoundedDiamond01 : null,
@@ -78,7 +80,7 @@ class SongFilterBar extends ConsumerWidget {
     final categoryChips = <Widget>[
       for (final e in categories)
         _Chip(
-          label: e.key.label,
+          label: context.l10n.sourceCategory(e.key),
           count: e.value,
           icon: e.key.icon,
           selected: filter.categories.contains(e.key),

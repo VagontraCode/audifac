@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../l10n/l10n.dart';
 
 import '../core/theme/app_colors.dart';
 import '../features/player/player_screen.dart';
@@ -119,7 +120,7 @@ class _MiniPlayerBar extends ConsumerWidget {
                     ),
                   ),
                   IconButton(
-                    tooltip: playing ? 'Pause' : 'Play',
+                    tooltip: playing ? context.l10n.pause : context.l10n.play,
                     onPressed: () {
                       HapticFeedback.selectionClick();
                       handler.togglePlayPause();
@@ -136,7 +137,7 @@ class _MiniPlayerBar extends ConsumerWidget {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Next',
+                    tooltip: context.l10n.next,
                     onPressed: handler.skipToNext,
                     icon: HugeIcon(icon: HugeIcons.strokeRoundedNext, color: fg, size: 24),
                   ),

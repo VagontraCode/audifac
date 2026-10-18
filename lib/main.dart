@@ -6,6 +6,7 @@ import 'core/audio/audio_handler.dart';
 import 'core/theme/app_theme.dart';
 import 'data/app_database.dart';
 import 'features/shell/app_shell.dart';
+import 'l10n/l10n.dart';
 import 'providers/player_providers.dart';
 import 'providers/user_data_providers.dart';
 
@@ -34,6 +35,7 @@ class AudifacApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(settingsProvider.select((s) => s.themeMode));
+    final language = ref.watch(settingsProvider.select((s) => s.languageCode));
 
     return MaterialApp(
       title: 'audifac',
@@ -41,6 +43,9 @@ class AudifacApp extends ConsumerWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,
+      locale: language.isEmpty ? null : Locale(language),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       builder: (context, child) {
         final dark = Theme.of(context).brightness == Brightness.dark;
         return AnnotatedRegion<SystemUiOverlayStyle>(

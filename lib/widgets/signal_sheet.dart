@@ -13,6 +13,8 @@ import '../models/eq.dart';
 import '../providers/audio_info_providers.dart';
 import '../providers/eq_providers.dart';
 import '../providers/player_providers.dart';
+import '../l10n/l10n.dart';
+import '../l10n/labels.dart';
 
 /// Spectrum analyzer, level meters and the signal path: source → decoder →
 /// DSP → Android mixer → output device.
@@ -117,7 +119,7 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Signal', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              Text(context.l10n.signal, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 16),
               SizedBox(
                 height: 150,
@@ -145,9 +147,9 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
               const SizedBox(height: 8),
               _Meter(label: 'R', peak: _shownLevels[1], rms: _shownLevels[3], floor: floor),
               const SizedBox(height: 4),
-              Text('Bar: RMS · line: peak (dBFS)', style: muted),
+              Text(context.l10n.meterLegend, style: muted),
               const SizedBox(height: 22),
-              Text('Signal path', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+              Text(context.l10n.signalPath, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
               ..._steps(info, eqOn, sound, device),
             ],
@@ -158,6 +160,7 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
   }
 
   List<Widget> _steps(AudioInfo? info, bool eqOn, EqPreset sound, EqPreset device) {
+    final l10n = context.l10n;
     final p = _path;
     final out = (p?['output'] as Map?)?.cast<String, dynamic>();
     final rate = (p?['sampleRate'] as num?)?.toInt() ?? 0;
@@ -169,15 +172,15 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
     String khz(int hz) => '${AudioInfo.formatSampleRate(hz)} kHz';
 
     final dspParts = [
-      if (eqOn) 'EQ: ${sound.name}${device.id == BuiltInPresets.deviceNone.id ? '' : ' + ${device.name}'}',
-      if (gain.abs() >= 0.05) 'volume ${formatDb(gain)}',
-      if (crossfade > 0) '${crossfade.round()} s crossfade',
+      if (eqOn) 'EQ: ${l10n.presetName(sound)}${device.id == BuiltInPresets.deviceNone.id ? '' : ' + ${l10n.presetName(device)}'}',
+      if (gain.abs() >= 0.05) l10n.volumeDb(formatDb(gain)),
+      if (crossfade > 0) l10n.crossfadeSeconds(crossfade.round()),
     ];
     final rates = [for (final r in (out?['deviceRates'] as List? ?? const [])) (r as num).toInt()];
 
     return [
       _Step(
-        title: 'Source',
+        title: l10n.fieldSource,
         value: info == null
             ? '—'
             : [
@@ -188,30 +191,30 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
               ].join(' · '),
       ),
       _Step(
-        title: 'Decoded',
-        value: rate == 0 ? 'Not playing through the DSP' : 'PCM ${bits ?? '?'}-bit · ${khz(rate)} · ${p?['channels']} ch',
+        title: l10n.decoded,
+        value: rate == 0 ? l10n.notThroughDsp : 'PCM ${bits ?? '?'}-bit · ${khz(rate)} · ${p?['channels']} ch',
       ),
       _Step(
         title: 'audifac DSP',
         value: !processing
-            ? 'Bit-transparent (no processing) → 32-bit float'
-            : '${dspParts.isEmpty ? 'Processing' : dspParts.join(' · ')} → 32-bit float, 64-bit math',
+            ? l10n.bitTransparent
+            : l10n.dspProcessing(dspParts.isEmpty ? l10n.processing : dspParts.join(' · ')),
         good: !processing,
       ),
       _Step(
-        title: 'Android mixer',
+        title: l10n.androidMixer,
         value: mixer == null || rate == 0
             ? '—'
             : mixer == rate
-                ? '${khz(mixer)} — no resampling'
-                : 'Resampled ${khz(rate)} → ${khz(mixer)}',
+                ? l10n.noResampling(khz(mixer))
+                : l10n.resampled(khz(rate), khz(mixer)),
         good: mixer != null && mixer == rate,
       ),
       _Step(
-        title: 'Output',
+        title: l10n.output,
         value: [
-          out?['name'] as String? ?? 'Phone speaker',
-          if (rates.isNotEmpty) 'accepts ${rates.map(khz).join(', ')}',
+          out?['name'] as String? ?? l10n.phoneSpeaker,
+          if (rates.isNotEmpty) l10n.accepts(rates.map(khz).join(', ')),
         ].join(' · '),
         last: true,
       ),

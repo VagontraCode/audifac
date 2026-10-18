@@ -11,8 +11,11 @@ dependencies:
   audio_session: ^0.2.4
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   flutter_riverpod: ^3.4.3
   hugeicons: ^1.0.2
+  intl: any
   just_audio: ^0.10.6
   material_color_utilities: any
   path: ^1.9.1
@@ -25,6 +28,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # UI text: lib/l10n/app_*.arb → AppLocalizations (flutter gen-l10n).
+  generate: true
 
 # audifac patch of just_audio (audio sink hook for the DSP / equalizer).
 # See packages/just_audio/android/.../JustAudioHooks.java.

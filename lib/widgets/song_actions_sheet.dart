@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../l10n/l10n.dart';
 
 import '../core/theme/app_colors.dart';
 import '../features/collection/collection_screen.dart';
@@ -83,25 +84,25 @@ class SongActionsSheet extends ConsumerWidget {
     final actions = <SongMenuAction>[
       SongMenuAction(
         icon: HugeIcons.strokeRoundedTextIndentMore,
-        label: 'Play next',
+        label: context.l10n.playNext,
         onSelected: () {
           close();
           handler.playNext([song]);
-          toast('Playing "${song.title}" next');
+          toast(context.l10n.playingNext(song.title));
         },
       ),
       SongMenuAction(
         icon: HugeIcons.strokeRoundedQueue01,
-        label: 'Add to queue',
+        label: context.l10n.addToQueue,
         onSelected: () {
           close();
           handler.addToQueue([song]);
-          toast('Added to queue');
+          toast(context.l10n.addedToQueue);
         },
       ),
       SongMenuAction(
         icon: HugeIcons.strokeRoundedPlayListAdd,
-        label: 'Add to playlist…',
+        label: context.l10n.addToPlaylistEllipsis,
         onSelected: () {
           close();
           AddToPlaylistSheet.show(hostContext, [song.id]);
@@ -109,16 +110,16 @@ class SongActionsSheet extends ConsumerWidget {
       ),
       SongMenuAction(
         icon: HugeIcons.strokeRoundedFavourite,
-        label: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+        label: isFavorite ? context.l10n.removeFromFavorites : context.l10n.addToFavorites,
         onSelected: () {
           close();
           final nowFavorite = ref.read(favoritesProvider.notifier).toggle(song.id);
-          toast(nowFavorite ? 'Added to favorites' : 'Removed from favorites');
+          toast(nowFavorite ? context.l10n.addedToFavorites : context.l10n.removedFromFavorites);
         },
       ),
       SongMenuAction(
         icon: HugeIcons.strokeRoundedSlidersHorizontal,
-        label: 'Sound preset…',
+        label: context.l10n.soundPresetEllipsis,
         onSelected: () {
           close();
           QuickEqSheet.show(hostContext, song: song, initialScope: ApplyScope.song);
@@ -126,7 +127,7 @@ class SongActionsSheet extends ConsumerWidget {
       ),
       SongMenuAction(
         icon: HugeIcons.strokeRoundedInformationCircle,
-        label: 'Song info',
+        label: context.l10n.songInfo,
         onSelected: () {
           close();
           SongInfoSheet.show(hostContext, song);
@@ -135,7 +136,7 @@ class SongActionsSheet extends ConsumerWidget {
       if (album != null)
         SongMenuAction(
           icon: HugeIcons.strokeRoundedCd,
-          label: 'Go to album',
+          label: context.l10n.goToAlbum,
           onSelected: () {
             close();
             CollectionScreen.openAlbum(hostContext, album);
@@ -144,7 +145,7 @@ class SongActionsSheet extends ConsumerWidget {
       if (artist != null)
         SongMenuAction(
           icon: HugeIcons.strokeRoundedUser,
-          label: 'Go to artist',
+          label: context.l10n.goToArtist,
           onSelected: () {
             close();
             CollectionScreen.openArtist(hostContext, artist);

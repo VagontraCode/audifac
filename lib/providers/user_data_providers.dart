@@ -39,6 +39,8 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   void setCrossfade(int seconds) => _update(state.copyWith(crossfadeSeconds: seconds));
 
+  void setLanguage(String code) => _update(state.copyWith(languageCode: code));
+
   /// Restore from a backup.
   void replace(AppSettings settings) => _update(settings);
 

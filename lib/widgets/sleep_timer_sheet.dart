@@ -5,6 +5,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../core/format.dart';
 import '../core/theme/app_colors.dart';
 import '../providers/sleep_timer_provider.dart';
+import '../l10n/l10n.dart';
 
 /// Stop playback after a while, at the end of the song or of the queue,
 /// fading out gently.
@@ -38,10 +39,10 @@ class SleepTimerSheet extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Sleep timer', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+            Text(context.l10n.sleepTimer, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
             Text(
-              timer.active ? 'Stops ${SleepChip.describe(timer)}' : 'Music fades out, then pauses.',
+              timer.active ? SleepChip.describe(context.l10n, timer) : context.l10n.sleepHint,
               style: theme.textTheme.bodyMedium?.copyWith(color: palette.inkMuted),
             ),
             const SizedBox(height: 16),
@@ -51,7 +52,7 @@ class SleepTimerSheet extends ConsumerWidget {
               children: [
                 for (final m in presets)
                   ActionChip(
-                    label: Text(m < 60 ? '$m min' : '${m ~/ 60} h${m % 60 == 0 ? '' : ' ${m % 60}'}'),
+                    label: Text(m < 60 ? context.l10n.minutesShort(m) : '${m ~/ 60} h${m % 60 == 0 ? '' : ' ${m % 60}'}'),
                     onPressed: () => pick(() => notifier.start(Duration(minutes: m))),
                   ),
               ],
@@ -60,14 +61,14 @@ class SleepTimerSheet extends ConsumerWidget {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: HugeIcon(icon: HugeIcons.strokeRoundedMusicNote03, color: palette.ink, size: 22),
-              title: const Text('End of this song', style: TextStyle(fontWeight: FontWeight.w600)),
+              title: Text(context.l10n.endOfSong, style: TextStyle(fontWeight: FontWeight.w600)),
               selected: timer.mode == SleepMode.endOfTrack,
               onTap: () => pick(notifier.startEndOfTrack),
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: HugeIcon(icon: HugeIcons.strokeRoundedPlaylist02, color: palette.ink, size: 22),
-              title: const Text('End of the queue', style: TextStyle(fontWeight: FontWeight.w600)),
+              title: Text(context.l10n.endOfQueue, style: TextStyle(fontWeight: FontWeight.w600)),
               selected: timer.mode == SleepMode.endOfQueue,
               onTap: () => pick(notifier.startEndOfQueue),
             ),
@@ -77,12 +78,12 @@ class SleepTimerSheet extends ConsumerWidget {
                   if (timer.mode == SleepMode.minutes)
                     TextButton(
                       onPressed: () => notifier.extend(const Duration(minutes: 10)),
-                      child: const Text('+10 min'),
+                      child: Text('+${context.l10n.minutesShort(10)}'),
                     ),
                   const Spacer(),
                   FilledButton.tonal(
                     onPressed: () => pick(notifier.cancel),
-                    child: const Text('Turn off'),
+                    child: Text(context.l10n.turnOff),
                   ),
                 ],
               ),
@@ -97,11 +98,11 @@ class SleepTimerSheet extends ConsumerWidget {
 class SleepChip extends ConsumerWidget {
   const SleepChip({super.key});
 
-  static String describe(SleepTimerState t) => switch (t.mode) {
+  static String describe(AppLocalizations l10n, SleepTimerState t) => switch (t.mode) {
         SleepMode.off => '',
-        SleepMode.minutes => 'in ${_left(t.remaining ?? Duration.zero)}',
-        SleepMode.endOfTrack => 'at the end of this song',
-        SleepMode.endOfQueue => 'at the end of the queue',
+        SleepMode.minutes => l10n.stopsIn(_left(t.remaining ?? Duration.zero)),
+        SleepMode.endOfTrack => l10n.stopsAtSongEnd,
+        SleepMode.endOfQueue => l10n.stopsAtQueueEnd,
       };
 
   static String _left(Duration d) {
@@ -116,11 +117,11 @@ class SleepChip extends ConsumerWidget {
     final label = switch (timer.mode) {
       SleepMode.off => null,
       SleepMode.minutes => _left(timer.remaining ?? Duration.zero),
-      SleepMode.endOfTrack => 'Song end',
-      SleepMode.endOfQueue => 'Queue end',
+      SleepMode.endOfTrack => context.l10n.songEnd,
+      SleepMode.endOfQueue => context.l10n.queueEnd,
     };
     return Tooltip(
-      message: 'Sleep timer',
+      message: context.l10n.sleepTimer,
       child: GestureDetector(
         onTap: () => SleepTimerSheet.show(context),
         child: AnimatedContainer(

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../../l10n/l10n.dart';
 
-import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/folder_tree.dart';
 import '../../providers/library_providers.dart';
@@ -25,7 +25,7 @@ class FoldersTab extends ConsumerWidget {
       children: [
         for (final (i, e) in entries.indexed) Entrance(index: i, child: FolderTile(entry: e)),
         if (rootSongs.isNotEmpty)
-          FolderTile(entry: FolderEntry(path: tree.roots.single, name: 'Loose files', songCount: rootSongs.length, folderCount: 0)),
+          FolderTile(entry: FolderEntry(path: tree.roots.single, name: context.l10n.looseFiles, songCount: rootSongs.length, folderCount: 0)),
       ],
     );
   }
@@ -49,8 +49,8 @@ class FolderTile extends StatelessWidget {
       ),
       title: Text(entry.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
       subtitle: Text([
-        pluralize(entry.songCount, 'song'),
-        if (entry.folderCount > 0) pluralize(entry.folderCount, 'folder'),
+        context.l10n.songs(entry.songCount),
+        if (entry.folderCount > 0) context.l10n.folders(entry.folderCount),
       ].join(' · ')),
       trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
       onTap: () => FolderScreen.open(context, entry.path, entry.name),
@@ -89,7 +89,7 @@ class FolderScreen extends ConsumerWidget {
                 child: Row(
                   children: [
                     IconButton(
-                      tooltip: 'Back',
+                      tooltip: context.l10n.back,
                       onPressed: () => Navigator.of(context).pop(),
                       icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: palette.ink, size: 26),
                     ),
@@ -113,13 +113,13 @@ class FolderScreen extends ConsumerWidget {
                         FilledButton.icon(
                           onPressed: all.isEmpty ? null : () => handler.playSongs(all),
                           icon: HugeIcon(icon: HugeIcons.strokeRoundedPlay, color: palette.onInk, size: 18),
-                          label: Text('Play ${pluralize(all.length, 'song')}'),
+                          label: Text(context.l10n.playCount(all.length)),
                         ),
                         const SizedBox(width: 10),
                         OutlinedButton.icon(
                           onPressed: all.isEmpty ? null : () => handler.playSongs(all, shuffle: true),
                           icon: HugeIcon(icon: HugeIcons.strokeRoundedShuffle, color: palette.ink, size: 18),
-                          label: const Text('Shuffle'),
+                          label: Text(context.l10n.shuffle),
                         ),
                       ],
                     ),

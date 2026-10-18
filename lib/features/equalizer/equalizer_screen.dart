@@ -15,6 +15,8 @@ import '../../providers/player_providers.dart';
 import '../../widgets/eq_curve.dart';
 import 'eq_rules_screen.dart';
 import 'quick_eq_sheet.dart';
+import '../../l10n/l10n.dart';
+import '../../l10n/labels.dart';
 
 /// Creates a preset (blank, AutoEQ file, AutoEQ text, or a copy of the
 /// current one) and makes it active so it can be edited right away.
@@ -29,22 +31,22 @@ Future<EqPreset?> createPreset(BuildContext context, WidgetRef ref, EqPresetKind
         children: [
           ListTile(
             leading: HugeIcon(icon: HugeIcons.strokeRoundedSlidersHorizontal, color: palette.ink, size: 22),
-            title: const Text('Blank 10-band graphic'),
+            title: Text(context.l10n.blankGraphic),
             onTap: () => Navigator.pop(context, 'graphic'),
           ),
           ListTile(
             leading: HugeIcon(icon: HugeIcons.strokeRoundedChartLineData01, color: palette.ink, size: 22),
-            title: const Text('Blank parametric'),
+            title: Text(context.l10n.blankParametric),
             onTap: () => Navigator.pop(context, 'parametric'),
           ),
           ListTile(
             leading: HugeIcon(icon: HugeIcons.strokeRoundedFile01, color: palette.ink, size: 22),
-            title: const Text('Import AutoEQ file (ParametricEQ.txt)'),
+            title: Text(context.l10n.importAutoEqFile),
             onTap: () => Navigator.pop(context, 'file'),
           ),
           ListTile(
             leading: HugeIcon(icon: HugeIcons.strokeRoundedCopy01, color: palette.ink, size: 22),
-            title: const Text('Paste AutoEQ / Equalizer APO text'),
+            title: Text(context.l10n.pasteAutoEq),
             onTap: () => Navigator.pop(context, 'paste'),
           ),
         ],
@@ -55,8 +57,9 @@ Future<EqPreset?> createPreset(BuildContext context, WidgetRef ref, EqPresetKind
 
   final id = EqPresetsNotifier.newId();
   final messenger = ScaffoldMessenger.of(context);
+  final l10n = context.l10n;
   EqPreset? preset;
-  String suggested = kind == EqPresetKind.device ? 'My headphones' : 'My sound';
+  String suggested = kind == EqPresetKind.device ? l10n.myHeadphones : l10n.mySound;
 
   switch (choice) {
     case 'graphic':
@@ -74,15 +77,15 @@ Future<EqPreset?> createPreset(BuildContext context, WidgetRef ref, EqPresetKind
         text = (await Clipboard.getData(Clipboard.kTextPlain))?.text;
       }
       if (text == null) return null;
-      preset = EqPreset.fromAutoEq(text, id: id, name: suggested.isEmpty ? 'Imported' : suggested, kind: kind);
+      preset = EqPreset.fromAutoEq(text, id: id, name: suggested.isEmpty ? l10n.imported : suggested, kind: kind);
       if (preset == null) {
-        messenger.showSnackBar(const SnackBar(content: Text('No "Filter: ON PK Fc … Hz Gain … dB Q …" lines found')));
+        messenger.showSnackBar(SnackBar(content: Text(l10n.noAutoEqLines)));
         return null;
       }
   }
   if (preset == null || !context.mounted) return null;
 
-  final name = await askPresetName(context, title: 'Name this preset', initial: preset.name);
+  final name = await askPresetName(context, title: l10n.nameThisPreset, initial: preset.name);
   if (name == null) return null;
   preset = preset.copyWith(name: name);
   await ref.read(eqPresetsProvider.notifier).save(preset);
@@ -110,13 +113,13 @@ Future<String?> askPresetName(BuildContext context, {required String title, Stri
         autofocus: true,
         textCapitalization: TextCapitalization.sentences,
         onSubmitted: (v) => Navigator.pop(context, v.trim().isEmpty ? null : v.trim()),
-        decoration: InputDecoration(hintText: 'Preset name', fillColor: context.palette.background),
+        decoration: InputDecoration(hintText: context.l10n.presetNameHint, fillColor: context.palette.background),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.cancel)),
         FilledButton(
           onPressed: () => Navigator.pop(context, controller.text.trim().isEmpty ? null : controller.text.trim()),
-          child: const Text('Save'),
+          child: Text(context.l10n.save),
         ),
       ],
     ),
@@ -178,7 +181,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
   }
 
   Future<void> _duplicateAndEdit(EqPreset source) async {
-    final name = await askPresetName(context, title: 'Duplicate preset', initial: '${source.name} (my version)');
+    final name = await askPresetName(context, title: context.l10n.duplicatePreset, initial: context.l10n.myVersion(context.l10n.presetName(source)));
     if (name == null) return;
     final copy = source.duplicate(id: EqPresetsNotifier.newId(), name: name);
     await _presets.save(copy);
@@ -187,30 +190,31 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
 
   Future<void> _presetMenu(String action, EqPreset preset) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
     switch (action) {
       case 'rename':
-        final name = await askPresetName(context, title: 'Rename preset', initial: preset.name);
+        final name = await askPresetName(context, title: l10n.renamePreset, initial: preset.name);
         if (name != null) _edit(preset.copyWith(name: name));
       case 'duplicate':
         await _duplicateAndEdit(preset);
       case 'export':
         await Clipboard.setData(ClipboardData(text: preset.toAutoEq()));
-        messenger.showSnackBar(const SnackBar(content: Text('Copied as AutoEQ / Equalizer APO text')));
+        messenger.showSnackBar(SnackBar(content: Text(l10n.copiedAutoEq)));
       case 'default':
         ref.read(eqSettingsProvider.notifier).setDefaultSound(preset.id);
-        messenger.showSnackBar(SnackBar(content: Text('"${preset.name}" is now the default for all music')));
+        messenger.showSnackBar(SnackBar(content: Text(l10n.nowDefault(l10n.presetName(preset)))));
       case 'delete':
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Delete preset?'),
-            content: Text('"${preset.name}" and any rules using it will be removed.'),
+            title: Text(l10n.deletePresetTitle),
+            content: Text(l10n.deletePresetBody(preset.name)),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l10n.cancel)),
               FilledButton(
                 style: FilledButton.styleFrom(backgroundColor: const Color(0xFFD70015)),
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Delete'),
+                child: Text(l10n.delete),
               ),
             ],
           ),
@@ -249,9 +253,9 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Equalizer', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: Text(context.l10n.equalizer, style: TextStyle(fontWeight: FontWeight.w800)),
         leading: IconButton(
-          tooltip: 'Back',
+          tooltip: context.l10n.back,
           onPressed: () => Navigator.of(context).pop(),
           icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: palette.ink, size: 26),
         ),
@@ -274,7 +278,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
               child: Text(
-                'The equalizer is off — you hear the original sound. Turn it on to apply the presets below.',
+                context.l10n.eqOffHint,
                 style: theme.textTheme.bodyMedium,
               ),
             ),
@@ -284,9 +288,9 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
               children: [
                 Expanded(
                   child: _LayerCard(
-                    title: 'Device · ${output.name}',
-                    preset: device.name,
-                    reason: 'auto for this output',
+                    title: context.l10n.deviceLayer(context.l10n.deviceName(output)),
+                    preset: context.l10n.presetName(device),
+                    reason: context.l10n.autoForOutput,
                     icon: switch (output.kind) {
                       'bluetooth' => HugeIcons.strokeRoundedBluetooth,
                       'wired' || 'usb' => HugeIcons.strokeRoundedHeadphones,
@@ -300,9 +304,9 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _LayerCard(
-                    title: 'Sound',
-                    preset: sound.preset.name,
-                    reason: 'from ${sound.reason.label}',
+                    title: context.l10n.sound,
+                    preset: context.l10n.presetName(sound.preset),
+                    reason: context.l10n.fromReason(context.l10n.eqReason(sound.reason)),
                     icon: HugeIcons.strokeRoundedMusicNote01,
                     selected: _layer == EqPresetKind.sound,
                     onTap: () => _switchLayer(EqPresetKind.sound),
@@ -332,7 +336,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
             child: Text(
-              'Bold: ${_layer == EqPresetKind.device ? 'device correction' : 'sound preset'} · faint: what you hear (both layers)',
+              _layer == EqPresetKind.device ? context.l10n.curveLegendDevice : context.l10n.curveLegendSound,
               style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted),
             ),
           ),
@@ -342,13 +346,13 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
             child: _HoldToCompare(onChanged: (held) => _dsp.setBypass(held)),
           ),
 
-          section(editing.kind == EqPresetKind.device ? 'Device correction' : 'Sound preset'),
+          section(editing.kind == EqPresetKind.device ? context.l10n.deviceCorrection : context.l10n.soundPreset),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
                 Expanded(
-                  child: Text(editing.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                  child: Text(context.l10n.presetName(editing), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                 ),
                 if (!editing.builtIn)
                   SegmentedButton<bool>(
@@ -358,24 +362,24 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                       selectedForegroundColor: palette.onInk,
                       visualDensity: VisualDensity.compact,
                     ),
-                    segments: const [
-                      ButtonSegment(value: true, label: Text('Graphic')),
-                      ButtonSegment(value: false, label: Text('Parametric')),
+                    segments: [
+                      ButtonSegment(value: true, label: Text(context.l10n.graphic)),
+                      ButtonSegment(value: false, label: Text(context.l10n.parametric)),
                     ],
                     selected: {editing.graphic},
                     onSelectionChanged: (s) => _edit(s.first ? _toGraphic(editing) : editing.copyWith(graphic: false)),
                   ),
                 PopupMenuButton<String>(
-                  tooltip: 'Preset options',
+                  tooltip: context.l10n.presetOptions,
                   icon: HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical, color: palette.ink, size: 22),
                   onSelected: (a) => _presetMenu(a, editing),
                   itemBuilder: (_) => [
-                    if (!editing.builtIn) const PopupMenuItem(value: 'rename', child: Text('Rename')),
-                    const PopupMenuItem(value: 'duplicate', child: Text('Duplicate')),
-                    const PopupMenuItem(value: 'export', child: Text('Copy as AutoEQ text')),
+                    if (!editing.builtIn) PopupMenuItem(value: 'rename', child: Text(context.l10n.rename)),
+                    PopupMenuItem(value: 'duplicate', child: Text(context.l10n.duplicate)),
+                    PopupMenuItem(value: 'export', child: Text(context.l10n.copyAsAutoEq)),
                     if (editing.kind == EqPresetKind.sound)
-                      const PopupMenuItem(value: 'default', child: Text('Use for all music')),
-                    if (!editing.builtIn) const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                      PopupMenuItem(value: 'default', child: Text(context.l10n.useForAllMusic)),
+                    if (!editing.builtIn) PopupMenuItem(value: 'delete', child: Text(context.l10n.delete)),
                   ],
                 ),
               ],
@@ -386,11 +390,11 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
               child: Row(
                 children: [
-                  Expanded(child: Text('Built-in presets are read-only.', style: theme.textTheme.bodyMedium)),
+                  Expanded(child: Text(context.l10n.builtInReadOnly, style: theme.textTheme.bodyMedium)),
                   FilledButton.icon(
                     onPressed: () => _duplicateAndEdit(editing),
                     icon: HugeIcon(icon: HugeIcons.strokeRoundedEdit02, color: palette.onInk, size: 16),
-                    label: const Text('Duplicate to edit'),
+                    label: Text(context.l10n.duplicateToEdit),
                   ),
                 ],
               ),
@@ -405,10 +409,10 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
               onChanged: _edit,
             ),
 
-          section('Gain'),
+          section(context.l10n.gain),
           if (!editing.builtIn)
             _SliderRow(
-              label: 'Preamp',
+              label: context.l10n.preamp,
               value: editing.preampDb,
               min: -24,
               max: 6,
@@ -419,10 +423,9 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             activeThumbColor: palette.onInk,
             activeTrackColor: palette.ink,
-            title: const Text('Automatic headroom', style: TextStyle(fontWeight: FontWeight.w600)),
+            title: Text(context.l10n.autoHeadroom, style: TextStyle(fontWeight: FontWeight.w600)),
             subtitle: Text(
-              'Lowers the volume by the biggest boost so it never distorts · '
-              'now ${formatDb(effectivePreamp)}',
+              context.l10n.autoHeadroomHint(formatDb(effectivePreamp)),
             ),
             value: settings.autoPreamp,
             onChanged: ref.read(eqSettingsProvider.notifier).setAutoPreamp,
@@ -431,35 +434,35 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
               child: Text(
-                'Boosts exceed 0 dB: the limiter will engage. Lower the preamp or turn on automatic headroom.',
+                context.l10n.boostsExceed,
                 style: theme.textTheme.bodySmall?.copyWith(color: palette.hiRes, fontWeight: FontWeight.w700),
               ),
             ),
 
           if (editing.kind == EqPresetKind.device && !editing.builtIn) ...[
-            section('Output'),
+            section(context.l10n.output),
             _SliderRow(
-              label: 'Crossfeed',
+              label: context.l10n.crossfeed,
               value: editing.crossfeed,
               min: 0,
               max: 1,
-              display: editing.crossfeed == 0 ? 'Off' : '${(editing.crossfeed * 100).round()} %',
+              display: editing.crossfeed == 0 ? context.l10n.off : '${(editing.crossfeed * 100).round()} %',
               onChanged: (v) => _edit(editing.copyWith(crossfeed: v < 0.03 ? 0 : v)),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                'Headphones: blends a little of each channel into the other, like speakers in a room.',
+                context.l10n.crossfeedHint,
                 style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted),
               ),
             ),
             _SliderRow(
-              label: 'Balance',
+              label: context.l10n.balance,
               value: editing.balance,
               min: -1,
               max: 1,
               display: editing.balance.abs() < 0.02
-                  ? 'Centre'
+                  ? context.l10n.centre
                   : '${(editing.balance.abs() * 100).round()} % ${editing.balance < 0 ? 'L' : 'R'}',
               onChanged: (v) => _edit(editing.copyWith(balance: v.abs() < 0.02 ? 0 : v)),
             ),
@@ -467,34 +470,34 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 20),
               activeThumbColor: palette.onInk,
               activeTrackColor: palette.ink,
-              title: const Text('Mono', style: TextStyle(fontWeight: FontWeight.w600)),
+              title: Text(context.l10n.mono, style: TextStyle(fontWeight: FontWeight.w600)),
               value: editing.mono,
               onChanged: (v) => _edit(editing.copyWith(mono: v)),
             ),
           ],
 
-          section('Behaviour'),
+          section(context.l10n.behaviour),
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             activeThumbColor: palette.onInk,
             activeTrackColor: palette.ink,
-            title: const Text('Ask when I start listening', style: TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: const Text('Offer your presets when a new queue starts and no rule decides'),
+            title: Text(context.l10n.askOnPlay, style: TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: Text(context.l10n.askOnPlayHint),
             value: settings.askOnPlay,
             onChanged: ref.read(eqSettingsProvider.notifier).setAskOnPlay,
           ),
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             leading: HugeIcon(icon: HugeIcons.strokeRoundedListView, color: palette.ink, size: 22),
-            title: const Text('Rules & devices', style: TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: Text('${ref.watch(eqRulesProvider).length} rules · ${settings.devices.length} devices'),
+            title: Text(context.l10n.rulesAndDevices, style: TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: Text(context.l10n.rulesDevicesCount(ref.watch(eqRulesProvider).length, settings.devices.length)),
             trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
             onTap: () => EqRulesScreen.open(context),
           ),
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             leading: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: palette.ink, size: 22),
-            title: const Text('New preset / import AutoEQ', style: TextStyle(fontWeight: FontWeight.w600)),
+            title: Text(context.l10n.newPresetImport, style: TextStyle(fontWeight: FontWeight.w600)),
             onTap: () async {
               _flush();
               _draft.set(null);
@@ -579,7 +582,7 @@ class _LayerCard extends StatelessWidget {
                   TextButton(
                     onPressed: onChange,
                     style: TextButton.styleFrom(foregroundColor: palette.ink, visualDensity: VisualDensity.compact),
-                    child: const Text('Change', style: TextStyle(fontWeight: FontWeight.w700)),
+                    child: Text(context.l10n.change, style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
@@ -627,7 +630,7 @@ class _HoldToCompareState extends State<_HoldToCompare> {
           border: Border.all(color: _held ? palette.ink : palette.line, width: 1.5),
         ),
         child: Text(
-          _held ? 'Original sound (A)' : 'Hold to compare with original',
+          _held ? context.l10n.originalSound : context.l10n.holdToCompare,
           style: TextStyle(color: _held ? palette.onInk : palette.ink, fontWeight: FontWeight.w700),
         ),
       ),
@@ -729,7 +732,7 @@ class _ParametricEditor extends StatelessWidget {
                   style: TextStyle(color: i == selected ? palette.onInk : palette.ink, fontSize: 12, fontWeight: FontWeight.w800)),
             ),
             title: Text(
-              '${b.type.label} · ${_hz(b.frequency)}',
+              '${context.l10n.filterType(b.type)} · ${_hz(b.frequency)}',
               style: TextStyle(fontWeight: FontWeight.w700, color: palette.ink),
             ),
             subtitle: Text(
@@ -739,7 +742,7 @@ class _ParametricEditor extends StatelessWidget {
               ].join(' · '),
             ),
             trailing: IconButton(
-              tooltip: 'Remove band',
+              tooltip: context.l10n.removeBand,
               onPressed: () {
                 onSelect(null);
                 onChanged(preset.copyWith(bands: [...preset.bands]..removeAt(i)));
@@ -763,7 +766,7 @@ class _ParametricEditor extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                             child: ChoiceChip(
-                              label: Text(t.label),
+                              label: Text(context.l10n.filterType(t)),
                               selected: b.type == t,
                               showCheckmark: false,
                               selectedColor: palette.ink,
@@ -775,7 +778,7 @@ class _ParametricEditor extends StatelessWidget {
                     ),
                   ),
                   _SliderRow(
-                    label: 'Frequency',
+                    label: context.l10n.frequency,
                     value: _logPos(b.frequency),
                     min: 0,
                     max: 1,
@@ -784,7 +787,7 @@ class _ParametricEditor extends StatelessWidget {
                   ),
                   if (b.type.hasGain)
                     _SliderRow(
-                      label: 'Gain',
+                      label: context.l10n.gain,
                       value: b.gainDb.clamp(-EqBand.maxGainDb, EqBand.maxGainDb),
                       min: -EqBand.maxGainDb,
                       max: EqBand.maxGainDb,
@@ -792,7 +795,7 @@ class _ParametricEditor extends StatelessWidget {
                       onChanged: (v) => update(i, b.copyWith(gainDb: (v * 10).round() / 10)),
                     ),
                   _SliderRow(
-                    label: 'Q (width)',
+                    label: context.l10n.qWidth,
                     // Log scale 0.1 … 20.
                     value: math.log(b.q / 0.1) / math.log(200),
                     min: 0,
@@ -816,7 +819,7 @@ class _ParametricEditor extends StatelessWidget {
                   onSelect(preset.bands.length);
                 },
                 icon: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: palette.ink, size: 18),
-                label: Text('Add band (${preset.bands.length}/${EqPreset.maxBands})',
+                label: Text(context.l10n.addBand(preset.bands.length, EqPreset.maxBands),
                     style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
             ),
@@ -824,7 +827,7 @@ class _ParametricEditor extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
           child: Text(
-            'Tip: drag a numbered point on the curve; pinch it to change its width.',
+            context.l10n.curveTip,
             style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted),
           ),
         ),

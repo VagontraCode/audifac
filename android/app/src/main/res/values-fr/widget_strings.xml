@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_name">Lecteur audifac</string>
+    <string name="widget_description">En cours de lecture, avec lecture / pause et saut</string>
+    <string name="widget_idle">audifac</string>
+    <string name="widget_previous">Précédent</string>
+    <string name="widget_next">Suivant</string>
+    <string name="widget_play_pause">Lecture ou pause</string>
+</resources>

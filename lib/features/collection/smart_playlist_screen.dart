@@ -12,6 +12,8 @@ import '../../providers/smart_playlist_providers.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/song_tile.dart';
 import 'collection_screen.dart';
+import '../../l10n/l10n.dart';
+import '../../l10n/labels.dart';
 
 /// Cover for a smart playlist: a gradient with a sparkle, distinct per list.
 class SmartCover extends StatelessWidget {
@@ -64,7 +66,7 @@ class SmartPlaylistScreen extends ConsumerWidget {
     Future<void> edit() async {
       final edited = await SmartPlaylistEditor.open(
         context,
-        list.builtIn ? list.copyWith(id: SmartPlaylistsNotifier.newId(), name: '${list.name} (mine)', builtIn: false) : list,
+        list.builtIn ? list.copyWith(id: SmartPlaylistsNotifier.newId(), name: context.l10n.smartCopyName(context.l10n.smartName(list)), builtIn: false) : list,
       );
       if (edited == null) return;
       ref.read(smartPlaylistsProvider.notifier).save(edited);
@@ -79,7 +81,7 @@ class SmartPlaylistScreen extends ConsumerWidget {
           CollectionAppBar(
             actions: [
               PopupMenuButton<String>(
-                tooltip: 'Smart playlist options',
+                tooltip: context.l10n.smartOptions,
                 icon: HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical, color: palette.ink, size: 24),
                 onSelected: (v) {
                   if (v == 'edit') edit();
@@ -89,8 +91,8 @@ class SmartPlaylistScreen extends ConsumerWidget {
                   }
                 },
                 itemBuilder: (_) => [
-                  PopupMenuItem(value: 'edit', child: Text(list.builtIn ? 'Edit a copy' : 'Edit rules')),
-                  if (!list.builtIn) const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                  PopupMenuItem(value: 'edit', child: Text(list.builtIn ? context.l10n.editCopy : context.l10n.editRules)),
+                  if (!list.builtIn) PopupMenuItem(value: 'delete', child: Text(context.l10n.delete)),
                 ],
               ),
             ],
@@ -98,22 +100,22 @@ class SmartPlaylistScreen extends ConsumerWidget {
           SliverToBoxAdapter(
             child: CollectionHeader(
               cover: SmartCover(list: list, size: 210, radius: 22),
-              title: list.name,
+              title: context.l10n.smartName(list),
               subtitle: songs.isEmpty
-                  ? list.describe()
-                  : '${pluralize(songs.length, 'song')} · ${formatTotalDuration(total)}\n${list.describe()}',
+                  ? context.l10n.smartDescribe(list)
+                  : '${context.l10n.songs(songs.length)} · ${formatTotalDuration(total)}\n${context.l10n.smartDescribe(list)}',
               onPlay: songs.isEmpty ? null : () => handler.playSongs(songs),
               onShuffle: songs.isEmpty ? null : () => handler.playSongs(songs, shuffle: true),
             ),
           ),
           if (songs.isEmpty)
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.only(top: 24),
                 child: EmptyState(
                   icon: HugeIcons.strokeRoundedMagicWand01,
-                  title: 'No matching songs',
-                  message: 'Songs appear here as soon as they match the rules.',
+                  title: context.l10n.noMatchingSongs,
+                  message: context.l10n.noMatchingSongsHint,
                 ),
               ),
             )
@@ -178,25 +180,25 @@ class _SmartPlaylistEditorState extends ConsumerState<SmartPlaylistEditor> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Smart playlist'),
+        title: Text(context.l10n.smartPlaylist),
         actions: [
           TextButton(
             onPressed: () {
               final n = name.text.trim();
-              Navigator.of(context).pop(list.copyWith(name: n.isEmpty ? 'Smart playlist' : n));
+              Navigator.of(context).pop(list.copyWith(name: n.isEmpty ? context.l10n.smartPlaylist : n));
             },
-            child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w700)),
+            child: Text(context.l10n.save, style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
-          TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
+          TextField(controller: name, decoration: InputDecoration(labelText: context.l10n.name)),
           const SizedBox(height: 20),
           Row(
             children: [
-              const Text('Match', style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(context.l10n.match, style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(width: 12),
               SegmentedButton<bool>(
                 showSelectedIcon: false,
@@ -206,9 +208,9 @@ class _SmartPlaylistEditorState extends ConsumerState<SmartPlaylistEditor> {
                   foregroundColor: palette.ink,
                   side: BorderSide(color: palette.line),
                 ),
-                segments: const [
-                  ButtonSegment(value: true, label: Text('All rules')),
-                  ButtonSegment(value: false, label: Text('Any rule')),
+                segments: [
+                  ButtonSegment(value: true, label: Text(context.l10n.allRules)),
+                  ButtonSegment(value: false, label: Text(context.l10n.anyRule)),
                 ],
                 selected: {list.matchAll},
                 onSelectionChanged: (s) => setState(() => list = list.copyWith(matchAll: s.first)),
@@ -235,7 +237,7 @@ class _SmartPlaylistEditorState extends ConsumerState<SmartPlaylistEditor> {
                 _keys.add(_nextKey++);
               }),
               icon: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: palette.ink, size: 20),
-              label: const Text('Add rule'),
+              label: Text(context.l10n.addRule),
             ),
           ),
           const SizedBox(height: 12),
@@ -244,8 +246,8 @@ class _SmartPlaylistEditorState extends ConsumerState<SmartPlaylistEditor> {
               Expanded(
                 child: DropdownButtonFormField<SmartSort>(
                   initialValue: list.sort,
-                  decoration: const InputDecoration(labelText: 'Order'),
-                  items: [for (final s in SmartSort.values) DropdownMenuItem(value: s, child: Text(s.label))],
+                  decoration: InputDecoration(labelText: context.l10n.order),
+                  items: [for (final s in SmartSort.values) DropdownMenuItem(value: s, child: Text(context.l10n.smartSort(s)))],
                   onChanged: (s) => setState(() => list = list.copyWith(sort: s)),
                 ),
               ),
@@ -255,7 +257,7 @@ class _SmartPlaylistEditorState extends ConsumerState<SmartPlaylistEditor> {
                 child: TextFormField(
                   initialValue: list.limit?.toString() ?? '',
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Limit', hintText: 'None'),
+                  decoration: InputDecoration(labelText: context.l10n.limit, hintText: context.l10n.none),
                   onChanged: (v) => setState(() => list = list.copyWith(limit: () => int.tryParse(v))),
                 ),
               ),
@@ -263,7 +265,7 @@ class _SmartPlaylistEditorState extends ConsumerState<SmartPlaylistEditor> {
           ),
           const SizedBox(height: 20),
           Text(
-            preview.isEmpty ? 'No songs match yet' : '${pluralize(preview.length, 'song')} match right now',
+            preview.isEmpty ? context.l10n.noSongsMatchYet : context.l10n.songsMatchNow(preview.length),
             style: theme.textTheme.bodyMedium?.copyWith(color: palette.inkMuted),
           ),
         ],
@@ -301,13 +303,13 @@ class _RuleCard extends StatelessWidget {
                 child: DropdownButtonFormField<SmartField>(
                   initialValue: rule.field,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Field', border: InputBorder.none),
-                  items: [for (final f in SmartField.values) DropdownMenuItem(value: f, child: Text(f.label))],
+                  decoration: InputDecoration(labelText: context.l10n.field, border: InputBorder.none),
+                  items: [for (final f in SmartField.values) DropdownMenuItem(value: f, child: Text(context.l10n.smartField(f)))],
                   onChanged: (f) => f == null ? null : onChanged(SmartRule.forField(f)),
                 ),
               ),
               IconButton(
-                tooltip: 'Remove rule',
+                tooltip: context.l10n.removeRule,
                 onPressed: onRemove,
                 icon: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: palette.inkMuted, size: 20),
               ),
@@ -320,7 +322,7 @@ class _RuleCard extends StatelessWidget {
                   initialValue: ops.contains(rule.op) ? rule.op : ops.first,
                   isExpanded: true,
                   decoration: const InputDecoration(isDense: true),
-                  items: [for (final o in ops) DropdownMenuItem(value: o, child: Text(o.label))],
+                  items: [for (final o in ops) DropdownMenuItem(value: o, child: Text(context.l10n.smartOp(o)))],
                   onChanged: (o) => o == null ? null : onChanged(rule.copyWith(op: o)),
                 ),
               ),

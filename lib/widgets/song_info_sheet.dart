@@ -14,6 +14,8 @@ import '../providers/loudness_providers.dart';
 import '../providers/stats_providers.dart';
 import 'artwork.dart';
 import 'song_labels.dart';
+import '../l10n/l10n.dart';
+import '../l10n/labels.dart';
 
 /// Everything known about a song: tags, audio stream details and file facts.
 class SongInfoSheet extends ConsumerStatefulWidget {
@@ -52,51 +54,51 @@ class _SongInfoSheetState extends ConsumerState<SongInfoSheet> {
 
     String? channels(int? n) => switch (n) {
           null => null,
-          1 => 'Mono',
-          2 => 'Stereo',
-          _ => '$n channels',
+          1 => context.l10n.mono,
+          2 => context.l10n.stereo,
+          _ => context.l10n.channelsN(n),
         };
 
     final fileName = (song.path ?? song.uri).split('/').last;
     final rows = <(String, List<(String, String?)>)>[
       (
-        'Audio',
+        context.l10n.audio,
         [
-          ('Quality', info.analysed ? info.quality.label : '${info.quality.label} (analysing…)'),
-          ('Codec', info.codec),
-          ('Container', info.containerMime ?? song.mimeType),
-          ('Bitrate', info.kbpsOrNull == null ? null : '${info.kbpsOrNull} kbps'),
-          ('Sample rate', info.sampleRate == null ? null : '${AudioInfo.formatSampleRate(info.sampleRate!)} kHz'),
-          ('Bit depth', info.bitDepth == null ? null : '${info.bitDepth}-bit'),
-          ('Channels', channels(info.channels)),
-          ('Duration', formatDuration(song.duration)),
+          (context.l10n.fieldQuality, info.analysed ? context.l10n.quality(info.quality) : context.l10n.analysingSuffix(context.l10n.quality(info.quality))),
+          (context.l10n.fieldCodec, info.codec),
+          (context.l10n.container, info.containerMime ?? song.mimeType),
+          (context.l10n.bitrate, info.kbpsOrNull == null ? null : '${info.kbpsOrNull} kbps'),
+          (context.l10n.sampleRate, info.sampleRate == null ? null : '${AudioInfo.formatSampleRate(info.sampleRate!)} kHz'),
+          (context.l10n.bitDepth, info.bitDepth == null ? null : '${info.bitDepth}-bit'),
+          (context.l10n.channels, channels(info.channels)),
+          (context.l10n.duration, formatDuration(song.duration)),
         ],
       ),
       (
-        'Tags',
+        context.l10n.tags,
         [
-          ('Title', song.title),
-          ('Artist', song.artist),
-          ('Album', song.album),
-          ('Album artist', info.albumArtist),
-          ('Genre', info.genre),
-          ('Year', info.year),
-          ('Track', song.trackNumber % 1000 == 0 ? null : '${song.trackNumber % 1000}'),
-          ('Disc', info.disc),
-          ('Composer', info.composer),
+          (context.l10n.fieldTitle, song.title),
+          (context.l10n.fieldArtist, song.artist),
+          (context.l10n.fieldAlbum, song.album),
+          (context.l10n.albumArtist, info.albumArtist),
+          (context.l10n.fieldGenre, info.genre),
+          (context.l10n.fieldYear, info.year),
+          (context.l10n.track, song.trackNumber % 1000 == 0 ? null : '${song.trackNumber % 1000}'),
+          (context.l10n.disc, info.disc),
+          (context.l10n.composer, info.composer),
         ],
       ),
       (
-        'Listening',
+        context.l10n.listeningSection,
         [
-          ('Plays', '${stats?.plays ?? 0}'),
-          ('Last played', stats?.lastPlayed == null ? null : _date(stats!.lastPlayed!)),
-          ('Listening time', stats == null || stats.listened == Duration.zero ? null : formatTotalDuration(stats.listened)),
+          (context.l10n.playsLabel, '${stats?.plays ?? 0}'),
+          (context.l10n.fieldLastPlayed, stats?.lastPlayed == null ? null : _date(stats!.lastPlayed!)),
+          (context.l10n.listeningTime, stats == null || stats.listened == Duration.zero ? null : formatTotalDuration(stats.listened)),
           (
-            'Loudness',
+            context.l10n.loudness,
             switch (loudness) {
               LoudnessInfo(source: LoudnessSource.tags, :final trackGainDb?) =>
-                'ReplayGain ${formatDb(trackGainDb)} (tags)',
+                context.l10n.replayGainTags(formatDb(trackGainDb)),
               LoudnessInfo(source: LoudnessSource.scan, :final lufs?, :final trackGainDb?) =>
                 '${lufs.toStringAsFixed(1)} LUFS · ReplayGain ${formatDb(trackGainDb)}',
               _ => null,
@@ -105,19 +107,19 @@ class _SongInfoSheetState extends ConsumerState<SongInfoSheet> {
         ],
       ),
       (
-        'File',
+        context.l10n.file,
         [
-          ('Name', fileName),
-          ('Folder', song.folder),
-          ('Source', '${source.category.label}${source.onSdCard ? ' · SD card' : ''}'),
-          ('Size', formatBytes(song.sizeBytes)),
-          ('Added', _date(song.dateAdded)),
-          ('Modified', song.modifiedMs == 0 ? null : _date(DateTime.fromMillisecondsSinceEpoch(song.modifiedMs))),
+          (context.l10n.name, fileName),
+          (context.l10n.fieldFolder, song.folder),
+          (context.l10n.fieldSource, '${context.l10n.sourceCategory(source.category)}${source.onSdCard ? ' · ${context.l10n.sdCard}' : ''}'),
+          (context.l10n.size, formatBytes(song.sizeBytes)),
+          (context.l10n.fieldAdded, _date(song.dateAdded)),
+          (context.l10n.modified, song.modifiedMs == 0 ? null : _date(DateTime.fromMillisecondsSinceEpoch(song.modifiedMs))),
           (
-            'Indexed by',
+            context.l10n.indexedBy,
             song.isFile
-                ? (song.uri.startsWith('content://') ? 'Hidden folder (granted)' : 'audifac storage scan')
-                : 'Android media library',
+                ? (song.uri.startsWith('content://') ? context.l10n.indexedGranted : context.l10n.indexedScan)
+                : context.l10n.indexedMediaStore,
           ),
         ],
       ),
@@ -201,7 +203,7 @@ class _SongInfoSheetState extends ConsumerState<SongInfoSheet> {
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: song.path!));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('File path copied')),
+                      SnackBar(content: Text(context.l10n.pathCopied)),
                     );
                   },
                   style: OutlinedButton.styleFrom(
@@ -209,7 +211,7 @@ class _SongInfoSheetState extends ConsumerState<SongInfoSheet> {
                     side: BorderSide(color: palette.line, width: 1.5),
                   ),
                   icon: HugeIcon(icon: HugeIcons.strokeRoundedCopy01, color: palette.ink, size: 18),
-                  label: const Text('Copy path', style: TextStyle(fontWeight: FontWeight.w700)),
+                  label: Text(context.l10n.copyPath, style: TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ),
             ],

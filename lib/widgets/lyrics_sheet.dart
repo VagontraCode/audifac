@@ -12,6 +12,7 @@ import '../providers/library_providers.dart';
 import '../providers/lyrics_provider.dart';
 import '../providers/player_providers.dart';
 import 'empty_state.dart';
+import '../l10n/l10n.dart';
 
 /// The current song's lyrics. Synced (LRC) lyrics follow playback — the
 /// current line lit, tap any line to jump there.
@@ -54,12 +55,13 @@ class _LyricsSheetState extends ConsumerState<LyricsSheet> {
 
   Future<void> _attach(Song song) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final notLyrics = context.l10n.notALyricsFile;
     try {
       final doc = await ref.read(mediaLibraryProvider).openTextDocument(anyType: true);
       if (doc == null) return;
       await setPickedLyrics(ref, song, doc.text);
     } on PlatformException {
-      messenger?.showSnackBar(const SnackBar(content: Text('That isn\'t a lyrics file (.lrc or .txt)')));
+      messenger?.showSnackBar(SnackBar(content: Text(notLyrics)));
     }
   }
 
@@ -95,7 +97,7 @@ class _LyricsSheetState extends ConsumerState<LyricsSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Lyrics', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                        Text(context.l10n.lyrics, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
                         if (song != null)
                           Text(
                             '${song.title} · ${song.artist}',
@@ -108,13 +110,13 @@ class _LyricsSheetState extends ConsumerState<LyricsSheet> {
                   ),
                   if (song != null)
                     PopupMenuButton<String>(
-                      tooltip: 'Lyrics options',
+                      tooltip: context.l10n.lyricsOptions,
                       icon: HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical, color: palette.ink, size: 22),
                       onSelected: (v) => v == 'attach' ? _attach(song) : setPickedLyrics(ref, song, null),
                       itemBuilder: (_) => [
-                        const PopupMenuItem(value: 'attach', child: Text('Use a lyrics file (.lrc / .txt)…')),
+                        PopupMenuItem(value: 'attach', child: Text(context.l10n.useLyricsFile)),
                         if (data?.source == LyricsSource.picked)
-                          const PopupMenuItem(value: 'remove', child: Text('Remove the attached file')),
+                          PopupMenuItem(value: 'remove', child: Text(context.l10n.removeAttachedFile)),
                       ],
                     ),
                 ],
@@ -127,9 +129,9 @@ class _LyricsSheetState extends ConsumerState<LyricsSheet> {
                     child: SingleChildScrollView(
                       child: EmptyState(
                         icon: HugeIcons.strokeRoundedQuoteDown,
-                        title: 'No lyrics',
-                        message: 'Lyrics come from the song\'s tags or an .lrc file with the same name.',
-                        actionLabel: song == null ? null : 'Choose a lyrics file',
+                        title: context.l10n.noLyrics,
+                        message: context.l10n.noLyricsHint,
+                        actionLabel: song == null ? null : context.l10n.chooseLyricsFile,
                         onAction: song == null ? null : () => _attach(song),
                       ),
                     ),

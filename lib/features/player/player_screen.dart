@@ -25,6 +25,8 @@ import '../../widgets/song_actions_sheet.dart';
 import '../equalizer/equalizer_screen.dart';
 import '../equalizer/quick_eq_sheet.dart';
 import 'queue_sheet.dart';
+import '../../l10n/l10n.dart';
+import '../../l10n/labels.dart';
 
 class PlayerScreen extends ConsumerStatefulWidget {
   const PlayerScreen({super.key});
@@ -227,7 +229,7 @@ class _Header extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            tooltip: 'Close',
+            tooltip: context.l10n.close,
             onPressed: onClose,
             icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowDown01, color: palette.ink, size: 28),
           ),
@@ -235,7 +237,7 @@ class _Header extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  'NOW PLAYING',
+                  context.l10n.nowPlaying.toUpperCase(),
                   style: theme.textTheme.labelSmall?.copyWith(
                     letterSpacing: 1.6,
                     color: palette.inkMuted,
@@ -253,17 +255,17 @@ class _Header extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Lyrics',
+            tooltip: context.l10n.lyrics,
             onPressed: () => LyricsSheet.show(context),
             icon: HugeIcon(icon: HugeIcons.strokeRoundedQuoteDown, color: palette.ink, size: 24),
           ),
           IconButton(
-            tooltip: 'Equalizer',
+            tooltip: context.l10n.equalizer,
             onPressed: () => EqualizerScreen.open(context),
             icon: HugeIcon(icon: HugeIcons.strokeRoundedSlidersHorizontal, color: palette.ink, size: 24),
           ),
           IconButton(
-            tooltip: 'Queue',
+            tooltip: context.l10n.queue,
             onPressed: () => QueueSheet.show(context),
             icon: HugeIcon(icon: HugeIcons.strokeRoundedPlaylist02, color: palette.ink, size: 26),
           ),
@@ -335,7 +337,7 @@ class _TrackInfo extends ConsumerWidget {
     return Row(
       children: [
         IconButton(
-          tooltip: favorite ? 'Remove from favorites' : 'Add to favorites',
+          tooltip: favorite ? context.l10n.removeFromFavorites : context.l10n.addToFavorites,
           onPressed: () {
             HapticFeedback.lightImpact();
             ref.read(favoritesProvider.notifier).toggle(songId);
@@ -388,7 +390,7 @@ class _TrackInfo extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Semantics(
                     button: true,
-                    label: 'Signal path and spectrum',
+                    label: context.l10n.signalPathAndSpectrum,
                     child: GestureDetector(
                       onTap: () => SignalSheet.show(context),
                       child: QualityBadge(info: ref.watch(songAudioInfoProvider(song)), large: true),
@@ -400,7 +402,7 @@ class _TrackInfo extends ConsumerWidget {
           ),
         ),
         IconButton(
-          tooltip: 'More',
+          tooltip: context.l10n.more,
           onPressed: song == null ? null : () => SongActionsSheet.show(context, song, allowNavigation: false),
           icon: HugeIcon(icon: HugeIcons.strokeRoundedMoreHorizontalCircle01, color: palette.ink, size: 26),
         ),
@@ -434,7 +436,7 @@ class _Controls extends ConsumerWidget {
       children: [
         if (spoken)
           _ToggleButton(
-            tooltip: 'Back 15 seconds',
+            tooltip: context.l10n.back15,
             icon: HugeIcons.strokeRoundedGoBackward15Sec,
             active: false,
             activeColor: accent,
@@ -442,7 +444,7 @@ class _Controls extends ConsumerWidget {
           )
         else
           _ToggleButton(
-            tooltip: 'Shuffle',
+            tooltip: context.l10n.shuffle,
             icon: HugeIcons.strokeRoundedShuffle,
             active: shuffle,
             activeColor: accent,
@@ -476,7 +478,7 @@ class _Controls extends ConsumerWidget {
                 key: ValueKey(playing),
                 color: onAccent,
                 size: 40,
-                semanticLabel: playing ? 'Pause' : 'Play',
+                semanticLabel: playing ? context.l10n.pause : context.l10n.play,
               ),
             ),
           ),
@@ -487,7 +489,7 @@ class _Controls extends ConsumerWidget {
         ),
         if (spoken)
           _ToggleButton(
-            tooltip: 'Forward 30 seconds',
+            tooltip: context.l10n.forward30,
             icon: HugeIcons.strokeRoundedGoForward30Sec,
             active: false,
             activeColor: accent,
@@ -495,7 +497,7 @@ class _Controls extends ConsumerWidget {
           )
         else
           _ToggleButton(
-            tooltip: 'Repeat',
+            tooltip: context.l10n.repeat,
             icon: repeat == AudioServiceRepeatMode.one
                 ? HugeIcons.strokeRoundedRepeatOne01
                 : HugeIcons.strokeRoundedRepeat,
@@ -604,10 +606,10 @@ class _EqChip extends ConsumerWidget {
     final palette = context.palette;
 
     final text = !enabled
-        ? 'Equalizer off'
+        ? context.l10n.equalizerOff
         : [
-            '${sound.preset.name} · ${sound.reason.label}',
-            if (device.id != BuiltInPresets.deviceNone.id) device.name,
+            '${context.l10n.presetName(sound.preset)} · ${context.l10n.eqReason(sound.reason)}',
+            if (device.id != BuiltInPresets.deviceNone.id) context.l10n.presetName(device),
           ].join('  ·  ');
 
     return GestureDetector(

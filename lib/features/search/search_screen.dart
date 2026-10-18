@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../../l10n/l10n.dart';
 
-import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/player_providers.dart';
@@ -69,14 +69,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Search', style: theme.textTheme.headlineLarge),
+                    Text(context.l10n.tabSearch, style: theme.textTheme.headlineLarge),
                     const SizedBox(height: 16),
                     TextField(
                       controller: _controller,
                       onChanged: (v) => setState(() => _query = v),
                       textInputAction: TextInputAction.search,
                       decoration: InputDecoration(
-                        hintText: 'Songs, albums, artists',
+                        hintText: context.l10n.searchHint,
                         prefixIcon: Padding(
                           padding: const EdgeInsets.all(12),
                           child: HugeIcon(
@@ -105,12 +105,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
             ),
             if (q.isEmpty)
-              const SliverFillRemaining(
+              SliverFillRemaining(
                 hasScrollBody: false,
                 child: EmptyState(
                   icon: HugeIcons.strokeRoundedSearch01,
-                  title: 'Find your music',
-                  message: 'Search by song title, artist or album.',
+                  title: context.l10n.findYourMusic,
+                  message: context.l10n.searchBy,
                 ),
               )
             else if (!hasResults)
@@ -118,13 +118,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 hasScrollBody: false,
                 child: EmptyState(
                   icon: HugeIcons.strokeRoundedMusicNote03,
-                  title: 'No results',
-                  message: 'Nothing matches "$_query".',
+                  title: context.l10n.noResults,
+                  message: context.l10n.nothingMatches(_query),
                 ),
               )
             else ...[
               if (artists.isNotEmpty) ...[
-                const _SectionHeader('Artists'),
+                _SectionHeader(context.l10n.artists),
                 SliverList.builder(
                   itemCount: artists.length,
                   itemBuilder: (context, i) {
@@ -133,14 +133,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
                       leading: Artwork.song(artist.coverSong, size: 48, circle: true),
                       title: Text(artist.name, style: theme.textTheme.titleMedium),
-                      subtitle: Text(pluralize(artist.songs.length, 'song')),
+                      subtitle: Text(context.l10n.songs(artist.songs.length)),
                       onTap: () => CollectionScreen.openArtist(context, artist),
                     );
                   },
                 ),
               ],
               if (albums.isNotEmpty) ...[
-                const _SectionHeader('Albums'),
+                _SectionHeader(context.l10n.albumsTitle),
                 SliverList.builder(
                   itemCount: albums.length,
                   itemBuilder: (context, i) {
@@ -156,7 +156,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ),
               ],
               if (songs.isNotEmpty) ...[
-                const _SectionHeader('Songs'),
+                _SectionHeader(context.l10n.songsTitle),
                 SliverList.builder(
                   itemCount: songs.length,
                   itemBuilder: (context, i) => SongTile(

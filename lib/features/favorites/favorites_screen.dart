@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../../l10n/l10n.dart';
 
-import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/player_providers.dart';
 import '../../providers/user_data_providers.dart';
@@ -42,7 +42,7 @@ class FavoritesScreen extends ConsumerWidget {
                     children: [
                       if (pushed)
                         IconButton(
-                          tooltip: 'Back',
+                          tooltip: context.l10n.back,
                           onPressed: () => Navigator.of(context).pop(),
                           icon: HugeIcon(
                             icon: HugeIcons.strokeRoundedArrowLeft01,
@@ -50,18 +50,18 @@ class FavoritesScreen extends ConsumerWidget {
                             size: 26,
                           ),
                         ),
-                      Expanded(child: Text('Favorites', style: theme.textTheme.headlineLarge)),
+                      Expanded(child: Text(context.l10n.favorites, style: theme.textTheme.headlineLarge)),
                     ],
                   ),
                 ),
               ),
               if (songs.isEmpty)
-                const SliverFillRemaining(
+                SliverFillRemaining(
                   hasScrollBody: false,
                   child: EmptyState(
                     icon: HugeIcons.strokeRoundedFavourite,
-                    title: 'No favorites yet',
-                    message: 'Tap the heart in the player, or use a song\'s menu, to save it here.',
+                    title: context.l10n.noFavoritesYet,
+                    message: context.l10n.noFavoritesHint,
                   ),
                 )
               else ...[
@@ -71,17 +71,17 @@ class FavoritesScreen extends ConsumerWidget {
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text(pluralize(songs.length, 'song'), style: theme.textTheme.bodyMedium),
+                          child: Text(context.l10n.songs(songs.length), style: theme.textTheme.bodyMedium),
                         ),
                         PillButton(
                           icon: HugeIcons.strokeRoundedPlay,
-                          label: 'Play',
+                          label: context.l10n.play,
                           onPressed: () => handler.playSongs(songs),
                         ),
                         const SizedBox(width: 10),
                         PillButton(
                           icon: HugeIcons.strokeRoundedShuffle,
-                          label: 'Shuffle',
+                          label: context.l10n.shuffle,
                           filled: false,
                           onPressed: () => handler.playSongs(songs, shuffle: true),
                         ),

@@ -7,6 +7,8 @@ import '../models/audio_info.dart';
 import '../models/song.dart';
 import '../models/song_source.dart';
 import '../providers/audio_info_providers.dart';
+import '../l10n/l10n.dart';
+import '../l10n/labels.dart';
 
 extension SourceCategoryIcon on SourceCategory {
   List<List<dynamic>> get icon => switch (this) {
@@ -70,7 +72,7 @@ class SourceLabel extends StatelessWidget {
         HugeIcon(icon: source.category.icon, color: palette.inkMuted, size: 12),
         const SizedBox(width: 4),
         Flexible(
-          child: Text(source.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: style),
+          child: Text(context.l10n.sourceLabel(source), maxLines: 1, overflow: TextOverflow.ellipsis, style: style),
         ),
         if (source.onSdCard) ...[
           const SizedBox(width: 4),
@@ -93,7 +95,7 @@ class QualityBadge extends StatelessWidget {
     final palette = context.palette;
     final highlight = info.quality.color(palette);
     final color = highlight ?? palette.inkMuted;
-    final text = info.quality == AudioQuality.hiRes && large ? 'Hi-Res · ${info.badge}' : info.badge;
+    final text = info.quality == AudioQuality.hiRes && large ? '${context.l10n.qualityHiRes} · ${info.badge}' : info.badge;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: large ? 8 : 5, vertical: large ? 3 : 1),
       decoration: BoxDecoration(

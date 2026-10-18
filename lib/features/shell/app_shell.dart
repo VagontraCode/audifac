@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../l10n/l10n.dart';
 import '../../providers/audio_info_providers.dart';
 import '../../providers/eq_providers.dart';
 import '../../providers/loudness_providers.dart';
@@ -32,10 +33,10 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   static const _tabs = [
-    (icon: HugeIcons.strokeRoundedHome03, label: 'Home', root: HomeScreen()),
-    (icon: HugeIcons.strokeRoundedLibrary, label: 'Library', root: LibraryScreen()),
-    (icon: HugeIcons.strokeRoundedSearch01, label: 'Search', root: SearchScreen()),
-    (icon: HugeIcons.strokeRoundedFavourite, label: 'Favorites', root: FavoritesScreen()),
+    (icon: HugeIcons.strokeRoundedHome03, root: HomeScreen()),
+    (icon: HugeIcons.strokeRoundedLibrary, root: LibraryScreen()),
+    (icon: HugeIcons.strokeRoundedSearch01, root: SearchScreen()),
+    (icon: HugeIcons.strokeRoundedFavourite, root: FavoritesScreen()),
   ];
 
   final _navigatorKeys = List.generate(_tabs.length, (_) => GlobalKey<NavigatorState>());
@@ -81,6 +82,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final tabLabels = [l10n.tabHome, l10n.tabLibrary, l10n.tabSearch, l10n.favorites];
     // Restores / saves the playback session and records history.
     ref.watch(sessionControllerProvider);
     // Starts (and keeps alive) the background codec analysis, without
@@ -108,8 +111,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     });
 
     ref.listen(playbackErrorsProvider, (_, next) {
-      final message = next.value;
-      if (message == null) return;
+      final title = next.value;
+      if (title == null) return;
+      final message = title.isEmpty ? context.l10n.couldNotPlayFile : context.l10n.couldNotPlay(title);
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(message)));
@@ -145,10 +149,10 @@ class _AppShellState extends ConsumerState<AppShell> {
               selectedIndex: _index,
               onDestinationSelected: _onDestinationSelected,
               destinations: [
-                for (final tab in _tabs)
+                for (final (i, tab) in _tabs.indexed)
                   NavigationDestination(
-                    label: tab.label,
-                    tooltip: tab.label,
+                    label: tabLabels[i],
+                    tooltip: tabLabels[i],
                     icon: HugeIcon(icon: tab.icon, color: palette.inkMuted, size: 24),
                     selectedIcon: HugeIcon(icon: tab.icon, color: palette.ink, size: 24),
                   ),

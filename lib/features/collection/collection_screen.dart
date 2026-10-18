@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../../l10n/l10n.dart';
 
 import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
@@ -47,7 +48,7 @@ class CollectionScreen extends ConsumerWidget {
       MaterialPageRoute<void>(
         builder: (_) => CollectionScreen(
           title: artist.name,
-          subtitle: pluralize(artist.albums.length, 'album'),
+          subtitle: context.l10n.albums(artist.albums.length),
           songs: artist.songs,
         ),
       ),
@@ -74,7 +75,7 @@ class CollectionScreen extends ConsumerWidget {
                   shadow: true,
                 ),
                 title: title,
-                subtitle: '$subtitle · ${pluralize(songs.length, 'song')} · ${formatTotalDuration(total)}',
+                subtitle: '$subtitle · ${context.l10n.songs(songs.length)} · ${formatTotalDuration(total)}',
                 onPlay: () => handler.playSongs(songs),
                 onShuffle: () => handler.playSongs(songs, shuffle: true),
               ),
@@ -114,7 +115,7 @@ class CollectionAppBar extends StatelessWidget {
     return SliverAppBar(
       pinned: true,
       leading: IconButton(
-        tooltip: 'Back',
+        tooltip: context.l10n.back,
         onPressed: () => Navigator.of(context).pop(),
         icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: context.palette.ink, size: 26),
       ),
@@ -160,11 +161,11 @@ class CollectionHeader extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              PillButton(icon: HugeIcons.strokeRoundedPlay, label: 'Play', onPressed: onPlay),
+              PillButton(icon: HugeIcons.strokeRoundedPlay, label: context.l10n.play, onPressed: onPlay),
               const SizedBox(width: 14),
               PillButton(
                 icon: HugeIcons.strokeRoundedShuffle,
-                label: 'Shuffle',
+                label: context.l10n.shuffle,
                 filled: false,
                 onPressed: onShuffle,
               ),

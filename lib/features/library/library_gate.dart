@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../../l10n/l10n.dart';
 
 import '../../models/song.dart';
 import '../../providers/library_providers.dart';
@@ -28,9 +29,9 @@ class LibraryGate extends ConsumerWidget {
           ? _AccessDenied(permanent: error.permanent)
           : EmptyState(
               icon: HugeIcons.strokeRoundedCancel01,
-              title: 'Could not read your music',
+              title: context.l10n.couldNotReadMusic,
               message: '$error',
-              actionLabel: 'Try again',
+              actionLabel: context.l10n.tryAgain,
               onAction: notifier.rescan,
             ),
       data: (all) {
@@ -39,19 +40,17 @@ class LibraryGate extends ConsumerWidget {
         if (all.isEmpty) {
           return EmptyState(
             icon: HugeIcons.strokeRoundedFolderMusic,
-            title: 'No audio found',
-            message: 'audifac looked through your whole phone and SD card. '
-                'Copy some audio files to the device, then scan again.',
-            actionLabel: 'Scan again',
+            title: context.l10n.noAudioFound,
+            message: context.l10n.noAudioFoundHint,
+            actionLabel: context.l10n.scanAgain,
             onAction: notifier.refresh,
           );
         }
         return EmptyState(
           icon: HugeIcons.strokeRoundedFolderMusic,
-          title: 'Everything is hidden',
-          message: '${all.length} audio files were found, but your library filters '
-              '(minimum length, recordings, excluded folders) hide them all.',
-          actionLabel: 'Library settings',
+          title: context.l10n.everythingHidden,
+          message: context.l10n.everythingHiddenHint(all.length),
+          actionLabel: context.l10n.librarySettings,
           onAction: () => SettingsSheet.show(context),
         );
       },
@@ -90,11 +89,11 @@ class _AccessDeniedState extends ConsumerState<_AccessDenied> {
   Widget build(BuildContext context) {
     return EmptyState(
       icon: HugeIcons.strokeRoundedMusicNoteSquare01,
-      title: 'Allow access to your music',
+      title: context.l10n.allowAccessTitle,
       message: widget.permanent
-          ? 'Access was turned off. Enable "Music and audio" for audifac in system settings.'
-          : 'audifac needs permission to find the songs stored on this device.',
-      actionLabel: widget.permanent ? 'Open settings' : 'Allow access',
+          ? context.l10n.accessTurnedOff
+          : context.l10n.accessNeeded,
+      actionLabel: widget.permanent ? context.l10n.openSettings : context.l10n.allowAccess,
       onAction: () => ref.read(libraryProvider.notifier).requestAccess(),
     );
   }
@@ -115,13 +114,13 @@ class _Searching extends StatelessWidget {
             const CircularProgressIndicator(),
             const SizedBox(height: 24),
             Text(
-              'Searching your phone for audio…',
+              context.l10n.searchingPhone,
               textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
-              'Internal storage and SD card, every folder.',
+              context.l10n.searchingPhoneHint,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium,
             ),

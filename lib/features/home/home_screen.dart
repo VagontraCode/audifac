@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
+import '../../l10n/l10n.dart';
 import '../../models/album.dart';
 import '../../models/song.dart';
 import '../../providers/library_providers.dart';
@@ -24,12 +24,12 @@ import 'stats_screen.dart';
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  static String _greeting() {
+  static String _greeting(AppLocalizations l10n) {
     final hour = DateTime.now().hour;
-    if (hour < 5) return 'Good night';
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 5) return l10n.goodNight;
+    if (hour < 12) return l10n.goodMorning;
+    if (hour < 18) return l10n.goodAfternoon;
+    return l10n.goodEvening;
   }
 
   @override
@@ -47,14 +47,14 @@ class HomeScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 16, 8, 8),
               child: Row(
                 children: [
-                  Expanded(child: Text(_greeting(), style: theme.textTheme.headlineLarge)),
+                  Expanded(child: Text(_greeting(context.l10n), style: theme.textTheme.headlineLarge)),
                   IconButton(
-                    tooltip: 'Your stats',
+                    tooltip: context.l10n.yourStats,
                     onPressed: () => StatsScreen.open(context),
                     icon: HugeIcon(icon: HugeIcons.strokeRoundedAnalytics01, color: palette.ink, size: 24),
                   ),
                   IconButton(
-                    tooltip: 'Settings',
+                    tooltip: context.l10n.settings,
                     onPressed: () => SettingsSheet.show(context),
                     icon: HugeIcon(icon: HugeIcons.strokeRoundedSettings02, color: palette.ink, size: 24),
                   ),
@@ -106,8 +106,8 @@ class _HomeContent extends ConsumerWidget {
                 Expanded(
                   child: _QuickTile(
                     icon: HugeIcons.strokeRoundedShuffle,
-                    title: 'Shuffle all',
-                    subtitle: pluralize(allSongs.length, 'song'),
+                    title: context.l10n.shuffleAll,
+                    subtitle: context.l10n.songs(allSongs.length),
                     filled: true,
                     onTap: () => handler.playSongs(allSongs, shuffle: true),
                   ),
@@ -116,8 +116,8 @@ class _HomeContent extends ConsumerWidget {
                 Expanded(
                   child: _QuickTile(
                     icon: HugeIcons.strokeRoundedFavourite,
-                    title: 'Favorites',
-                    subtitle: pluralize(favorites.length, 'song'),
+                    title: context.l10n.favorites,
+                    subtitle: context.l10n.songs(favorites.length),
                     onTap: () => FavoritesScreen.open(context),
                   ),
                 ),
@@ -126,7 +126,7 @@ class _HomeContent extends ConsumerWidget {
           ),
         ),
         if (recent.isNotEmpty) ...[
-          animated(const _SectionTitle('Recently played')),
+          animated(_SectionTitle(context.l10n.recentlyPlayed)),
           animated(
             _HorizontalList(
               itemCount: recent.length,
@@ -141,7 +141,7 @@ class _HomeContent extends ConsumerWidget {
           ),
         ],
         if (recentAlbums.isNotEmpty) ...[
-          animated(const _SectionTitle('Recently added')),
+          animated(_SectionTitle(context.l10n.recentlyAdded)),
           animated(
             _HorizontalList(
               itemCount: recentAlbums.length,
@@ -157,7 +157,7 @@ class _HomeContent extends ConsumerWidget {
             ),
           ),
         ],
-        animated(const _SectionTitle('Your playlists')),
+        animated(_SectionTitle(context.l10n.yourPlaylists)),
         animated(
           _HorizontalList(
             itemCount: playlists.length + 1,
@@ -165,8 +165,8 @@ class _HomeContent extends ConsumerWidget {
               if (i == 0) {
                 return _Card(
                   cover: _NewPlaylistCover(size: 140),
-                  title: 'New playlist',
-                  subtitle: 'Create',
+                  title: context.l10n.newPlaylist,
+                  subtitle: context.l10n.create,
                   onTap: () async {
                     final name = await showPlaylistNameDialog(context);
                     if (name == null) return;
@@ -179,7 +179,7 @@ class _HomeContent extends ConsumerWidget {
               return _Card(
                 cover: PlaylistCover(playlist: playlist, size: 140, radius: 16),
                 title: playlist.name,
-                subtitle: pluralize(playlist.songIds.length, 'song'),
+                subtitle: context.l10n.songs(playlist.songIds.length),
                 onTap: () => PlaylistScreen.open(context, playlist.id),
               );
             },

@@ -99,6 +99,9 @@ class AppSettings {
   /// Seconds of crossfade between songs (0 = gapless, no crossfade).
   final int crossfadeSeconds;
 
+  /// UI language: '' = the system's, 'en', 'fr'.
+  final String languageCode;
+
   const AppSettings({
     this.themeMode = ThemeMode.system,
     this.songSort = SongSort.title,
@@ -109,6 +112,7 @@ class AppSettings {
     this.songFilter = const SongFilter(),
     this.keepAlbumsTogether = false,
     this.crossfadeSeconds = 0,
+    this.languageCode = '',
   });
 
   static const crossfadeChoices = [0, 2, 4, 6, 8, 12];
@@ -125,6 +129,7 @@ class AppSettings {
     SongFilter? songFilter,
     bool? keepAlbumsTogether,
     int? crossfadeSeconds,
+    String? languageCode,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -136,6 +141,7 @@ class AppSettings {
         songFilter: songFilter ?? this.songFilter,
         keepAlbumsTogether: keepAlbumsTogether ?? this.keepAlbumsTogether,
         crossfadeSeconds: crossfadeSeconds ?? this.crossfadeSeconds,
+        languageCode: languageCode ?? this.languageCode,
       );
 
   /// Whether [folder] (or one of its parents) is excluded.
@@ -154,6 +160,7 @@ class AppSettings {
         'songFilter': songFilter.encode(),
         'keepAlbumsTogether': '$keepAlbumsTogether',
         'crossfadeSeconds': '$crossfadeSeconds',
+        'languageCode': languageCode,
       };
 
   factory AppSettings.fromKeyValues(Map<String, String> kv) {
@@ -178,6 +185,7 @@ class AppSettings {
       songFilter: SongFilter.decode(kv['songFilter']),
       keepAlbumsTogether: kv['keepAlbumsTogether'] == 'true',
       crossfadeSeconds: (int.tryParse(kv['crossfadeSeconds'] ?? '') ?? 0).clamp(0, 12),
+      languageCode: const {'en', 'fr'}.contains(kv['languageCode']) ? kv['languageCode']! : '',
     );
   }
 }

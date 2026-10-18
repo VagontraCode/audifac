@@ -7,6 +7,7 @@ import '../core/theme/app_colors.dart';
 import '../models/spoken.dart';
 import '../providers/player_providers.dart';
 import '../providers/spoken_providers.dart';
+import '../l10n/l10n.dart';
 
 /// 1 → "1×", 1.25 → "1.25×", 1.5 → "1.5×".
 String speedLabel(double s) => '${s.toStringAsFixed(2).replaceAll(RegExp(r'\.?0+$'), '')}×';
@@ -66,7 +67,7 @@ class SpeedChip extends ConsumerWidget {
     return _Chip(
       icon: HugeIcons.strokeRoundedDashboardSpeed01,
       label: speedLabel(speed),
-      tooltip: 'Playback speed',
+      tooltip: context.l10n.playbackSpeed,
       active: speed != 1.0,
       onTap: () => SpeedSheet.show(context),
     );
@@ -94,13 +95,13 @@ class SpeedSheet extends ConsumerWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text('Speed', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                  child: Text(context.l10n.speed, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
                 ),
                 Text(speedLabel(speed), style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
               ],
             ),
             Text(
-              'For audiobooks & podcasts; voices keep their pitch. Music always plays at 1×.',
+              context.l10n.speedHint,
               style: theme.textTheme.bodySmall?.copyWith(color: context.palette.inkMuted),
             ),
             Slider(value: speed, min: 0.5, max: 3, divisions: 50, label: speedLabel(speed), onChanged: notifier.set),
@@ -167,7 +168,7 @@ class ChaptersSheet extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-              child: Text('Chapters', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              child: Text(context.l10n.chapters, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
             ),
             Flexible(
               child: ListView.builder(
@@ -185,7 +186,7 @@ class ChaptersSheet extends ConsumerWidget {
                           : Text('${i + 1}', style: theme.textTheme.titleSmall?.copyWith(color: palette.inkMuted)),
                     ),
                     title: Text(
-                      c.title.isEmpty ? 'Chapter ${i + 1}' : c.title,
+                      c.title.isEmpty ? context.l10n.chapterN(i + 1) : c.title,
                       style: TextStyle(fontWeight: playing ? FontWeight.w800 : FontWeight.w500),
                     ),
                     trailing: Text(formatDuration(c.start), style: theme.textTheme.bodySmall),

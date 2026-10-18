@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../l10n/l10n.dart';
 
-import '../core/format.dart';
 import '../core/theme/app_colors.dart';
 import '../models/playlist.dart';
 import '../providers/library_providers.dart';
@@ -12,13 +12,17 @@ import 'artwork.dart';
 /// Asks for a playlist name. Returns null when cancelled.
 Future<String?> showPlaylistNameDialog(
   BuildContext context, {
-  String title = 'New playlist',
-  String action = 'Create',
+  String? title,
+  String? action,
   String initial = '',
 }) {
   return showDialog<String>(
     context: context,
-    builder: (context) => _PlaylistNameDialog(title: title, action: action, initial: initial),
+    builder: (context) => _PlaylistNameDialog(
+      title: title ?? context.l10n.newPlaylist,
+      action: action ?? context.l10n.create,
+      initial: initial,
+    ),
   );
 }
 
@@ -58,14 +62,14 @@ class _PlaylistNameDialogState extends State<_PlaylistNameDialog> {
         textCapitalization: TextCapitalization.sentences,
         onSubmitted: (_) => _submit(),
         decoration: InputDecoration(
-          hintText: 'Playlist name',
+          hintText: context.l10n.playlistName,
           fillColor: palette.background,
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text('Cancel', style: TextStyle(color: palette.inkMuted)),
+          child: Text(context.l10n.cancel, style: TextStyle(color: palette.inkMuted)),
         ),
         ValueListenableBuilder(
           valueListenable: _controller,
@@ -98,6 +102,7 @@ class AddToPlaylistSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final playlists = ref.watch(playlistsProvider);
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
     final palette = context.palette;
 
     Future<void> addTo(Playlist playlist) async {
@@ -105,8 +110,8 @@ class AddToPlaylistSheet extends ConsumerWidget {
       if (context.mounted) Navigator.of(context).pop();
       messenger.showSnackBar(SnackBar(
         content: Text(added == 0
-            ? 'Already in "${playlist.name}"'
-            : 'Added ${pluralize(added, 'song')} to "${playlist.name}"'),
+            ? l10n.alreadyIn(playlist.name)
+            : l10n.addedSongsTo(added, playlist.name)),
       ));
     }
 
@@ -115,7 +120,7 @@ class AddToPlaylistSheet extends ConsumerWidget {
       if (name == null) return;
       final playlist = await ref.read(playlistsProvider.notifier).create(name, songIds: songIds);
       if (context.mounted) Navigator.of(context).pop();
-      messenger.showSnackBar(SnackBar(content: Text('Created "${playlist.name}"')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.createdPlaylist(playlist.name))));
     }
 
     return ConstrainedBox(
@@ -127,7 +132,7 @@ class AddToPlaylistSheet extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
             child: Text(
-              'Add to playlist',
+              context.l10n.addToPlaylist,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
@@ -144,7 +149,7 @@ class AddToPlaylistSheet extends ConsumerWidget {
                 child: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: palette.onInk, size: 24),
               ),
             ),
-            title: const Text('New playlist', style: TextStyle(fontWeight: FontWeight.w700)),
+            title: Text(context.l10n.newPlaylist, style: TextStyle(fontWeight: FontWeight.w700)),
             onTap: createNew,
           ),
           for (final playlist in playlists)
@@ -152,7 +157,7 @@ class AddToPlaylistSheet extends ConsumerWidget {
               contentPadding: const EdgeInsets.symmetric(horizontal: 24),
               leading: PlaylistCover(playlist: playlist, size: 48),
               title: Text(playlist.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-              subtitle: Text(pluralize(playlist.songIds.length, 'song')),
+              subtitle: Text(context.l10n.songs(playlist.songIds.length)),
               onTap: () => addTo(playlist),
             ),
         ],

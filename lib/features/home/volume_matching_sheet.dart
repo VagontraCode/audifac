@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/loudness.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/loudness_providers.dart';
 import '../../providers/player_providers.dart';
+import '../../l10n/l10n.dart';
+import '../../l10n/labels.dart';
 
 /// Settings → Sound → Volume matching.
 class VolumeMatchingSheet extends ConsumerWidget {
@@ -19,11 +20,11 @@ class VolumeMatchingSheet extends ConsumerWidget {
         builder: (_) => const VolumeMatchingSheet(),
       );
 
-  static String describe(VolumeMatching v) => switch (v.mode) {
-        VolumeMode.off => 'Off',
-        VolumeMode.track => 'Track gain',
-        VolumeMode.album => 'Album gain',
-        VolumeMode.smart => 'Smart (album gain for whole albums)',
+  static String describe(AppLocalizations l10n, VolumeMatching v) => switch (v.mode) {
+        VolumeMode.off => l10n.off,
+        VolumeMode.track => l10n.trackGain,
+        VolumeMode.album => l10n.albumGain,
+        VolumeMode.smart => l10n.smartGain,
       };
 
   static String _db(double db) => '${db > 0 ? '+' : db < 0 ? '−' : ''}${db.abs().toStringAsFixed(1)} dB';
@@ -63,11 +64,11 @@ class VolumeMatchingSheet extends ConsumerWidget {
       final db = v.appliedDb(gains, albumInOrder: albumInOrder)!;
       final info = known[current.location];
       final from = switch (info?.source) {
-        LoudnessSource.tags => 'ReplayGain tags',
-        LoudnessSource.scan => 'measured ${info!.lufs?.toStringAsFixed(1)} LUFS',
-        _ => 'not analysed yet',
+        LoudnessSource.tags => context.l10n.fromTags,
+        LoudnessSource.scan => context.l10n.measuredLufs(info!.lufs?.toStringAsFixed(1) ?? '?'),
+        _ => context.l10n.notAnalysedYetShort,
       };
-      final which = v.mode == VolumeMode.smart ? (albumInOrder ? ' · album' : ' · track') : '';
+      final which = v.mode == VolumeMode.smart ? (albumInOrder ? ' · ${context.l10n.reasonAlbum}' : ' · ${context.l10n.volumeTrack.toLowerCase()}') : '';
       nowPlaying = '${current.title}: ${_db(db)} ($from$which)';
     }
 
@@ -85,11 +86,10 @@ class VolumeMatchingSheet extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Volume matching', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              Text(context.l10n.volumeMatching, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
               Text(
-                'Plays every song at the same loudness (ReplayGain 2.0, −18 LUFS), from its tags or an '
-                'EBU R128 measurement. Applied before the equalizer; dynamics are untouched.',
+                context.l10n.volumeIntro,
                 style: muted,
               ),
               const SizedBox(height: 16),
@@ -103,21 +103,21 @@ class VolumeMatchingSheet extends ConsumerWidget {
                     foregroundColor: palette.ink,
                     side: BorderSide(color: palette.line),
                   ),
-                  segments: [for (final m in VolumeMode.values) ButtonSegment(value: m, label: Text(m.label))],
+                  segments: [for (final m in VolumeMode.values) ButtonSegment(value: m, label: Text(context.l10n.volumeMode(m)))],
                   selected: {v.mode},
                   onSelectionChanged: (s) => notifier.set(v.copyWith(mode: s.first)),
                 ),
               ),
               const SizedBox(height: 6),
               Text(switch (v.mode) {
-                VolumeMode.off => 'Songs play at their mastered level.',
-                VolumeMode.track => 'Every song at the same loudness — best for shuffle and mixes.',
-                VolumeMode.album => 'Albums keep their quiet and loud songs as mastered.',
-                VolumeMode.smart => 'Album gain while one album plays in order, track gain otherwise.',
+                VolumeMode.off => context.l10n.volumeOffHint,
+                VolumeMode.track => context.l10n.volumeTrackHint,
+                VolumeMode.album => context.l10n.volumeAlbumHint,
+                VolumeMode.smart => context.l10n.volumeSmartHint,
               }, style: muted),
               if (nowPlaying != null) ...[
                 const SizedBox(height: 10),
-                Text('Now: $nowPlaying', style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+                Text(context.l10n.nowLine(nowPlaying), style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
               ],
               AnimatedSize(
                 duration: const Duration(milliseconds: 220),
@@ -127,8 +127,8 @@ class VolumeMatchingSheet extends ConsumerWidget {
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          heading('Pre-amp  ${_db(v.preampDb)}'),
-                          Text('−18 LUFS is quieter than most modern music; +3 to +6 dB is common.', style: muted),
+                          heading('${context.l10n.preamp}  ${_db(v.preampDb)}'),
+                          Text(context.l10n.preampHint, style: muted),
                           Slider(
                             value: v.preampDb,
                             min: -6,
@@ -137,8 +137,8 @@ class VolumeMatchingSheet extends ConsumerWidget {
                             label: _db(v.preampDb),
                             onChanged: (x) => notifier.set(v.copyWith(preampDb: x)),
                           ),
-                          heading('Songs without loudness data  ${_db(v.untaggedGainDb)}'),
-                          Text('Used until a song is analysed, and for formats that can\'t be.', style: muted),
+                          heading('${context.l10n.untaggedGain}  ${_db(v.untaggedGainDb)}'),
+                          Text(context.l10n.untaggedGainHint, style: muted),
                           Slider(
                             value: v.untaggedGainDb,
                             min: -12,
@@ -151,43 +151,43 @@ class VolumeMatchingSheet extends ConsumerWidget {
                             contentPadding: EdgeInsets.zero,
                             activeThumbColor: palette.onInk,
                             activeTrackColor: palette.ink,
-                            title: const Text('Prevent clipping', style: TextStyle(fontWeight: FontWeight.w600)),
-                            subtitle: const Text('Never raise a song above its peak level'),
+                            title: Text(context.l10n.preventClipping, style: TextStyle(fontWeight: FontWeight.w600)),
+                            subtitle: Text(context.l10n.preventClippingHint),
                             value: v.preventClipping,
                             onChanged: (x) => notifier.set(v.copyWith(preventClipping: x)),
                           ),
                         ],
                       ),
               ),
-              heading('Library'),
+              heading(context.l10n.tabLibrary),
               Text(
                 [
-                  '${pluralize(tagged, 'song')} with tags',
-                  '${pluralize(scanned, 'song')} measured',
-                  if (failed > 0) '$failed can\'t be analysed',
-                  '$missing not analysed yet',
+                  context.l10n.songsWithTags(tagged),
+                  context.l10n.songsMeasured(scanned),
+                  if (failed > 0) context.l10n.cantBeAnalysed(failed),
+                  context.l10n.notAnalysedYet(missing),
                 ].join(' · '),
                 style: muted,
               ),
               const SizedBox(height: 4),
-              Text('Upcoming songs are analysed automatically while volume matching is on.', style: muted),
+              Text(context.l10n.upcomingAnalysed, style: muted),
               const SizedBox(height: 12),
               if (scan.running) ...[
                 LinearProgressIndicator(value: scan.total == 0 ? null : scan.done / scan.total),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(child: Text('Analysing ${scan.done} / ${scan.total}…', style: muted)),
+                    Expanded(child: Text(context.l10n.analysingProgress(scan.done, scan.total), style: muted)),
                     TextButton(
                       onPressed: () => ref.read(loudnessProvider.notifier).cancelLibrary(),
-                      child: const Text('Stop'),
+                      child: Text(context.l10n.stop),
                     ),
                   ],
                 ),
               ] else
                 FilledButton.tonal(
                   onPressed: missing == 0 ? null : () => ref.read(loudnessProvider.notifier).analyseLibrary(),
-                  child: Text(missing == 0 ? 'Whole library analysed' : 'Analyse ${pluralize(missing, 'song')} now'),
+                  child: Text(missing == 0 ? context.l10n.wholeLibraryAnalysed : context.l10n.analyseNow(missing)),
                 ),
             ],
           ),

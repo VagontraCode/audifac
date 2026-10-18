@@ -9,6 +9,8 @@ import '../../models/song.dart';
 import '../../providers/audio_info_providers.dart';
 import '../../providers/eq_providers.dart';
 import 'equalizer_screen.dart';
+import '../../l10n/l10n.dart';
+import '../../l10n/labels.dart';
 
 /// How long a picked sound preset should stick.
 enum ApplyScope {
@@ -135,7 +137,7 @@ class _QuickEqSheetState extends ConsumerState<QuickEqSheet> {
           height: 28,
           child: CustomPaint(painter: _MiniCurve(p.bands, isActive ? palette.ink : palette.inkMuted)),
         ),
-        title: Text(p.name, style: TextStyle(fontWeight: isActive ? FontWeight.w800 : FontWeight.w600)),
+        title: Text(context.l10n.presetName(p), style: TextStyle(fontWeight: isActive ? FontWeight.w800 : FontWeight.w600)),
         trailing: isActive ? HugeIcon(icon: HugeIcons.strokeRoundedTick02, color: palette.ink, size: 20) : null,
         onTap: () => _apply(p),
       );
@@ -157,7 +159,7 @@ class _QuickEqSheetState extends ConsumerState<QuickEqSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.prompt ? 'Choose a sound' : 'Sound preset',
+                          widget.prompt ? context.l10n.chooseSound : context.l10n.soundPreset,
                           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                         ),
                         if (song != null)
@@ -171,7 +173,7 @@ class _QuickEqSheetState extends ConsumerState<QuickEqSheet> {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Open equalizer',
+                    tooltip: context.l10n.openEqualizer,
                     onPressed: () {
                       Navigator.of(context).pop();
                       EqualizerScreen.open(context);
@@ -183,7 +185,7 @@ class _QuickEqSheetState extends ConsumerState<QuickEqSheet> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 10, 24, 4),
-              child: Text('Apply to', style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+              child: Text(context.l10n.applyTo, style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
             ),
             SizedBox(
               height: 44,
@@ -195,7 +197,7 @@ class _QuickEqSheetState extends ConsumerState<QuickEqSheet> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: ChoiceChip(
-                        label: Text(s.label),
+                        label: Text(applyScopeLabel(context.l10n, s)),
                         selected: _scope == s,
                         showCheckmark: false,
                         selectedColor: palette.ink,
@@ -215,7 +217,7 @@ class _QuickEqSheetState extends ConsumerState<QuickEqSheet> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 2, 24, 0),
                 child: Text(
-                  'Every time "${scopeHint(_scope)}" plays',
+                  context.l10n.everyTimePlays(scopeHint(_scope)),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted),
@@ -228,10 +230,10 @@ class _QuickEqSheetState extends ConsumerState<QuickEqSheet> {
                 padding: const EdgeInsets.only(bottom: 12),
                 children: [
                   if (mine.isNotEmpty) ...[
-                    _Header('Your presets'),
+                    _Header(context.l10n.yourPresets),
                     for (final p in mine) tile(p),
                   ],
-                  _Header('Built-in'),
+                  _Header(context.l10n.builtIn),
                   for (final p in builtIn) tile(p),
                 ],
               ),
@@ -331,13 +333,13 @@ class DevicePresetSheet extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 4),
-              child: Text('Correction for ${output.name}',
+              child: Text(context.l10n.correctionFor(context.l10n.deviceName(output)),
                   style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
               child: Text(
-                'Used automatically whenever audio plays on this output.',
+                context.l10n.correctionHint,
                 style: theme.textTheme.bodyMedium,
               ),
             ),
@@ -349,7 +351,7 @@ class DevicePresetSheet extends ConsumerWidget {
                   height: 28,
                   child: CustomPaint(painter: _MiniCurve(p.bands, p.id == active.id ? palette.ink : palette.inkMuted)),
                 ),
-                title: Text(p.name, style: TextStyle(fontWeight: p.id == active.id ? FontWeight.w800 : FontWeight.w600)),
+                title: Text(context.l10n.presetName(p), style: TextStyle(fontWeight: p.id == active.id ? FontWeight.w800 : FontWeight.w600)),
                 trailing: p.id == active.id ? HugeIcon(icon: HugeIcons.strokeRoundedTick02, color: palette.ink, size: 20) : null,
                 onTap: () {
                   ref.read(eqSettingsProvider.notifier).assignDevice(output, p.id);
@@ -359,7 +361,7 @@ class DevicePresetSheet extends ConsumerWidget {
             ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 24),
               leading: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: palette.ink, size: 22),
-              title: const Text('New correction / import AutoEQ', style: TextStyle(fontWeight: FontWeight.w700)),
+              title: Text(context.l10n.newCorrection, style: TextStyle(fontWeight: FontWeight.w700)),
               onTap: () async {
                 Navigator.of(context).pop();
                 await createPreset(context, ref, EqPresetKind.device, assign: true);
@@ -371,3 +373,13 @@ class DevicePresetSheet extends ConsumerWidget {
     );
   }
 }
+
+String applyScopeLabel(AppLocalizations l10n, ApplyScope s) => switch (s) {
+      ApplyScope.session => l10n.thisSession,
+      ApplyScope.song => l10n.thisSong,
+      ApplyScope.album => l10n.fieldAlbum,
+      ApplyScope.artist => l10n.fieldArtist,
+      ApplyScope.genre => l10n.fieldGenre,
+      ApplyScope.source => l10n.fieldSource,
+      ApplyScope.everything => l10n.allMusic,
+    };

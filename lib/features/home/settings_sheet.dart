@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/app_settings.dart';
 import '../../models/backup.dart';
@@ -16,6 +15,7 @@ import '../../providers/user_data_providers.dart';
 import '../../providers/widget_provider.dart';
 import 'folders_screen.dart';
 import 'volume_matching_sheet.dart';
+import '../../l10n/l10n.dart';
 
 class SettingsSheet extends ConsumerWidget {
   const SettingsSheet({super.key});
@@ -51,13 +51,13 @@ class SettingsSheet extends ConsumerWidget {
     );
 
     final scanSubtitle = scan.running
-        ? 'Scanning internal storage and SD card…'
+        ? context.l10n.scanningStorage
         : [
             if (totalCount != null)
-              '$visibleCount shown${totalCount != visibleCount ? ' of $totalCount found' : ''}',
+              totalCount != visibleCount ? context.l10n.shownOfFound(visibleCount, totalCount) : context.l10n.shown(visibleCount),
             if (scan.last case final last?)
-              '${pluralize(last.found, 'file')} on storage, scanned in ${(last.elapsed.inMilliseconds / 1000).toStringAsFixed(1)} s',
-            if (scan.error != null) 'Last scan failed: ${scan.error}',
+              context.l10n.scannedIn(last.found, (last.elapsed.inMilliseconds / 1000).toStringAsFixed(1)),
+            if (scan.error != null) context.l10n.lastScanFailed('${scan.error}'),
           ].join('\n');
 
     return ConstrainedBox(
@@ -69,30 +69,45 @@ class SettingsSheet extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Settings', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-              heading('Appearance'),
+              Text(context.l10n.settings, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              heading(context.l10n.appearance),
               SizedBox(
                 width: double.infinity,
                 child: SegmentedButton<ThemeMode>(
                   showSelectedIcon: false,
                   style: segmentedStyle,
-                  segments: const [
-                    ButtonSegment(value: ThemeMode.system, label: Text('System')),
-                    ButtonSegment(value: ThemeMode.light, label: Text('Light')),
-                    ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
+                  segments: [
+                    ButtonSegment(value: ThemeMode.system, label: Text(context.l10n.themeSystem)),
+                    ButtonSegment(value: ThemeMode.light, label: Text(context.l10n.themeLight)),
+                    ButtonSegment(value: ThemeMode.dark, label: Text(context.l10n.themeDark)),
                   ],
                   selected: {settings.themeMode},
                   onSelectionChanged: (s) => notifier.setThemeMode(s.first),
                 ),
               ),
-              heading('Sound'),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<String>(
+                  showSelectedIcon: false,
+                  style: segmentedStyle,
+                  segments: [
+                    ButtonSegment(value: '', label: Text(context.l10n.languageSystem)),
+                    const ButtonSegment(value: 'en', label: Text('English')),
+                    const ButtonSegment(value: 'fr', label: Text('Français')),
+                  ],
+                  selected: {settings.languageCode},
+                  onSelectionChanged: (s) => notifier.setLanguage(s.first),
+                ),
+              ),
+              heading(context.l10n.sound),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: HugeIcon(icon: HugeIcons.strokeRoundedSlidersHorizontal, color: palette.ink, size: 22),
-                title: const Text('Equalizer', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: Text(context.l10n.equalizer, style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text(ref.watch(eqSettingsProvider.select((s) => s.enabled))
-                    ? 'On · presets, headphone correction, rules'
-                    : 'Off'),
+                    ? context.l10n.equalizerOnSummary
+                    : context.l10n.off),
                 trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
                 onTap: () {
                   Navigator.of(context).pop();
@@ -102,8 +117,8 @@ class SettingsSheet extends ConsumerWidget {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: HugeIcon(icon: HugeIcons.strokeRoundedVolumeHigh, color: palette.ink, size: 22),
-                title: const Text('Volume matching', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text(VolumeMatchingSheet.describe(ref.watch(volumeMatchingProvider))),
+                title: Text(context.l10n.volumeMatching, style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(VolumeMatchingSheet.describe(context.l10n, ref.watch(volumeMatchingProvider))),
                 trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
                 onTap: () {
                   Navigator.of(context).pop();
@@ -111,7 +126,7 @@ class SettingsSheet extends ConsumerWidget {
                 },
               ),
               const SizedBox(height: 8),
-              const Text('Crossfade', style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(context.l10n.crossfade, style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
@@ -120,7 +135,7 @@ class SettingsSheet extends ConsumerWidget {
                   style: segmentedStyle,
                   segments: [
                     for (final s in AppSettings.crossfadeChoices)
-                      ButtonSegment(value: s, label: Text(s == 0 ? 'Off' : '$s s')),
+                      ButtonSegment(value: s, label: Text(s == 0 ? context.l10n.offShort : context.l10n.seconds(s))),
                   ],
                   selected: {settings.crossfadeSeconds},
                   onSelectionChanged: (s) => notifier.setCrossfade(s.first),
@@ -129,20 +144,20 @@ class SettingsSheet extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(
                 settings.crossfadeSeconds == 0
-                    ? 'Off: songs play gaplessly, exactly as mastered.'
-                    : 'Songs blend into each other — except tracks of the same album, which stay gapless.',
+                    ? context.l10n.crossfadeOffHint
+                    : context.l10n.crossfadeOnHint,
                 style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted),
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: palette.onInk,
                 activeTrackColor: palette.ink,
-                title: const Text('Keep albums together when shuffling', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Shuffles whole albums; each plays in order'),
+                title: Text(context.l10n.keepAlbumsTogether, style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(context.l10n.keepAlbumsTogetherHint),
                 value: settings.keepAlbumsTogether,
                 onChanged: notifier.setKeepAlbumsTogether,
               ),
-              heading('Library'),
+              heading(context.l10n.tabLibrary),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: scan.running
@@ -151,18 +166,18 @@ class SettingsSheet extends ConsumerWidget {
                         child: CircularProgressIndicator(strokeWidth: 2.5),
                       )
                     : HugeIcon(icon: HugeIcons.strokeRoundedRefresh, color: palette.ink, size: 22),
-                title: const Text('Scan device for audio', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: Text(context.l10n.scanDevice, style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: scanSubtitle.isEmpty ? null : Text(scanSubtitle),
                 onTap: scan.running ? null : () => ref.read(libraryProvider.notifier).refresh(),
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: HugeIcon(icon: HugeIcons.strokeRoundedFolderMusic, color: palette.ink, size: 22),
-                title: const Text('Folders', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: Text(context.l10n.foldersTitle, style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text(
                   settings.excludedFolders.isEmpty
-                      ? 'All folders included'
-                      : '${pluralize(settings.excludedFolders.length, 'folder')} excluded',
+                      ? context.l10n.allFoldersIncluded
+                      : context.l10n.foldersExcluded(settings.excludedFolders.length),
                 ),
                 trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
                 onTap: () => FoldersScreen.open(context),
@@ -171,11 +186,11 @@ class SettingsSheet extends ConsumerWidget {
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: palette.onInk,
                 activeTrackColor: palette.ink,
-                title: const Text('Show labels on songs', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: Text(context.l10n.showLabels, style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text(
                   analysis.running
-                      ? 'Source & codec · analysing audio ${analysis.done} / ${analysis.total}…'
-                      : 'Source folder & codec (e.g. Downloads · FLAC 24/96)',
+                      ? context.l10n.showLabelsAnalysing(analysis.done, analysis.total)
+                      : context.l10n.showLabelsHint,
                 ),
                 value: settings.showLabels,
                 onChanged: notifier.setShowLabels,
@@ -184,13 +199,13 @@ class SettingsSheet extends ConsumerWidget {
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: palette.onInk,
                 activeTrackColor: palette.ink,
-                title: const Text('Show recordings & voice notes', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Voice recorder, call recordings, WhatsApp voice notes'),
+                title: Text(context.l10n.showRecordings, style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(context.l10n.showRecordingsHint),
                 value: settings.includeRecordings,
                 onChanged: notifier.setIncludeRecordings,
               ),
               const SizedBox(height: 8),
-              const Text('Hide audio shorter than', style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(context.l10n.hideShorterThan, style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
@@ -199,7 +214,7 @@ class SettingsSheet extends ConsumerWidget {
                   style: segmentedStyle,
                   segments: [
                     for (final s in AppSettings.minDurationChoices)
-                      ButtonSegment(value: s, label: Text(s == 0 ? 'Off' : '$s s')),
+                      ButtonSegment(value: s, label: Text(s == 0 ? context.l10n.offShort : context.l10n.seconds(s))),
                   ],
                   selected: {settings.minDurationSeconds},
                   onSelectionChanged: (s) => notifier.setMinDuration(s.first),
@@ -207,42 +222,43 @@ class SettingsSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Ringtones, alarms and notification sounds are always hidden.',
+                context.l10n.ringtonesHidden,
                 style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted),
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: HugeIcon(icon: HugeIcons.strokeRoundedDashboardSquare02, color: palette.ink, size: 22),
-                title: const Text('Add player widget to home screen', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: Text(context.l10n.addWidget, style: TextStyle(fontWeight: FontWeight.w600)),
                 onTap: () async {
                   final messenger = ScaffoldMessenger.of(context);
+                  final hint = context.l10n.addWidgetManually;
                   if (!await pinHomeWidget()) {
-                    messenger.showSnackBar(const SnackBar(
-                      content: Text('Long-press your home screen → Widgets → audifac'),
+                    messenger.showSnackBar(SnackBar(
+                      content: Text(hint),
                     ));
                   }
                 },
               ),
-              heading('Backup'),
+              heading(context.l10n.backup),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: HugeIcon(icon: HugeIcons.strokeRoundedCloudUpload, color: palette.ink, size: 22),
-                title: const Text('Back up to a file', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Favorites, playlists, history & play counts, EQ, settings'),
+                title: Text(context.l10n.backUpToFile, style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(context.l10n.backUpHint),
                 onTap: () => _backup(context, ref),
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: HugeIcon(icon: HugeIcons.strokeRoundedCloudDownload, color: palette.ink, size: 22),
-                title: const Text('Restore from a file', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Merges with what you have — nothing is deleted'),
+                title: Text(context.l10n.restoreFromFile, style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(context.l10n.restoreHint),
                 onTap: () => _restore(context, ref),
               ),
-              heading('About'),
+              heading(context.l10n.about),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: HugeIcon(icon: HugeIcons.strokeRoundedInformationCircle, color: palette.ink, size: 22),
-                title: const Text('About audifac', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: Text(context.l10n.aboutAudifac, style: TextStyle(fontWeight: FontWeight.w600)),
                 onTap: () => showLicensePage(context: context, applicationName: 'audifac'),
               ),
             ],
@@ -256,6 +272,7 @@ class SettingsSheet extends ConsumerWidget {
     // Grab everything before closing the sheet (its ref dies with it), and
     // close it so the confirmation is visible.
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
     final library = ref.read(mediaLibraryProvider);
     final backup = ref.read(backupServiceProvider);
     Navigator.of(context).pop();
@@ -269,16 +286,16 @@ class SettingsSheet extends ConsumerWidget {
       );
       if (saved == null) return; // Cancelled.
       messenger.showSnackBar(SnackBar(
-        content: Text('Backed up ${pluralize(data.favorites.length, 'favorite')}, '
-            '${pluralize(data.playlists.length, 'playlist')}, ${pluralize(data.eqPresets.length, 'EQ preset')}'),
+        content: Text(l10n.backedUp(l10n.favoritesCount(data.favorites.length), l10n.playlistsCount(data.playlists.length), l10n.eqPresets(data.eqPresets.length))),
       ));
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Backup failed: $e')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.backupFailed('$e'))));
     }
   }
 
   Future<void> _restore(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
     final root = Navigator.of(context, rootNavigator: true);
     final library = ref.read(mediaLibraryProvider);
     final backup = ref.read(backupServiceProvider);
@@ -289,7 +306,7 @@ class SettingsSheet extends ConsumerWidget {
     try {
       data = BackupData.decode(doc.text);
     } on FormatException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Can\'t restore: ${e.message}')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.cantRestore(e.message))));
       return;
     }
     final report = await backup.restore(data);
@@ -297,20 +314,20 @@ class SettingsSheet extends ConsumerWidget {
     await showDialog<void>(
       context: root.context,
       builder: (context) => AlertDialog(
-        title: const Text('Restored'),
+        title: Text(context.l10n.restored),
         content: Text([
-          'From a backup of ${data.exportedAt.toLocal().toString().substring(0, 16)} (audifac ${data.appVersion}):',
+          context.l10n.fromBackupOf(data.exportedAt.toLocal().toString().substring(0, 16), data.appVersion),
           '',
-          '• ${pluralize(report.favorites, 'new favorite')}',
-          '• ${pluralize(report.playlists, 'playlist')} (${pluralize(report.playlistSongs, 'song')})',
-          '• ${pluralize(report.presets, 'EQ preset')}, ${pluralize(report.rules, 'rule')}',
-          '• ${pluralize(report.recent, 'history entry', 'history entries')}',
-          if (report.plays > 0) '• ${pluralize(report.plays, 'listen')} (play counts & stats)',
-          if (report.settings) '• Settings',
+          '• ${context.l10n.newFavorites(report.favorites)}',
+          '• ${context.l10n.playlistsCount(report.playlists)} (${context.l10n.songs(report.playlistSongs)})',
+          '• ${context.l10n.eqPresets(report.presets)}, ${context.l10n.rules(report.rules)}',
+          '• ${context.l10n.historyEntries(report.recent)}',
+          if (report.plays > 0) '• ${context.l10n.listensRestored(report.plays)}',
+          if (report.settings) '• ${context.l10n.settings}',
           if (report.missingSongs > 0)
-            '\n${pluralize(report.missingSongs, 'song')} from the backup aren\'t on this device and were skipped.',
+            '\n${context.l10n.missingSongs(report.missingSongs)}',
         ].join('\n')),
-        actions: [FilledButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+        actions: [FilledButton(onPressed: () => Navigator.pop(context), child: Text(context.l10n.ok))],
       ),
     );
   }

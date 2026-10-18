@@ -14,6 +14,8 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/entrance.dart';
 import '../../widgets/song_actions_sheet.dart';
 import '../collection/collection_screen.dart';
+import '../../l10n/l10n.dart';
+import '../../l10n/labels.dart';
 
 /// Listening stats: time, plays, top songs / artists / albums for a range.
 class StatsScreen extends ConsumerWidget {
@@ -52,11 +54,11 @@ class StatsScreen extends ConsumerWidget {
                 child: Row(
                   children: [
                     IconButton(
-                      tooltip: 'Back',
+                      tooltip: context.l10n.back,
                       onPressed: () => Navigator.of(context).pop(),
                       icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: palette.ink, size: 26),
                     ),
-                    Expanded(child: Text('Your stats', style: theme.textTheme.headlineLarge)),
+                    Expanded(child: Text(context.l10n.yourStats, style: theme.textTheme.headlineLarge)),
                   ],
                 ),
               ),
@@ -70,18 +72,18 @@ class StatsScreen extends ConsumerWidget {
                     foregroundColor: palette.ink,
                     side: BorderSide(color: palette.line),
                   ),
-                  segments: [for (final r in StatsRange.values) ButtonSegment(value: r, label: Text(r.label))],
+                  segments: [for (final r in StatsRange.values) ButtonSegment(value: r, label: Text(context.l10n.statsRange(r)))],
                   selected: {range},
                   onSelectionChanged: (s) => ref.read(statsRangeProvider.notifier).set(s.first),
                 ),
               ),
               if (summary.plays == 0 && summary.listened == Duration.zero)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(top: 48),
                   child: EmptyState(
                     icon: HugeIcons.strokeRoundedChart,
-                    title: 'Nothing yet',
-                    message: 'A song counts as played once you\'ve heard half of it (or 4 minutes).',
+                    title: context.l10n.nothingYet,
+                    message: context.l10n.playCountRule,
                   ),
                 )
               else ...[
@@ -89,30 +91,30 @@ class StatsScreen extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                   child: Row(
                     children: [
-                      Expanded(child: _Figure(value: _hours(summary.listened), label: 'listening')),
-                      Expanded(child: _Figure(value: '${summary.plays}', label: summary.plays == 1 ? 'play' : 'plays')),
+                      Expanded(child: _Figure(value: _hours(summary.listened), label: context.l10n.listening)),
+                      Expanded(child: _Figure(value: '${summary.plays}', label: context.l10n.playsWord(summary.plays))),
                       Expanded(
                         child: _Figure(
                           value: '${summary.activeDays}',
-                          label: summary.activeDays == 1 ? 'day' : 'days',
+                          label: context.l10n.daysWord(summary.activeDays),
                         ),
                       ),
                     ],
                   ),
                 )),
                 if (topSongs.isNotEmpty) ...[
-                  animated(title('Top songs')),
+                  animated(title(context.l10n.topSongs)),
                   for (final (i, r) in topSongs.indexed)
                     animated(_SongRow(rank: i + 1, ranked: r, fraction: r.plays / maxPlays, all: topSongs)),
                 ],
                 if (summary.artists.isNotEmpty) ...[
-                  animated(title('Top artists')),
+                  animated(title(context.l10n.topArtists)),
                   for (final (i, r) in summary.artists.take(5).indexed)
                     animated(ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
                       leading: SizedBox(width: 28, child: Text('${i + 1}', style: theme.textTheme.titleMedium)),
                       title: Text(r.item, maxLines: 1, overflow: TextOverflow.ellipsis),
-                      subtitle: Text('${pluralize(r.plays, 'play')} · ${formatTotalDuration(r.listened)}'),
+                      subtitle: Text('${context.l10n.plays(r.plays)} · ${formatTotalDuration(r.listened)}'),
                       onTap: () {
                         final artist = ref.read(artistsProvider).where((a) => a.name == r.item).firstOrNull;
                         if (artist != null) CollectionScreen.openArtist(context, artist);
@@ -120,7 +122,7 @@ class StatsScreen extends ConsumerWidget {
                     )),
                 ],
                 if (summary.albums.isNotEmpty) ...[
-                  animated(title('Top albums')),
+                  animated(title(context.l10n.topAlbums)),
                   animated(SizedBox(
                     height: 200,
                     child: ListView.separated(
@@ -146,7 +148,7 @@ class StatsScreen extends ConsumerWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(fontWeight: FontWeight.w600, color: palette.ink)),
-                                Text(pluralize(r.plays, 'play'),
+                                Text(context.l10n.plays(r.plays),
                                     style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted)),
                               ],
                             ),

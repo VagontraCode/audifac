@@ -381,9 +381,8 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
   /// Unplayable/corrupt file: report it and skip instead of getting stuck.
   void _onError(PlayerException error) {
     final title = mediaItem.value?.title;
-    _errors.add(
-      title == null ? "Couldn't play this file" : "Couldn't play \"$title\" — skipped",
-    );
+    // The title (empty when unknown); the UI words the message.
+    _errors.add(title ?? '');
     if (_player.hasNext) {
       unawaited(_player.seekToNext().then((_) => _player.play()));
     } else {

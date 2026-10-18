@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/app_settings.dart';
 import '../../providers/audio_info_providers.dart';
@@ -23,6 +22,8 @@ import '../favorites/favorites_screen.dart';
 import 'folder_screen.dart';
 import 'library_gate.dart';
 import 'song_filter_bar.dart';
+import '../../l10n/l10n.dart';
+import '../../l10n/labels.dart';
 
 class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({super.key});
@@ -46,12 +47,12 @@ class LibraryScreen extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Library',
+                        context.l10n.tabLibrary,
                         style: theme.textTheme.headlineLarge,
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Rescan library',
+                      tooltip: context.l10n.rescanLibrary,
                       onPressed: () =>
                           ref.read(libraryProvider.notifier).refresh(),
                       icon: HugeIcon(
@@ -63,15 +64,15 @@ class LibraryScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              const TabBar(
+              TabBar(
                 isScrollable: true,
                 padding: EdgeInsets.symmetric(horizontal: 8),
                 tabs: [
-                  Tab(text: 'SONGS'),
-                  Tab(text: 'ALBUMS'),
-                  Tab(text: 'ARTISTS'),
-                  Tab(text: 'PLAYLISTS'),
-                  Tab(text: 'FOLDERS'),
+                  Tab(text: context.l10n.songsTitle.toUpperCase()),
+                  Tab(text: context.l10n.albumsTitle.toUpperCase()),
+                  Tab(text: context.l10n.artists.toUpperCase()),
+                  Tab(text: context.l10n.playlistsTitle.toUpperCase()),
+                  Tab(text: context.l10n.foldersTitle.toUpperCase()),
                 ],
               ),
               const SizedBox(height: 8),
@@ -127,8 +128,8 @@ class _SongsTab extends ConsumerWidget {
     final filter = ref.watch(settingsProvider.select((s) => s.songFilter));
     final palette = context.palette;
     final countLabel = songs.length == total
-        ? pluralize(total, 'song')
-        : '${songs.length} of ${pluralize(total, 'song')}';
+        ? context.l10n.songs(total)
+        : context.l10n.songsOf(songs.length, total);
 
     return _Refreshable(
       child: ListView.builder(
@@ -142,9 +143,9 @@ class _SongsTab extends ConsumerWidget {
               padding: const EdgeInsets.only(top: 48),
               child: EmptyState(
                 icon: HugeIcons.strokeRoundedFilterHorizontal,
-                title: 'No songs match',
-                message: 'Try another quality, codec or source.',
-                actionLabel: 'Clear filters',
+                title: context.l10n.noSongsMatch,
+                message: context.l10n.noSongsMatchHint,
+                actionLabel: context.l10n.clearFilters,
                 onAction: () => ref
                     .read(settingsProvider.notifier)
                     .setSongFilter(const SongFilter()),
@@ -161,14 +162,14 @@ class _SongsTab extends ConsumerWidget {
                     child: Row(
                       children: [
                         PopupMenuButton<SongSort>(
-                          tooltip: 'Sort',
+                          tooltip: context.l10n.sort,
                           initialValue: sort,
                           onSelected: ref
                               .read(settingsProvider.notifier)
                               .setSongSort,
                           itemBuilder: (_) => [
                             for (final s in SongSort.values)
-                              PopupMenuItem(value: s, child: Text(s.label)),
+                              PopupMenuItem(value: s, child: Text(context.l10n.songSort(s))),
                           ],
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
@@ -185,7 +186,7 @@ class _SongsTab extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  '$countLabel · ${sort.label}',
+                                  '$countLabel · ${context.l10n.songSort(sort)}',
                                   style: Theme.of(context).textTheme.bodyMedium
                                       ?.copyWith(
                                         color: palette.ink,
@@ -199,7 +200,7 @@ class _SongsTab extends ConsumerWidget {
                         const Spacer(),
                         if (!filter.isEmpty)
                           IconButton(
-                            tooltip: 'Clear filters',
+                            tooltip: context.l10n.clearFilters,
                             onPressed: () => ref
                                 .read(settingsProvider.notifier)
                                 .setSongFilter(const SongFilter()),
@@ -211,7 +212,7 @@ class _SongsTab extends ConsumerWidget {
                           ),
                         PillButton(
                           icon: HugeIcons.strokeRoundedShuffle,
-                          label: 'Shuffle',
+                          label: context.l10n.shuffle,
                           onPressed: songs.isEmpty
                               ? null
                               : () => handler.playSongs(songs, shuffle: true),
@@ -258,10 +259,10 @@ class _AlbumsTab extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
               child: Row(
                 children: [
-                  Expanded(child: Text(pluralize(albums.length, 'album'), style: theme.textTheme.titleSmall)),
+                  Expanded(child: Text(context.l10n.albums(albums.length), style: theme.textTheme.titleSmall)),
                   PillButton(
                     icon: HugeIcons.strokeRoundedShuffle,
-                    label: 'Shuffle albums',
+                    label: context.l10n.shuffleAlbums,
                     onPressed: albums.isEmpty
                         ? null
                         : () => ref.read(audioHandlerProvider).playSongs(
@@ -371,8 +372,7 @@ class _ArtistsTab extends ConsumerWidget {
                             style: theme.textTheme.titleMedium,
                           ),
                           Text(
-                            '${pluralize(artist.albums.length, 'album')} · '
-                            '${pluralize(artist.songs.length, 'song')}',
+                            '${context.l10n.albums(artist.albums.length)} · ${context.l10n.songs(artist.songs.length)}',
                             style: theme.textTheme.bodyMedium,
                           ),
                         ],
@@ -434,8 +434,8 @@ class PlaylistsTab extends ConsumerWidget {
             vertical: 4,
           ),
           leading: iconTile(HugeIcons.strokeRoundedAdd01),
-          title: const Text(
-            'New playlist',
+          title: Text(
+            context.l10n.newPlaylist,
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           onTap: create,
@@ -446,11 +446,11 @@ class PlaylistsTab extends ConsumerWidget {
             vertical: 4,
           ),
           leading: iconTile(HugeIcons.strokeRoundedFavourite),
-          title: const Text(
-            'Favorites',
+          title: Text(
+            context.l10n.favorites,
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
-          subtitle: Text(pluralize(favorites.length, 'song')),
+          subtitle: Text(context.l10n.songs(favorites.length)),
           onTap: () => FavoritesScreen.open(context),
         ),
         for (final (i, playlist) in playlists.indexed)
@@ -468,7 +468,7 @@ class PlaylistsTab extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
-              subtitle: Text(pluralize(playlist.songIds.length, 'song')),
+              subtitle: Text(context.l10n.songs(playlist.songIds.length)),
               onTap: () => PlaylistScreen.open(context, playlist.id),
             ),
           ),
@@ -478,7 +478,7 @@ class PlaylistsTab extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Smart playlists',
+                  context.l10n.smartPlaylists,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
@@ -490,7 +490,7 @@ class PlaylistsTab extends ConsumerWidget {
                   if (context.mounted) SmartPlaylistScreen.open(context, list.id);
                 },
                 icon: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: palette.ink, size: 18),
-                label: const Text('New'),
+                label: Text(context.l10n.newLabel),
               ),
             ],
           ),
@@ -500,13 +500,13 @@ class PlaylistsTab extends ConsumerWidget {
             contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
             leading: SmartCover(list: list, size: 56),
             title: Text(
-              list.name,
+              context.l10n.smartName(list),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             subtitle: Text(
-              '${pluralize(ref.watch(smartSongsProvider(list.id)).length, 'song')} · ${list.describe()}',
+              '${context.l10n.songs(ref.watch(smartSongsProvider(list.id)).length)} · ${context.l10n.smartDescribe(list)}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

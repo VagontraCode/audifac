@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
+import '../l10n/l10n.dart';
 
 import '../core/format.dart';
 import '../core/theme/app_colors.dart';
@@ -127,7 +128,7 @@ class SongTile extends ConsumerWidget {
                 style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted),
               ),
               IconButton(
-                tooltip: 'More',
+                tooltip: context.l10n.more,
                 onPressed: openMenu,
                 icon: HugeIcon(
                   icon: HugeIcons.strokeRoundedMoreVertical,
