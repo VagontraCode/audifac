@@ -40,8 +40,10 @@ object BitPerfect {
 
     val supported: Boolean get() = Build.VERSION.SDK_INT >= 34
 
-    private val media: AudioAttributes =
+    // Lazy: only built when bit-perfect is used (keeps the object usable in JVM tests).
+    private val media: AudioAttributes by lazy {
         AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()
+    }
 
     private var lastDevice: AudioDeviceInfo? = null
 
