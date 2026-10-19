@@ -136,6 +136,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         }
         // Configured at this track's first sample: its own volume matching gain.
         trackFormat = inputFormat
+        trackFrames = 0
         applyGain(immediate = fresh)
         SignalPath.pcmEncoding = encoding
         SignalPath.sampleRate = rate
@@ -187,9 +188,15 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
     private var loudnessVersion = -1L
     private var loggedGain = Double.NaN
 
+    private var settingsVersion = -1L
+
+    /** Frames of the current track taken in so far. */
+    private var trackFrames = 0L
+
     private fun applyGain(immediate: Boolean) {
         val format = trackFormat ?: return
         loudnessVersion = Loudness.version
+        settingsVersion = Loudness.settingsVersion
         val gains = Loudness.gainsFor(format)
         val linear = Loudness.settings.linearGain(gains)
         processor?.setGain(linear, immediate)
@@ -219,7 +226,14 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         }
 
         if (!pending) {
-            if (loudnessVersion != Loudness.version) applyGain(immediate = false)
+            if (loudnessVersion != Loudness.version) {
+                // Settings changes apply at once. A new measurement only in a
+                // song's first moments: a level jump mid-song is audible (heard
+                // as a dropout); the song gets it the next time it plays.
+                val early = trackFrames < rate * NEW_GAIN_WINDOW_S
+                if (settingsVersion != Loudness.settingsVersion || early) applyGain(immediate = false)
+                else loudnessVersion = Loudness.version
+            }
             prepareOutput(buffer, presentationTimeUs)
             pending = true
         }
@@ -289,6 +303,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
             if (processing) p.process(samples, decoded, count * channels)
         }
         count += decoded
+        trackFrames += decoded
 
         // Keep the last [paddingFrames] back: if the stream ends here they are
         // encoder padding and must not be played.
@@ -420,6 +435,9 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
 
         /** Non-silent samples that must look like real float before the check stops. */
         private const val FLOAT_EVIDENCE_SAMPLES = 1 shl 16
+
+        /** How early in a song a newly measured gain may still be applied. */
+        private const val NEW_GAIN_WINDOW_S = 0.3
 
         fun isSupportedPcm(encoding: Int) = encoding == C.ENCODING_PCM_16BIT ||
             encoding == C.ENCODING_PCM_24BIT || encoding == C.ENCODING_PCM_32BIT ||

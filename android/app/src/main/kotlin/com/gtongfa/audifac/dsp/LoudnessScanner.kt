@@ -43,6 +43,12 @@ class LoudnessScanner(private val context: Context) {
             Log.w(TAG, "loudness scan failed for $location: $e")
             null
         }
+        // Real music measures between about -70 and 0 LUFS, with a finite peak.
+        if (measured != null && !(measured.first in -70.0..0.5 && measured.second.isFinite())) {
+            Log.w(TAG, "implausible loudness ${measured.first} LUFS / peak ${measured.second} for $location: ignored")
+            out["ok"] = false
+            return out
+        }
         if (measured != null) {
             out["lufs"] = measured.first
             out["trackGainDb"] = LoudnessMeter.REFERENCE_LUFS - measured.first
@@ -85,8 +91,9 @@ class LoudnessScanner(private val context: Context) {
             extractor.selectTrack(track)
             val format = extractor.getTrackFormat(track)
             val mime = format.getString(MediaFormat.KEY_MIME)!!
-            // Ask for float output (full resolution); decoders may still give 16-bit.
-            format.setInteger(MediaFormat.KEY_PCM_ENCODING, AudioFormat.ENCODING_PCM_FLOAT)
+            // No float request: 16-bit is plenty for loudness, and Samsung's
+            // decoders write 16-bit while reporting float when asked for it
+            // (which measured garbage).
             codec = MediaCodec.createDecoderByType(mime).apply {
                 configure(format, null, null, 0)
                 start()

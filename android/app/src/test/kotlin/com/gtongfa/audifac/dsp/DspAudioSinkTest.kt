@@ -14,6 +14,7 @@ import java.lang.reflect.Proxy
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.abs
+import kotlin.math.pow
 
 /** Gapless trimming and crossfade, with a fake delegate recording what it's given. */
 class DspAudioSinkTest {
@@ -99,6 +100,8 @@ class DspAudioSinkTest {
     fun tearDown() {
         Crossfade.seconds = 0.0
         Crossfade.setAlbums(emptyMap())
+        Loudness.update(VolumeMatching())
+        Loudness.putGains(emptyMap(), replace = true)
     }
 
     @Test
@@ -235,6 +238,38 @@ class DspAudioSinkTest {
         assertEquals(1000, r.left.size)
         assertEquals(-0.5f, r.left[0], 1e-6f)
         assertEquals(0.9f, r.left[1], 1e-6f)
+    }
+
+    @Test
+    fun aMeasurementArrivingMidSongWaitsForTheNextTrack() {
+        Loudness.update(VolumeMatching(mode = VolumeMatching.Mode.TRACK))
+        val r = Recorder()
+        val sink = DspAudioSink(r.sink)
+        sink.configure(format(uri = "a"), 0, null)
+        feed(sink, rate, 0L, value = 8192) // 1 s at unity: nothing known yet
+        // The scan of this song lands mid-song: -6 dB.
+        Loudness.putGains(mapOf("a" to Gains(trackGainDb = -6.0)), replace = false)
+        feed(sink, rate, 1_000_000L, value = 8192)
+        assertTrue("no level jump mid-song", r.left.takeLast(1000).all { abs(it - 0.25f) < 1e-3f })
+
+        // The next time it starts, the song gets its gain.
+        sink.configure(format(uri = "a"), 0, null)
+        feed(sink, rate / 2, 2_000_000L, value = 8192)
+        val half = 0.25f * 10.0.pow(-6.0 / 20).toFloat()
+        assertTrue(abs(r.left.last() - half) < 2e-3f)
+    }
+
+    @Test
+    fun settingsChangesApplyAtOnce() {
+        Loudness.update(VolumeMatching(mode = VolumeMatching.Mode.TRACK))
+        val r = Recorder()
+        val sink = DspAudioSink(r.sink)
+        sink.configure(format(uri = "b"), 0, null)
+        feed(sink, rate, 0L, value = 8192)
+        Loudness.update(VolumeMatching(mode = VolumeMatching.Mode.TRACK, untaggedGainDb = -6.0))
+        feed(sink, rate, 1_000_000L, value = 8192)
+        val half = 0.25f * 10.0.pow(-6.0 / 20).toFloat()
+        assertTrue(abs(r.left.last() - half) < 2e-3f)
     }
 
     @Test

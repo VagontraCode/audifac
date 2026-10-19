@@ -132,4 +132,19 @@ void main() {
     expect(back.describes(s), isTrue);
     expect(LoudnessInfo.fromNative({'ok': false}, s).source, LoudnessSource.none);
   });
+
+  test('scans from before the Samsung fix are measured again; tags are kept', () {
+    final s = _song(1);
+    LoudnessInfo stored(LoudnessSource source, {int? version}) => LoudnessInfo.fromJson({
+          'source': source.name,
+          'trackGainDb': -3.0,
+          'sizeBytes': s.sizeBytes,
+          'modifiedMs': s.modifiedMs,
+          if (version != null) 'scanVersion': version,
+        });
+    expect(stored(LoudnessSource.scan).describes(s), isFalse); // saved before versions existed
+    expect(stored(LoudnessSource.scan, version: LoudnessInfo.currentScanVersion).describes(s), isTrue);
+    expect(stored(LoudnessSource.tags).describes(s), isTrue);
+    expect(stored(LoudnessSource.none).describes(s), isFalse); // failed scans are retried too
+  });
 }

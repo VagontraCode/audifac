@@ -116,9 +116,17 @@ class LoudnessInfo {
     this.albumPeak,
     this.sizeBytes = 0,
     this.modifiedMs = 0,
+    this.scanVersion = currentScanVersion,
   });
 
+  /// Bump to re-measure every scanned file. 2: the scanner no longer asks
+  /// for float output, which Samsung decoders mislabel (garbage loudness).
+  static const currentScanVersion = 2;
+
   final LoudnessSource source;
+
+  /// Measurement logic that produced a scan (tags don't depend on it).
+  final int scanVersion;
 
   /// Measured integrated loudness (scans only).
   final double? lufs;
@@ -131,7 +139,10 @@ class LoudnessInfo {
   final int sizeBytes;
   final int modifiedMs;
 
-  bool describes(Song song) => sizeBytes == song.sizeBytes && modifiedMs == song.modifiedMs;
+  bool describes(Song song) =>
+      sizeBytes == song.sizeBytes &&
+      modifiedMs == song.modifiedMs &&
+      (source == LoudnessSource.tags || scanVersion >= currentScanVersion);
 
   static LoudnessInfo fromNative(Map<dynamic, dynamic> m, Song song) {
     double? d(String k) => (m[k] as num?)?.toDouble();
@@ -158,6 +169,7 @@ class LoudnessInfo {
         'albumPeak': albumPeak,
         'sizeBytes': sizeBytes,
         'modifiedMs': modifiedMs,
+        'scanVersion': scanVersion,
       };
 
   factory LoudnessInfo.fromJson(Map<String, dynamic> j) {
@@ -171,6 +183,7 @@ class LoudnessInfo {
       albumPeak: d('albumPeak'),
       sizeBytes: (j['sizeBytes'] as num?)?.toInt() ?? 0,
       modifiedMs: (j['modifiedMs'] as num?)?.toInt() ?? 0,
+      scanVersion: (j['scanVersion'] as num?)?.toInt() ?? 1,
     );
   }
 }

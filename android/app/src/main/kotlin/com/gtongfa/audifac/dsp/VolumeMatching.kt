@@ -59,8 +59,19 @@ object Loudness {
     var version: Long = 0
         private set
 
+    /**
+     * Incremented when the user changes the settings (mode, pre-amp…): those
+     * apply at once. New measurements only bump [version]: a sink doesn't
+     * change the level of a song already playing for them.
+     */
+    @Volatile
+    var settingsVersion: Long = 0
+        private set
+
     fun update(newSettings: VolumeMatching) {
+        if (newSettings == settings) return
         settings = newSettings
+        settingsVersion++
         version++
     }
 
