@@ -1553,7 +1553,7 @@ abstract class AppLocalizations {
   /// No description provided for @hiddenFoldersIntro.
   ///
   /// In en, this message translates to:
-  /// **'Android hides some folders from apps (those with a \".nomedia\" file, like WhatsApp voice notes). Add one here to include its audio.'**
+  /// **'Android hides some folders and files from apps: folders with a \".nomedia\" file (like WhatsApp voice notes), and WavPack (.wv) and TTA files, which it doesn\'t recognise as audio. Add their folder here to include them.'**
   String get hiddenFoldersIntro;
 
   /// No description provided for @remove.

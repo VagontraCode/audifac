@@ -58,3 +58,6 @@ keystore.base64.txt
 # Raw phone captures (third-party artwork); cropped versions are in store/screenshots
 store/raw/
 store/screenshots/
+
+# Built by tools/ffmpeg/build.sh (not committed)
+/android/app/src/main/cpp/ffmpeg/

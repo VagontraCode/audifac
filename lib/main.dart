@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/audio/audio_handler.dart';
+import 'core/licenses.dart';
 import 'core/theme/app_theme.dart';
 import 'data/app_database.dart';
 import 'features/shell/app_shell.dart';
@@ -13,6 +14,7 @@ import 'providers/user_data_providers.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  registerNativeLicenses();
 
   final (audioHandler, database) = await (initAudioHandler(), AppDatabase.open()).wait;
   final bootstrap = await Bootstrap.load(database);

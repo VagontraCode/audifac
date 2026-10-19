@@ -1,0 +1,2 @@
+# Shell scripts run on Linux (CI, WSL): keep LF.
+*.sh text eol=lf

@@ -60,9 +60,11 @@ class AudioInfo {
   /// Analysis logic version; bump [currentSchema] to re-analyse every file
   /// (e.g. after adding a format).
   final int schema;
-  static const currentSchema = 2;
+  static const currentSchema = 5;
 
-  static const losslessCodecs = {'FLAC', 'ALAC', 'WAV', 'AIFF', 'TrueHD', 'DSD'};
+  static const losslessCodecs = {
+    'FLAC', 'ALAC', 'WAV', 'AIFF', 'TrueHD', 'DSD', 'WMA Lossless', 'APE', 'WavPack', 'TTA',
+  };
 
   AudioQuality get quality {
     if (!losslessCodecs.contains(codec)) {
@@ -151,6 +153,18 @@ class AudioInfo {
         return 'AIFF';
       case 'audio/x-dsd':
         return 'DSD';
+      case 'audio/x-ms-wma':
+        return 'WMA';
+      case 'audio/x-ms-wma-pro':
+        return 'WMA Pro';
+      case 'audio/x-ms-wma-lossless':
+        return 'WMA Lossless';
+      case 'audio/x-ape':
+        return 'APE';
+      case 'audio/x-wavpack':
+        return 'WavPack';
+      case 'audio/x-tta':
+        return 'TTA';
       case null:
         return 'Unknown';
       default:
@@ -180,6 +194,10 @@ class AudioInfo {
       (_, 'mp1') => 'MP1',
       ('audio/x-aiff' || 'audio/aiff', _) || (_, 'aif' || 'aiff' || 'aifc') => 'AIFF',
       (_, 'dsf' || 'dff') => 'DSD',
+      ('audio/x-ms-wma', _) || (_, 'wma' || 'asf') => 'WMA',
+      (_, 'ape') => 'APE',
+      (_, 'wv') => 'WavPack',
+      (_, 'tta') => 'TTA',
       _ => 'Unknown',
     };
     return AudioInfo(codec: codec, containerMime: song.mimeType, analysed: false);
@@ -209,7 +227,7 @@ class AudioInfo {
       sampleRate: asInt(m['sampleRate']),
       channels: asInt(m['channels']),
       bitrate: bitrate,
-      bitDepth: asInt(m['bitDepth']),
+      bitDepth: switch (asInt(m['bitDepth'])) { final b? when b > 0 => b, _ => null },
       genre: m['genre'] as String?,
       year: m['year'] as String?,
       composer: m['composer'] as String?,

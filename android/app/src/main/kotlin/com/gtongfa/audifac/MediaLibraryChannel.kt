@@ -212,9 +212,11 @@ class MediaLibraryChannel(
                 val id = c.getLong(idCol)
                 val path = c.getString(dataCol)
                 val artist = c.getString(artistCol)
-                // Android doesn't read AIFF / DSD ID3 tags: use our reader when
-                // MediaStore came back without an artist (only for these formats).
-                val own = if (path != null && (artist.isNullOrBlank() || artist == "<unknown>")) {
+                // Android doesn't read AIFF / DSD / WMA / APE… tags or length on
+                // most phones: use our reader when MediaStore came back without
+                // an artist or a duration (only for these formats).
+                val noDuration = c.getLong(durationCol) <= 0
+                val own = if (path != null && (artist.isNullOrBlank() || artist == "<unknown>" || noDuration)) {
                     path?.takeIf { AudioHeaders.isOwnFormat(it) }?.let { AudioHeaders.probe(context, it) }
                 } else {
                     null
@@ -321,8 +323,11 @@ class MediaLibraryChannel(
             latch.await(SCAN_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         }
 
+        // Android may also accept a file without making it audio (WavPack,
+        // TTA… become plain "files"): only the audio collection counts.
+        val audioNow = if (toIndex.isEmpty()) indexed else indexedPaths()
         val unindexed: MutableList<Map<String, Any?>> = missing
-            .filter { (file, hidden) -> hidden || file.absolutePath in rejected }
+            .filter { (file, hidden) -> hidden || file.absolutePath in rejected || file.absolutePath !in audioNow }
             .map { (file, _) ->
                 mapOf<String, Any?>(
                     "location" to file.absolutePath,
@@ -662,13 +667,13 @@ class MediaLibraryChannel(
 
         // Formats the player can open: ExoPlayer containers, decoded by the
         // phone or by the bundled FFmpeg decoders (AC-3, E-AC-3, MP1/MP2,
-        // DTS / TrueHD inside MKA…). APE, WavPack, TTA, WMA need FFmpeg
-        // container support (roadmap 6.3c).
+        // DTS / TrueHD inside MKA…), plus our own parsers and FFmpeg build.
         private val AUDIO_EXTENSIONS = setOf(
             "mp3", "m4a", "m4b", "aac", "flac", "ogg", "oga", "opus", "wav", "wave",
             "amr", "awb", "3gp", "3ga", "mka", "weba",
             "ac3", "eac3", "ec3", "mp1", "mp2", "mpa", "m2a",
             "aif", "aiff", "aifc", "dsf", "dff", // own extractors (extract/)
+            "wma", "asf", "ape", "wv", "tta", // our FFmpeg (extract/FfmpegExtractor)
         )
     }
 }

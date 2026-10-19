@@ -10,6 +10,7 @@ import androidx.media3.extractor.Extractor
 import androidx.media3.extractor.ExtractorsFactory
 import com.gtongfa.audifac.extract.AiffExtractor
 import com.gtongfa.audifac.extract.DsdExtractor
+import com.gtongfa.audifac.extract.FfmpegExtractor
 import com.gtongfa.audifac.extract.SourceTaggingExtractor
 import com.gtongfa.audifac.dsp.SourceUri
 import androidx.media3.decoder.ffmpeg.FfmpegLibrary
@@ -42,7 +43,10 @@ class AudifacApplication : Application() {
 
                 override fun createExtractors(uri: Uri, responseHeaders: Map<String, List<String>>): Array<Extractor> {
                     val key = SourceUri.keyOf(uri)
-                    return (defaults.createExtractors(uri, responseHeaders) + extra())
+                    // FFmpeg (WMA / APE / WavPack / TTA) first: it only claims
+                    // those exact signatures, which ExoPlayer's parsers don't know.
+                    val ffmpeg = FfmpegExtractor(applicationContext, uri)
+                    return (arrayOf<Extractor>(ffmpeg) + defaults.createExtractors(uri, responseHeaders) + extra())
                         .map { SourceTaggingExtractor(it, key) }
                         .toTypedArray()
                 }

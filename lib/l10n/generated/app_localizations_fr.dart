@@ -957,7 +957,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get hiddenFoldersIntro =>
-      'Android masque certains dossiers aux applications (ceux qui contiennent un fichier « .nomedia », comme les notes vocales WhatsApp). Ajoutez-en un ici pour inclure son audio.';
+      'Android masque certains dossiers et fichiers aux applications : les dossiers contenant un fichier « .nomedia » (comme les notes vocales WhatsApp), ainsi que les fichiers WavPack (.wv) et TTA, qu\'il ne reconnaît pas comme audio. Ajoutez leur dossier ici pour les inclure.';
 
   @override
   String get remove => 'Retirer';

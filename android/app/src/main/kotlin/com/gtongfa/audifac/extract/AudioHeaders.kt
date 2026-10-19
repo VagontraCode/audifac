@@ -24,12 +24,12 @@ object AudioHeaders {
         val tags: Map<String, String>,
     )
 
-    private val extensions = setOf("aif", "aiff", "aifc", "dsf", "dff")
+    private val extensions = setOf("aif", "aiff", "aifc", "dsf", "dff") + FfmpegExtractor.EXTENSIONS
 
-    /** AIFF / DSD by file extension. */
+    /** AIFF / DSD / WMA / APE / WavPack / TTA by file extension. */
     fun isOwnFormat(path: String) = path.substringAfterLast('.', "").lowercase() in extensions
 
-    /** Returns null when the file isn't AIFF / DSD. */
+    /** Returns null when the file isn't one of the formats above. */
     fun probe(context: Context, location: String): Info? = try {
         open(context, location).use { ch ->
             val head = read(ch, 0, 16) ?: return null
@@ -39,9 +39,54 @@ object AudioHeaders {
                 ascii(head, 0, 4) == "FRM8" && ascii(head, 12, 4) == "DSD " -> dff(ch)
                 else -> null
             }
-        }
+        } ?: ffmpeg(context, location)
     } catch (e: Exception) {
         null
+    }
+
+    /** FFmpeg codec name → the MIME type the app labels it by. */
+    fun mimeForFfmpegCodec(codec: String): String? = when (codec) {
+        "wmav1", "wmav2" -> "audio/x-ms-wma"
+        "wmapro" -> "audio/x-ms-wma-pro"
+        "wmalossless" -> "audio/x-ms-wma-lossless"
+        "ape" -> "audio/x-ape"
+        "wavpack" -> "audio/x-wavpack"
+        "tta" -> "audio/x-tta"
+        else -> null
+    }
+
+    /** WMA / APE / WavPack / TTA through our FFmpeg (tags: ASF, APEv2, ID3). */
+    private fun ffmpeg(context: Context, location: String): Info? {
+        if (location.substringAfterLast('.', "").lowercase() !in FfmpegExtractor.EXTENSIONS &&
+            !location.startsWith("content://")
+        ) return null
+        val uri = if (location.startsWith("content://")) Uri.parse(location) else Uri.fromFile(java.io.File(location))
+        return FfmpegReader.open(context, uri)?.use { r ->
+            val mime = mimeForFfmpegCodec(r.codec) ?: return null
+            val t = r.tags()
+            val tags = HashMap<String, String>()
+            fun take(key: String, vararg names: String) {
+                names.firstNotNullOfOrNull { t[it]?.trim()?.takeIf { v -> v.isNotEmpty() } }?.let { tags[key] = it }
+            }
+            take("title", "title")
+            take("artist", "artist", "author")
+            take("album", "album")
+            take("albumArtist", "album_artist", "album artist", "albumartist")
+            take("track", "track", "tracknumber")
+            take("disc", "disc", "discnumber")
+            take("genre", "genre")
+            take("year", "date", "year")
+            take("composer", "composer")
+            Info(
+                codecMime = mime,
+                sampleRate = r.sampleRate,
+                channels = r.channels,
+                bitDepth = r.sourceBits,
+                durationMs = if (r.durationUs > 0) r.durationUs / 1000 else 0,
+                bitrate = r.bitrate.toInt(),
+                tags = tags,
+            )
+        }
     }
 
     private fun open(context: Context, location: String): FileChannel =

@@ -7,6 +7,7 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import com.gtongfa.audifac.extract.AudioHeaders
+import com.gtongfa.audifac.extract.FfmpegExtractor
 import java.io.FileInputStream
 import java.io.InputStream
 
@@ -29,26 +30,39 @@ class AudioInspector(private val context: Context) {
         } catch (e: Exception) {
             // Android can't open it — maybe AIFF / DSD, handled below.
         }
-        if (info["codecMime"] == null) readOwnFormats(location, info)
+        // Our parsers also run for WMA / APE / WavPack / TTA even when Android
+        // read something: a phone's ASF parser says "WMA" for WMA Pro and
+        // WMA Lossless alike.
+        if (info["codecMime"] == null || isFfmpegFormat(location, info["codecMime"] as? String)) {
+            readOwnFormats(location, info)
+        }
         info["ok"] = info["codecMime"] != null
         return info
     }
 
-    /** AIFF / DSD: formats Android's MediaExtractor doesn't know. */
+    /** By extension, or (MediaStore content:// URIs have none) by what Android reported. */
+    private fun isFfmpegFormat(location: String, androidMime: String?): Boolean {
+        if (location.substringAfterLast('.', "").lowercase() in FfmpegExtractor.EXTENSIONS) return true
+        val m = androidMime?.lowercase() ?: return false
+        return "wma" in m || "asf" in m || "ape" in m || "wavpack" in m || "tta" in m
+    }
+
+    /** AIFF / DSD / WMA / APE / WavPack / TTA: formats Android can't (fully) read. */
     private fun readOwnFormats(location: String, info: MutableMap<String, Any?>) {
         val h = AudioHeaders.probe(context, location) ?: return
         info["codecMime"] = h.codecMime
         info["containerMime"] = h.codecMime
         info["sampleRate"] = h.sampleRate
         info["channels"] = h.channels
-        info["bitDepth"] = h.bitDepth
-        info["bitrate"] = h.bitrate
-        info["durationMs"] = h.durationMs
-        info["genre"] = h.tags["genre"]
-        info["year"] = h.tags["year"]?.take(4)
-        info["composer"] = h.tags["composer"]
-        info["albumArtist"] = h.tags["albumArtist"]
-        info["disc"] = h.tags["disc"]
+        info["bitDepth"] = h.bitDepth.takeIf { it > 0 }
+        if (h.bitrate > 0) info["bitrate"] = h.bitrate
+        if (h.durationMs > 0) info["durationMs"] = h.durationMs
+        // Keep tags Android already found when ours has none.
+        h.tags["genre"]?.let { info["genre"] = it }
+        h.tags["year"]?.let { info["year"] = it.take(4) }
+        h.tags["composer"]?.let { info["composer"] = it }
+        h.tags["albumArtist"]?.let { info["albumArtist"] = it }
+        h.tags["disc"]?.let { info["disc"] = it }
     }
 
     private fun isContent(location: String) = location.startsWith("content://")

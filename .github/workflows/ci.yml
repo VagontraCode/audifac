@@ -136,6 +136,22 @@ jobs:
       - name: Dependencies
         run: flutter pub get
 
+      # Our minimal FFmpeg (WMA / APE / WavPack / TTA), linked by
+      # android/app/src/main/cpp. Rebuilt only when the script changes.
+      - name: FFmpeg cache
+        id: ffmpeg-cache
+        uses: actions/cache@v4
+        with:
+          path: android/app/src/main/cpp/ffmpeg
+          key: ffmpeg-${{ hashFiles('tools/ffmpeg/build.sh') }}
+
+      - name: Build FFmpeg
+        if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
+        run: |
+          NDK_VERSION=28.2.13676358 # = Flutter's ndkVersion
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION" > /dev/null
+          bash tools/ffmpeg/build.sh "$ANDROID_HOME/ndk/$NDK_VERSION"
+
       - name: Release signing
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}

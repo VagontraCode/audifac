@@ -165,4 +165,35 @@ void main() {
       expect(AppSettings.fromKeyValues(const AppSettings(showLabels: false).toKeyValues()).showLabels, isFalse);
     });
   });
+
+  group('WMA / APE / WavPack / TTA (our FFmpeg)', () {
+    test('codec names from the native MIME types', () {
+      expect(AudioInfo.codecFromMime('audio/x-ms-wma'), 'WMA');
+      expect(AudioInfo.codecFromMime('audio/x-ms-wma-pro'), 'WMA Pro');
+      expect(AudioInfo.codecFromMime('audio/x-ms-wma-lossless'), 'WMA Lossless');
+      expect(AudioInfo.codecFromMime('audio/x-ape'), 'APE');
+      expect(AudioInfo.codecFromMime('audio/x-wavpack'), 'WavPack');
+      expect(AudioInfo.codecFromMime('audio/x-tta'), 'TTA');
+    });
+
+    test('guessed from the extension before analysis', () {
+      expect(AudioInfo.guess(_song('/m/a.wma', mime: 'audio/x-ms-wma')).codec, 'WMA');
+      expect(AudioInfo.guess(_song('/m/a.ape')).codec, 'APE');
+      expect(AudioInfo.guess(_song('/m/a.wv')).codec, 'WavPack');
+      expect(AudioInfo.guess(_song('/m/a.tta')).codec, 'TTA');
+    });
+
+    test('lossless ones count as lossless / Hi-Res', () {
+      expect(const AudioInfo(codec: 'APE', sampleRate: 44100, bitDepth: 16).quality, AudioQuality.lossless);
+      expect(const AudioInfo(codec: 'WavPack', sampleRate: 96000, bitDepth: 24).quality, AudioQuality.hiRes);
+      expect(const AudioInfo(codec: 'WMA Lossless', sampleRate: 44100, bitDepth: 16).quality, AudioQuality.lossless);
+      expect(const AudioInfo(codec: 'WMA', sampleRate: 44100).quality, AudioQuality.lossy);
+      expect(const AudioInfo(codec: 'WMA Pro', sampleRate: 48000).quality, AudioQuality.lossy);
+    });
+
+    test('an unknown bit depth (0) is not shown', () {
+      final info = AudioInfo.fromNative(const {'ok': true, 'codecMime': 'audio/x-ms-wma', 'bitDepth': 0, 'sampleRate': 44100}, _song('/m/a.wma'));
+      expect(info?.bitDepth, isNull);
+    });
+  });
 }

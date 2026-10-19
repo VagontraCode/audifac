@@ -21,6 +21,15 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    // WMA / APE / WavPack / TTA: our own minimal FFmpeg (tools/ffmpeg/build.sh)
+    // behind a small JNI reader.
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
     // Unit tests run sink code that logs: android.util.Log returns defaults.
     testOptions {
         unitTests.isReturnDefaultValues = true
