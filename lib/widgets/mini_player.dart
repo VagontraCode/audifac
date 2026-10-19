@@ -13,7 +13,8 @@ import '../providers/player_providers.dart';
 import 'artwork.dart';
 
 /// Docked above the bottom navigation while something is loaded.
-/// Tap or swipe up opens the full player; swipe sideways to change track.
+/// Tap or swipe up opens the full player; swipe sideways to change track;
+/// swipe down stops playback and dismisses it.
 class MiniPlayer extends ConsumerWidget {
   const MiniPlayer({super.key});
 
@@ -53,7 +54,10 @@ class _MiniPlayerBar extends ConsumerWidget {
     return GestureDetector(
       onTap: () => PlayerScreen.open(context),
       onVerticalDragEnd: (d) {
-        if ((d.primaryVelocity ?? 0) < -250) PlayerScreen.open(context);
+        final v = d.primaryVelocity ?? 0;
+        if (v < -250) PlayerScreen.open(context);
+        // Swipe down: stop and dismiss (not while casting: the TV plays on).
+        if (v > 250 && !cast.active) handler.dismiss();
       },
       onHorizontalDragEnd: (d) {
         final v = d.primaryVelocity ?? 0;

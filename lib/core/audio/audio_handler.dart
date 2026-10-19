@@ -79,6 +79,10 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
       _player.loopModeStream.listen((_) => _broadcastState()),
       _player.speedStream.listen((_) => _broadcastState()),
       _player.currentIndexStream.listen(_onCurrentIndexChanged),
+      _player.processingStateStream.listen(_onProcessingState),
+      _player.playingStream.listen((playing) {
+        if (playing) _idleStop?.cancel();
+      }),
       _player.durationStream.listen(_onDurationChanged),
       _player.errorStream.listen(_onError),
     ]);
@@ -220,6 +224,38 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
   @override
   Future<void> onTaskRemoved() async {
     if (!_player.playing) await stop();
+  }
+
+  /// Stops and forgets the queue: the mini player and the notification go
+  /// away (swipe the mini player down).
+  Future<void> dismiss() async {
+    _idleStop?.cancel();
+    await stop();
+    queue.add(const []);
+    mediaItem.add(null);
+  }
+
+  /// Fires when the last song of the queue has finished (not with repeat on:
+  /// then the queue never ends).
+  Stream<void> get queueEnded => _queueEnded.stream;
+  final _queueEnded = StreamController<void>.broadcast();
+
+  /// How long the notification stays after the queue ended, if nothing plays.
+  static const idleStopAfter = Duration(minutes: 10);
+  Timer? _idleStop;
+
+  void _onProcessingState(ProcessingState state) {
+    if (state != ProcessingState.completed) return;
+    // Back to the start of the last song, paused: one tap replays it.
+    unawaited(() async {
+      await _player.pause();
+      await _player.seek(Duration.zero);
+    }());
+    _queueEnded.add(null);
+    _idleStop?.cancel();
+    _idleStop = Timer(idleStopAfter, () {
+      if (!_player.playing) unawaited(stop());
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -444,6 +480,8 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
       await s.cancel();
     }
     await _errors.close();
+    _idleStop?.cancel();
+    await _queueEnded.close();
     await _player.dispose();
   }
 }

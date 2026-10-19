@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:audio_service/audio_service.dart';
@@ -85,6 +86,19 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
   bool _closing = false;
 
   Animation<double>? _routeAnimation;
+  StreamSubscription<void>? _queueEnded;
+
+  @override
+  void initState() {
+    super.initState();
+    // The queue ran out: nothing left to show here, back to the library
+    // (the mini player stays, ready to replay).
+    _queueEnded = ref.read(audioHandlerProvider).queueEnded.listen((_) {
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted && !ref.read(isPlayingProvider)) _close();
+      });
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -107,6 +121,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
   @override
   void dispose() {
     _routeAnimation?.removeStatusListener(_onRouteStatus);
+    _queueEnded?.cancel();
     PlayerScreen.coversApp.value = false;
     _settle.dispose();
     super.dispose();
