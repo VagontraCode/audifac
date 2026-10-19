@@ -46,6 +46,14 @@ final class HonestPcmAudioRenderer extends MediaCodecAudioRenderer {
             || JustAudioHooks.untrustedFloatDecoders.contains(codecName);
     }
 
+    /** Dynamic scheduling, capped while the app says so (Bluetooth output). */
+    @Override
+    protected long getDurationToProgressUs(long positionUs, long elapsedRealtimeUs, boolean isOnBufferAvailableListenerRegistered) {
+        long duration = super.getDurationToProgressUs(positionUs, elapsedRealtimeUs, isOnBufferAvailableListenerRegistered);
+        long cap = JustAudioHooks.maxDurationToProgressUs;
+        return cap > 0 ? Math.min(duration, cap) : duration;
+    }
+
     @Override
     protected MediaCodecAdapter.Configuration getMediaCodecConfiguration(
             MediaCodecInfo codecInfo, Format format, @Nullable MediaCrypto crypto, float codecOperatingRate) {

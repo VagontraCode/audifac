@@ -48,4 +48,14 @@ public final class JustAudioHooks {
 
     /** The audio decoder most recently configured (null for extension decoders). */
     public static volatile String currentAudioDecoder;
+
+    /** Sizes the AudioTrack buffer (null: ExoPlayer's default). */
+    public static volatile androidx.media3.exoplayer.audio.DefaultAudioSink.AudioTrackBufferSizeProvider audioTrackBufferSizeProvider;
+
+    /**
+     * Longest the playback loop may sleep while playing, in microseconds
+     * (0: no cap, ExoPlayer's dynamic scheduling decides). Bluetooth output
+     * drains the AudioTrack in bursts, so the app caps it there.
+     */
+    public static volatile long maxDurationToProgressUs = 0;
 }

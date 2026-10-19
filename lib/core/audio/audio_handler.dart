@@ -381,32 +381,64 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
   void _onCurrentIndexChanged(int? index) {
     final items = queue.value;
     if (index == null || index >= items.length) return;
-    mediaItem.add(items[index]);
-    _attachArtworkFile(index, items[index]);
+    final item = items[index];
+    final cached = _artFiles[item.extras?['songId']];
+    // Prefetched artwork: the song's details go out once, complete.
+    mediaItem.add(cached == null ? item : _withArt(item, cached));
+    _songStartedAt = DateTime.now();
+    if (cached == null) unawaited(_attachArtworkFile(item));
+    unawaited(_prefetchNextArtwork(index));
   }
+
+  /// Artwork files resolved so far, by song id.
+  final _artFiles = <int, Uri>{};
+  DateTime _songStartedAt = DateTime.now();
+
+  /// Media session updates reach Bluetooth headphones (AVRCP metadata and
+  /// cover art) over the same link as the audio, and on many of them a
+  /// mid-song update is heard as a short dropout: late artwork is kept for
+  /// next time instead of being sent after this.
+  static const _lateArtwork = Duration(seconds: 2);
+
+  MediaItem _withArt(MediaItem item, Uri art) => item.copyWith(
+        artUri: art,
+        extras: {...?item.extras}..remove('loadThumbnailUri'),
+      );
 
   /// Supplies a `file://` artwork image for the notification. Set by the app;
   /// covers songs whose artwork Android won't thumbnail (e.g. in Download) and
   /// files outside MediaStore.
   Future<Uri?> Function(int songId, int albumId)? artworkFileResolver;
 
-  Future<void> _attachArtworkFile(int index, MediaItem item) async {
+  /// Resolves (and caches) a `file://` artwork image for [item].
+  Future<Uri?> _resolveArtwork(MediaItem item) async {
     final resolver = artworkFileResolver;
     final songId = item.extras?['songId'] as int?;
     final albumId = item.extras?['albumId'] as int?;
-    if (resolver == null || songId == null || albumId == null) return;
-    if (item.artUri?.scheme == 'file') return;
-
+    if (resolver == null || songId == null || albumId == null) return null;
+    if (item.artUri?.scheme == 'file') return item.artUri;
+    if (_artFiles[songId] case final cached?) return cached;
     final art = await resolver(songId, albumId);
-    if (art == null) return;
+    if (art != null) _artFiles[songId] = art;
+    return art;
+  }
+
+  /// The current song's artwork, if it arrives early enough (see [_lateArtwork]).
+  Future<void> _attachArtworkFile(MediaItem item) async {
+    final art = await _resolveArtwork(item);
+    if (art == null || mediaItem.value?.id != item.id) return;
+    if (DateTime.now().difference(_songStartedAt) > _lateArtwork) return;
+    mediaItem.add(_withArt(mediaItem.value!, art));
+  }
+
+  /// Gets the next song's artwork ready while this one plays.
+  Future<void> _prefetchNextArtwork(int index) async {
+    final order = playOrder;
+    final pos = order.indexOf(index);
+    if (pos < 0 || pos + 1 >= order.length) return;
+    final next = order[pos + 1];
     final items = queue.value;
-    if (index >= items.length || items[index].id != item.id) return; // Queue changed meanwhile.
-    final updated = items[index].copyWith(
-      artUri: art,
-      extras: {...?items[index].extras}..remove('loadThumbnailUri'),
-    );
-    queue.add([...items]..[index] = updated);
-    if (mediaItem.value?.id == item.id) mediaItem.add(updated);
+    if (next < items.length) await _resolveArtwork(items[next]);
   }
 
   /// MediaStore durations are sometimes missing/wrong; trust the decoder.

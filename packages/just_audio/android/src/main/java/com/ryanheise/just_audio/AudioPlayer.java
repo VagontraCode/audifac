@@ -794,10 +794,13 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
                     if (decorator == null) {
                         return super.buildAudioSink(ctx, enableFloatOutput, enableAudioTrackPlaybackParams);
                     }
-                    AudioSink sink = new DefaultAudioSink.Builder(ctx)
+                    DefaultAudioSink.Builder sinkBuilder = new DefaultAudioSink.Builder(ctx)
                         .setEnableFloatOutput(decorator.enableFloatOutput())
-                        .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                        .build();
+                        .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams);
+                    // audifac patch: bigger AudioTrack buffer on Bluetooth (JustAudioHooks).
+                    DefaultAudioSink.AudioTrackBufferSizeProvider bufferSizes = JustAudioHooks.audioTrackBufferSizeProvider;
+                    if (bufferSizes != null) sinkBuilder.setAudioTrackBufferSizeProvider(bufferSizes);
+                    AudioSink sink = sinkBuilder.build();
                     return decorator.decorate(ctx, sink);
                 }
 
