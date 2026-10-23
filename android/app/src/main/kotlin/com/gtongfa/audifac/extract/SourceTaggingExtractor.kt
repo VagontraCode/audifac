@@ -45,7 +45,20 @@ class SourceTaggingExtractor(private val delegate: Extractor, private val key: S
 
         override fun endTracks() = output.endTracks()
 
-        override fun seekMap(seekMap: SeekMap) = output.seekMap(seekMap)
+        private var durationUs = C.TIME_UNSET
+
+        override fun seekMap(seekMap: SeekMap) {
+            // MP3s without a length header get an estimated duration, which
+            // the extractor corrects at the end of the file — usually by a few
+            // milliseconds. ExoPlayer applies any new duration by restarting
+            // the playing song where it is: an audible stutter, ~50 s before
+            // its end. A correction that small isn't worth one.
+            val new = seekMap.durationUs
+            val old = durationUs
+            if (old != C.TIME_UNSET && new != C.TIME_UNSET && new != old && kotlin.math.abs(new - old) < MAX_IGNORED_CORRECTION_US) return
+            durationUs = new
+            output.seekMap(seekMap)
+        }
     }
 
     private inner class TaggingTrack(private val track: TrackOutput) : TrackOutput {
@@ -65,5 +78,10 @@ class SourceTaggingExtractor(private val delegate: Extractor, private val key: S
 
         override fun sampleMetadata(timeUs: Long, flags: Int, size: Int, offset: Int, cryptoData: TrackOutput.CryptoData?) =
             track.sampleMetadata(timeUs, flags, size, offset, cryptoData)
+    }
+
+    private companion object {
+        /** Duration corrections below this are dropped (see TaggingOutput.seekMap). */
+        const val MAX_IGNORED_CORRECTION_US = 1_000_000L
     }
 }

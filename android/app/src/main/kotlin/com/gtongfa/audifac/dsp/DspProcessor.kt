@@ -121,15 +121,48 @@ class DspProcessor(
     }
 
     /** True when the current settings leave audio untouched (caller may skip work). */
-    fun isPassThrough(): Boolean {
+    fun isPassThrough(): Boolean = isGainPassThrough() && isEffectsPassThrough()
+
+    /** No volume matching gain: [applyGain] may be skipped. */
+    fun isGainPassThrough(): Boolean = gain == 1.0 && gainTarget == 1.0
+
+    /** EQ and limiter leave audio untouched: [processEffects] may be skipped. */
+    fun isEffectsPassThrough(): Boolean {
         refresh()
         val c = current
         return c != null && c.transparent && previous == null && limiterGain == 1.0 &&
-            gain == 1.0 && gainTarget == 1.0
+            gain <= 1.0 && gainTarget <= 1.0
     }
 
-    /** Processes [frameCount] interleaved frames starting at sample [offset]. */
+    /** Volume matching gain, then EQ and limiter, on [frameCount] interleaved frames from sample [offset]. */
     fun process(samples: FloatArray, frameCount: Int, offset: Int = 0) {
+        if (!isGainPassThrough()) applyGain(samples, frameCount, offset)
+        processEffects(samples, frameCount, offset)
+    }
+
+    /**
+     * Volume matching gain alone. The sink applies it as each song is decoded
+     * (a crossfade mixes two songs, each with its own gain).
+     */
+    fun applyGain(samples: FloatArray, frameCount: Int, offset: Int = 0) {
+        var idx = offset
+        for (frame in 0 until frameCount) {
+            if (gain != gainTarget) {
+                gain += (gainTarget - gain) * gainGlide
+                if (abs(gainTarget - gain) < 1e-6) gain = gainTarget
+            }
+            val g = gain
+            for (ch in 0 until channels) samples[idx + ch] = (samples[idx + ch] * g).toFloat()
+            idx += channels
+        }
+    }
+
+    /**
+     * EQ, mono / balance, crossfeed and limiter. The sink applies them as
+     * audio leaves for the AudioTrack, after any crossfade reserve, so
+     * settings changes are heard without that delay.
+     */
+    fun processEffects(samples: FloatArray, frameCount: Int, offset: Int = 0) {
         refresh()
         val chain = current ?: return
         // Never limit untouched audio: keeps pass-through bit-exact.
@@ -138,12 +171,7 @@ class DspProcessor(
             ((chain.config.enabled && !chain.transparent) || gainTarget > 1.0 || gain > 1.0)
         var idx = offset
         for (frame in 0 until frameCount) {
-            if (gain != gainTarget) {
-                gain += (gainTarget - gain) * gainGlide
-                if (abs(gainTarget - gain) < 1e-6) gain = gainTarget
-            }
-            val g = gain
-            for (ch in 0 until channels) inFrame[ch] = samples[idx + ch] * g
+            for (ch in 0 until channels) inFrame[ch] = samples[idx + ch].toDouble()
 
             chain.frame(inFrame, outCurrent)
             val prev = previous

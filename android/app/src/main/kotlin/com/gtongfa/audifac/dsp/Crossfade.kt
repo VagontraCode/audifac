@@ -32,7 +32,7 @@ object Crossfade {
  * presentation time of each run of continuous frames (a run starts wherever
  * the stream's timestamps jump, e.g. where a crossfade begins).
  */
-class HeldAudio(private val channels: Int, private val rate: Int) {
+class HeldAudio(val channels: Int, val rate: Int) {
     private var ring = FloatArray(0)
     private var capacity = 0 // frames
     private var start = 0 // ring index (frames) of the oldest frame

@@ -78,7 +78,15 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
     private fun wantedEncoding() =
         if (playbackParameters == PlaybackParameters.DEFAULT) C.ENCODING_PCM_FLOAT else C.ENCODING_PCM_16BIT
 
+    /**
+     * Runs the EQ on audio as it leaves for the delegate: the processor of
+     * the format the delegate is configured with (a held tail of another
+     * format plays out with its own).
+     */
+    private var effects: DspProcessor? = null
+
     private fun configureDelegate(format: Format) {
+        effects = processor
         val out = format.buildUpon().setPcmEncoding(wantedEncoding()).build()
         delegate.configure(out, 0, null)
         delegateFormat = out
@@ -244,24 +252,39 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
     }
 
     /**
-     * Sends held audio to the delegate until only [keep] frames remain, one
-     * continuous run at a time (each with its own timestamp). False if the
-     * delegate is full (call again later).
+     * Hands held audio to the delegate for as long as it takes any, one
+     * continuous run at a time (each with its own timestamp), in short chunks
+     * so the EQ follows settings closely. The crossfade reserve is only what
+     * the delegate can't take yet: the AudioTrack is never starved to build it
+     * (a starved AudioTrack doesn't even start, and the player, seeing no
+     * progress, would call itself stuck and skip the song).
+     *
+     * True when more input may be taken: up to [keep] frames wait here.
      */
     private fun drain(keep: Int): Boolean {
         val h = held ?: return true
         while (true) {
             if (output.hasRemaining()) {
-                if (!delegate.handleBuffer(output, outputPts, 1)) return false
-                if (output.hasRemaining()) return false
+                if (!delegate.handleBuffer(output, outputPts, 1) || output.hasRemaining()) {
+                    return keep > 0 && h.frames <= keep
+                }
             }
-            val n = h.runLength(maxOf(0, h.frames - keep))
+            // The held audio's own format: a tail of the previous song can still
+            // be playing out after a song of another format was configured.
+            val channels = h.channels
+            val n = h.runLength(maxOf(1, h.rate / CHUNKS_PER_SECOND))
             if (n <= 0) return true
             outputPts = h.frontPts()
             if (chunk.size < n * channels) chunk = FloatArray(n * channels)
             h.copyOut(chunk, 0, n)
             h.drop(n)
-            Visualizer.feed(chunk, n, channels, rate, outputPts)
+            // EQ here, after the crossfade reserve: changes are heard at once.
+            effects?.let { p ->
+                val processing = !p.isEffectsPassThrough()
+                SignalPath.processing = processing || !p.isGainPassThrough()
+                if (processing) p.processEffects(chunk, n)
+            }
+            Visualizer.feed(chunk, n, channels, h.rate, outputPts)
             val count = n * channels
             val bytes = count * (if (outEncoding == C.ENCODING_PCM_16BIT) 2 else 4)
             if (output.capacity() < bytes) output = ByteBuffer.allocateDirect(bytes * 2).order(ByteOrder.nativeOrder())
@@ -296,11 +319,11 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         readFloats(src, samples, count * channels, decoded * channels)
         val startPts = if (tailFrames > 0) tailPts else pts + usFor(skip)
 
-        // Process only the new frames (the held tail was processed last time).
+        // Volume matching on the new frames only (the held tail had it last
+        // time). Each song gets its own gain before a crossfade mixes them;
+        // the EQ runs later, in drain().
         processor?.let { p ->
-            val processing = !p.isPassThrough()
-            SignalPath.processing = processing
-            if (processing) p.process(samples, decoded, count * channels)
+            if (!p.isGainPassThrough()) p.applyGain(samples, decoded, count * channels)
         }
         count += decoded
         trackFrames += decoded
@@ -389,8 +412,14 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         delegate.playToEndOfStream()
     }
 
-    override fun getCurrentPositionUs(sourceEnded: Boolean): Long =
-        delegate.getCurrentPositionUs(sourceEnded).also { if (active) Visualizer.playheadUs = it }
+    override fun getCurrentPositionUs(sourceEnded: Boolean): Long {
+        // No new input comes at the end of a song until playback nears it,
+        // which it can't while the crossfade reserve is held: keep the
+        // AudioTrack fed from the reserve (polled here, as handleBuffer isn't
+        // called), or playback freezes until the player gives up and skips.
+        if (active && pendingDelegateFormat == null) drain(keep = holdFrames())
+        return delegate.getCurrentPositionUs(sourceEnded).also { if (active) Visualizer.playheadUs = it }
+    }
 
     override fun isEnded(): Boolean = (held?.frames ?: 0) == 0 && !output.hasRemaining() && delegate.isEnded()
 
@@ -401,12 +430,14 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         tailFrames = 0
         trimStartRemaining = 0
         processor?.reset()
+        effects?.reset()
         held?.clear()
         output.clear().limit(0)
         mixer = null
         fadeArmed = false
         pendingDelegateFormat?.let { format ->
             // Nothing left to play out: switch now.
+            effects = processor
             delegate.configure(format, 0, null)
             pendingDelegateFormat = null
             held = HeldAudio(channels, rate)
@@ -419,6 +450,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         pending = false
         tailFrames = 0
         processor = null
+        effects = null
         trackFormat = null
         active = false
         held = null
@@ -435,6 +467,9 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
 
         /** Non-silent samples that must look like real float before the check stops. */
         private const val FLOAT_EVIDENCE_SAMPLES = 1 shl 16
+
+        /** Chunks held audio is handed over in (50 ms): how soon EQ changes are heard. */
+        private const val CHUNKS_PER_SECOND = 20
 
         /** How early in a song a newly measured gain may still be applied. */
         private const val NEW_GAIN_WINDOW_S = 0.3
