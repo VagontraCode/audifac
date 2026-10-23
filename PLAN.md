@@ -189,6 +189,41 @@ All steps are implemented and committed one per step. Checked on the Nokia G100 
 | 6.19 iOS | — | compiled by CI only (no Mac here); needs an iPhone |
 | 6.20 Bit-perfect USB | harmless on Android 12 | Android 14+ with a USB DAC |
 
+### Phase 7 — Audiophile features (branch `audiophile`, one commit per step)
+Started 2026-10-23, built step by step without supervision. Rules from the owner: **never modify music files** (tag edits and loudness data stay in the app's database), test on the Galaxy S24+ with the **media volume at 0**, no hearing test. Already done elsewhere (not repeated here): folder view (6.9), queue/position restore (Phase 3), bit-perfect USB (6.20), spectrum + VU (6.12).
+
+| # | Feature | Size | Notes |
+|---|---|---|---|
+| 7.0 ✅ | **Crossfade / DSP fixes** — no freezes at song ends, EQ after the crossfade reserve, MP3 duration-correction stutter | M | prerequisite; verified on the S24+ |
+| 7.1 | **Dither** — TPDF (+ optional noise shaping) whenever the output is reduced to 16-bit (speed changes) | S | DSP sink |
+| 7.2 | **High-quality resampler** — windowed-sinc polyphase in the DSP to the device's mixer rate (Android otherwise resamples, usually to 48 kHz, with its own filter); quality / phase options; output rate choice (device rate, 96, 192 kHz); same output rate for every song → gapless across sample-rate changes | L | off while bit-perfect is active |
+| 7.3 | **Clip counter + richer signal path** — limiter activity and clipped samples per song; file → decoder → resampler → DSP → mixer → device, rate / depth at each step | S | signal sheet |
+| 7.4 | **Tone controls** — loudness compensation (ISO 226, follows the volume), tilt EQ, bass / treble shelves | M | device layer |
+| 7.5 | **Stereo tools** — width (mid / side), per-channel delay and polarity | S | device layer |
+| 7.6 | **Convolution** — load an impulse response (WAV, mono / stereo / true-stereo) for room or headphone correction; partitioned FFT | L | device layer |
+| 7.7 | **Linear-phase EQ** — option to render the EQ as a linear-phase FIR (no phase shift, adds latency) | M | uses 7.6 |
+| 7.8 | **Compressor** — gentle dynamic range compression for noisy places / night, off by default | M | after EQ, before limiter |
+| 7.9 | **Target-curve EQ** — search a headphone model in the AutoEQ database (online), pick a target, import the correction | L | needs network |
+| 7.10 | **Multichannel downmix** — 5.1 / 7.1 / quad files folded to stereo with proper coefficients | M | DSP |
+| 7.11 | **DR meter + transcode detection** — dynamic range (DR14-style) per track / album, and "fake lossless" detection (lossy-style frequency cutoff in a lossless file) during the loudness scan | M | song info, filters |
+| 7.12 | **Sort / filter by resolution** — bit depth, sample rate, bitrate, DR | S | Songs tab |
+| 7.13 | **Duplicates** — same song in several files / formats, best version suggested | M | library |
+| 7.14 | **Tag editor (in-app)** — edit title / artist / album / album artist / genre / year / track; stored as overrides in the DB, files untouched | M | DB migration |
+| 7.15 | **Artwork viewer** — full-resolution cover, pinch to zoom | S | player |
+| 7.16 | **M3U / M3U8** — import and export playlists | M | SAF |
+| 7.17 | **CUE sheets** — one-file albums split into tracks in the library and played gaplessly | L | library + clipping |
+| 7.18 | **Per-album / artist memory** — volume matching mode and speed remembered | S | rules |
+| 7.19 | **Waveform seek bar** — loudness envelope computed in the background, cached | M | scanner |
+| 7.20 | **Spectrogram + goniometer** — scrolling spectrogram and stereo-image scope next to the spectrum | M | visualizer tap |
+| 7.21 | **USB DAC hardware volume** — keep full digital resolution, volume in the DAC | M | needs Android 14+ and a DAC to verify |
+| 7.22 | **DSD over PCM (DoP)** — native DSD to USB DACs instead of converting to PCM | L | bit-perfect path; needs a DoP DAC to verify |
+| 7.23 | **More tags** — Opus / MKA / DSF / DFF metadata in the library | S | tag reader |
+
+#### Phase 7 status
+| Step | Verified | Not verified yet |
+|---|---|---|
+| 7.0 | S24+: crossfade at song ends, no stuck / skip, MP3 stutter gone | — |
+
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".
 2. Deny, then "Allow access" → after "Don't ask again", "Open settings" → enable → come back: library loads.
