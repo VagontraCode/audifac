@@ -199,7 +199,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.2 ✅ | **High-quality resampler** — windowed-sinc polyphase in the DSP to the device's mixer rate (Android otherwise resamples, usually to 48 kHz, with its own filter); quality / phase options; output rate choice (device rate, 96, 192 kHz); same output rate for every song → gapless across sample-rate changes | L | off while bit-perfect is active |
 | 7.3 ✅ | **Clip counter + richer signal path** — limiter activity and clipped samples per song; file → decoder → resampler → DSP → mixer → device, rate / depth at each step | S | signal sheet |
 | 7.4 ✅ | **Tone controls** — loudness compensation (ISO 226, follows the volume), tilt EQ, bass / treble shelves | M | global (EQ settings), not per device: built-in device presets are read-only |
-| 7.5 | **Stereo tools** — width (mid / side), per-channel delay and polarity | S | device layer |
+| 7.5 ✅ | **Stereo tools** — width (mid / side), per-channel delay and polarity | S | global (EQ settings), with reset buttons for Tone and Stereo |
 | 7.6 | **Convolution** — load an impulse response (WAV, mono / stereo / true-stereo) for room or headphone correction; partitioned FFT | L | device layer |
 | 7.7 | **Linear-phase EQ** — option to render the EQ as a linear-phase FIR (no phase shift, adds latency) | M | uses 7.6 |
 | 7.8 | **Compressor** — gentle dynamic range compression for noisy places / night, off by default | M | after EQ, before limiter |
@@ -227,6 +227,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.2 | Nokia: 44.1 kHz MP3 → 48 kHz on the speaker, AudioTrack at 48 kHz, 0 underruns; NEON loop verified against Kotlin at first use; playback thread 11 % → 13.7 % of a core (Kotlin loop: 26–30 %); unit-tested: −80 dB accuracy and phase, flat to 18 kHz, −80 dB alias rejection, exact frame counts, gapless 44.1 → 48 kHz | headphone jack (the Nokia has one; not plugged in) |
 | 7.3 | Nokia: signal path shows resampler, "To Android 32-bit float · 48 kHz", mixer "no resampling" (green), Levels "peak −20.6 dBFS · no clipping" with Bass boost; unit-tested: limiter activity, clipping with the limiter off, nothing on quiet audio | a song that really hits the limiter on device |
 | 7.4 | Nokia: Tone section (bass, treble, tilt, loudness); loudness at the muted volume → "+12.0 dB bass" in the signal path, no clipping; unit-tested: curve, headroom, version bumps, JSON | how it sounds (phone muted) |
+| 7.5 | Nokia: width 0 % → L / R meters equal (−9.7 / −9.5 dBFS, was −2.3 / −5.5), reset button; unit-tested: width 0 / 2, polarity, 1 ms = 48 frames exactly, neutral stays bit-exact | channel delay / polarity by ear (phone muted) |
 
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".

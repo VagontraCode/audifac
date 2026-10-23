@@ -37,6 +37,16 @@ class DspProcessor(
         var lpLeft = 0.0
         var lpRight = 0.0
 
+        // Stereo width (mid / side), polarity, channel delay.
+        val width = config.width
+        val signLeft = if (config.invertLeft) -1.0 else 1.0
+        val signRight = if (config.invertRight) -1.0 else 1.0
+        val delayFrames = Math.round(kotlin.math.abs(config.delayMs) * sampleRate / 1000.0).toInt()
+        val delayChannel = if (config.delayMs > 0) 1 else 0
+        /** Ring of the delayed channel's past samples (room for the longest delay). */
+        var delayLine = DoubleArray((DspConfig.MAX_DELAY_MS * sampleRate / 1000.0).toInt() + 2)
+        var delayPos = 0
+
         fun inheritState(old: Chain) {
             for (ch in filters.indices) {
                 val mine = filters[ch]
@@ -49,6 +59,11 @@ class DspProcessor(
             }
             lpLeft = old.lpLeft
             lpRight = old.lpRight
+            // Keep the delay line (no click when settings change).
+            if (old.delayLine.size == delayLine.size) {
+                delayLine = old.delayLine.copyOf()
+                delayPos = old.delayPos
+            }
         }
 
         /** Processes one frame from [inBuf] into [outBuf] (both [channels] long). */
@@ -70,6 +85,23 @@ class DspProcessor(
                 }
                 outBuf[0] *= leftGain
                 outBuf[1] *= rightGain
+                if (width != 1.0) {
+                    val m = (outBuf[0] + outBuf[1]) * 0.5
+                    val s = (outBuf[0] - outBuf[1]) * 0.5 * width
+                    outBuf[0] = m + s
+                    outBuf[1] = m - s
+                }
+                outBuf[0] *= signLeft
+                outBuf[1] *= signRight
+                // The line always runs (so a later delay change starts from real audio).
+                val line = delayLine
+                line[delayPos] = outBuf[delayChannel]
+                if (delayFrames > 0) {
+                    var read = delayPos - delayFrames
+                    if (read < 0) read += line.size
+                    outBuf[delayChannel] = line[read]
+                }
+                delayPos = if (delayPos + 1 == line.size) 0 else delayPos + 1
                 if (crossfeedLevel > 0) {
                     lpLeft = outBuf[0] + crossfeedPole * (lpLeft - outBuf[0])
                     lpRight = outBuf[1] + crossfeedPole * (lpRight - outBuf[1])

@@ -512,5 +512,13 @@
   "warmer": "plus chaud",
   "loudnessCompensation": "Compensation physiologique",
   "loudnessCompensationHint": "À faible volume, l'oreille perçoit moins les graves et les aigus : ils sont relevés à mesure que vous baissez le volume (courbes d'isosonie), jamais à plein volume.",
-  "loudnessBass": "compensation {db} graves"
+  "loudnessBass": "compensation {db} graves",
+  "stereoSection": "Stéréo",
+  "width": "Largeur",
+  "channelDelay": "Retard de canal",
+  "channelDelayHint": "Enceintes à des distances différentes : retardez la plus proche d'environ 2,9 ms par mètre d'écart.",
+  "invertLeft": "Inverser la polarité gauche",
+  "invertRight": "Inverser la polarité droite",
+  "resetTone": "Réinitialiser la tonalité",
+  "resetStereo": "Réinitialiser la stéréo"
 }

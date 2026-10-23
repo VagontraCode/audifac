@@ -180,6 +180,30 @@ Filter 5: ON HPQ Fc 20 Hz Q 0.71
     });
   });
 
+  group('stereo', () {
+    test('sent to the native side, saved and clamped', () {
+      const stereo = Stereo(width: 1.5, delayMs: -2.5, invertRight: true);
+      final c = combineForNative(
+        enabled: true,
+        device: BuiltInPresets.deviceNone,
+        sound: BuiltInPresets.soundFlat,
+        autoPreamp: true,
+        stereo: stereo,
+      );
+      expect(c['width'], 1.5);
+      expect(c['delayMs'], -2.5);
+      expect(c['invertLeft'], isFalse);
+      expect(c['invertRight'], isTrue);
+      final back = EqSettings.decode(const EqSettings(stereo: stereo).encode()).stereo;
+      expect(back.width, 1.5);
+      expect(back.delayMs, -2.5);
+      expect(back.invertRight, isTrue);
+      expect(Stereo.fromJson({'width': 9, 'delay': 99}).width, Stereo.maxWidth);
+      expect(Stereo.fromJson({'delay': -99}).delayMs, -Stereo.maxDelayMs);
+      expect(const Stereo().isNeutral, isTrue);
+    });
+  });
+
   group('rules', () {
     final presets = {'p_song', 'p_album', 'p_artist', 'p_genre', 'p_source', 'p_default', 'p_queue'};
     bool valid(String id) => presets.contains(id);

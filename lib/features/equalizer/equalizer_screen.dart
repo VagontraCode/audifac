@@ -175,6 +175,11 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
     ref.read(eqSettingsProvider.notifier).setTone(tone);
   }
 
+  void _setStereo(Stereo stereo) {
+    if (!ref.read(eqSettingsProvider).enabled) ref.read(eqSettingsProvider.notifier).setEnabled(true);
+    ref.read(eqSettingsProvider.notifier).setStereo(stereo);
+  }
+
   /// Slider value in dB, to 0.5 dB, snapping to 0 near the middle.
   static double _snapDb(double v) => v.abs() < 0.3 ? 0 : (v * 2).round() / 2;
 
@@ -520,6 +525,65 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
             value: settings.tone.loudness,
             onChanged: (v) => _setTone(settings.tone.copyWith(loudness: v)),
           ),
+          if (!settings.tone.isNeutral)
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: TextButton(onPressed: () => _setTone(const Tone()), child: Text(context.l10n.resetTone)),
+              ),
+            ),
+
+          section(context.l10n.stereoSection),
+          _SliderRow(
+            label: context.l10n.width,
+            value: settings.stereo.width,
+            min: 0,
+            max: Stereo.maxWidth,
+            display: settings.stereo.width == 0 ? context.l10n.mono : '${(settings.stereo.width * 100).round()} %',
+            onChanged: (v) => _setStereo(settings.stereo.copyWith(width: (v - 1).abs() < 0.04 ? 1 : (v * 20).round() / 20)),
+          ),
+          _SliderRow(
+            label: context.l10n.channelDelay,
+            value: settings.stereo.delayMs,
+            min: -10,
+            max: 10,
+            display: settings.stereo.delayMs == 0
+                ? context.l10n.off
+                : '${settings.stereo.delayMs > 0 ? 'R' : 'L'} ${settings.stereo.delayMs.abs().toStringAsFixed(1)} ms',
+            onChanged: (v) => _setStereo(settings.stereo.copyWith(delayMs: v.abs() < 0.15 ? 0 : (v * 10).round() / 10)),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              context.l10n.channelDelayHint,
+              style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted),
+            ),
+          ),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            activeThumbColor: palette.onInk,
+            activeTrackColor: palette.ink,
+            title: Text(context.l10n.invertLeft, style: TextStyle(fontWeight: FontWeight.w600)),
+            value: settings.stereo.invertLeft,
+            onChanged: (v) => _setStereo(settings.stereo.copyWith(invertLeft: v)),
+          ),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            activeThumbColor: palette.onInk,
+            activeTrackColor: palette.ink,
+            title: Text(context.l10n.invertRight, style: TextStyle(fontWeight: FontWeight.w600)),
+            value: settings.stereo.invertRight,
+            onChanged: (v) => _setStereo(settings.stereo.copyWith(invertRight: v)),
+          ),
+          if (!settings.stereo.isNeutral)
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: TextButton(onPressed: () => _setStereo(const Stereo()), child: Text(context.l10n.resetStereo)),
+              ),
+            ),
 
           section(context.l10n.behaviour),
           SwitchListTile(

@@ -1949,4 +1949,29 @@ class AppLocalizationsFr extends AppLocalizations {
   String loudnessBass(Object db) {
     return 'compensation $db graves';
   }
+
+  @override
+  String get stereoSection => 'Stéréo';
+
+  @override
+  String get width => 'Largeur';
+
+  @override
+  String get channelDelay => 'Retard de canal';
+
+  @override
+  String get channelDelayHint =>
+      'Enceintes à des distances différentes : retardez la plus proche d\'environ 2,9 ms par mètre d\'écart.';
+
+  @override
+  String get invertLeft => 'Inverser la polarité gauche';
+
+  @override
+  String get invertRight => 'Inverser la polarité droite';
+
+  @override
+  String get resetTone => 'Réinitialiser la tonalité';
+
+  @override
+  String get resetStereo => 'Réinitialiser la stéréo';
 }

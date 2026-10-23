@@ -189,4 +189,37 @@ class DspProcessorTest {
         assertEquals(0L, q.limited)
         assertEquals(0L, q.clipped)
     }
+
+    /** One stereo frame (l, r) through [config], after the filters settle on DC. */
+    private fun stereo(config: DspConfig, l: Float, r: Float): Pair<Float, Float> {
+        val frames = 100
+        val buf = FloatArray(frames * 2) { if (it % 2 == 0) l else r }
+        processor(config).first.process(buf, frames)
+        return buf[(frames - 1) * 2] to buf[(frames - 1) * 2 + 1]
+    }
+
+    @Test
+    fun widthPolarityAndDelay() {
+        val on = DspConfig(enabled = true, limiter = false)
+        // Width 0: mono; 2: side doubled (L 0.5 / R 0.1 → mid 0.3, side 0.2 → 0.4).
+        val (ml, mr) = stereo(on.copy(width = 0.0), 0.5f, 0.1f)
+        assertEquals(0.3f, ml, 1e-6f)
+        assertEquals(0.3f, mr, 1e-6f)
+        val (wl, wr) = stereo(on.copy(width = 2.0), 0.5f, 0.1f)
+        assertEquals(0.7f, wl, 1e-6f)
+        assertEquals(-0.1f, wr, 1e-6f)
+        // Polarity.
+        val (il, ir) = stereo(on.copy(invertLeft = true), 0.5f, 0.1f)
+        assertEquals(-0.5f, il, 1e-6f)
+        assertEquals(0.1f, ir, 1e-6f)
+        // 1 ms on the right at 48 kHz: an impulse comes out 48 frames later.
+        val impulse = FloatArray(200 * 2).also { it[0] = 1f; it[1] = 1f }
+        processor(on.copy(delayMs = 1.0)).first.process(impulse, 200)
+        assertEquals(1f, impulse[0], 0f)
+        assertEquals(0f, impulse[1], 0f)
+        assertEquals(1f, impulse[48 * 2 + 1], 0f)
+        // Neutral settings stay bit-exact pass-through.
+        assertTrue(DspConfig(enabled = true, width = 1.0).isTransparent)
+        assertTrue(!DspConfig(enabled = true, delayMs = 0.5).isTransparent)
+    }
 }

@@ -16,16 +16,26 @@ data class DspConfig(
     val limiter: Boolean = true,
     /** Loudness compensation (bass / treble that follow the volume, see LoudnessCompensation). */
     val loudness: Boolean = false,
+    /** Stereo width: 0 = mono, 1 = as recorded, 2 = twice the side signal. */
+    val width: Double = 1.0,
+    /** Channel delay in ms: positive delays the right channel, negative the left. */
+    val delayMs: Double = 0.0,
+    val invertLeft: Boolean = false,
+    val invertRight: Boolean = false,
 ) {
     /** True when processing would not change the signal at all. */
     val isTransparent: Boolean
         get() = !enabled || (
-            preampDb == 0.0 && balance == 0.0 && !mono && crossfeed == 0.0 &&
+            preampDb == 0.0 && balance == 0.0 && !mono && crossfeed == 0.0 && width == 1.0 &&
+                delayMs == 0.0 && !invertLeft && !invertRight &&
                 bands.all { it.gainDb == 0.0 && (it.type == FilterType.PEAKING || it.type == FilterType.LOW_SHELF || it.type == FilterType.HIGH_SHELF) }
             )
 
     companion object {
         val OFF = DspConfig()
+
+        /** Longest channel delay (ms). */
+        const val MAX_DELAY_MS = 20.0
 
         @Suppress("UNCHECKED_CAST")
         fun fromMap(map: Map<String, Any?>): DspConfig {
@@ -43,6 +53,10 @@ data class DspConfig(
                 crossfeed = num("crossfeed").coerceIn(0.0, 1.0),
                 limiter = map["limiter"] as? Boolean ?: true,
                 loudness = map["loudness"] as? Boolean ?: false,
+                width = ((map["width"] as? Number)?.toDouble() ?: 1.0).coerceIn(0.0, 2.0),
+                delayMs = num("delayMs").coerceIn(-MAX_DELAY_MS, MAX_DELAY_MS),
+                invertLeft = map["invertLeft"] as? Boolean ?: false,
+                invertRight = map["invertRight"] as? Boolean ?: false,
             )
         }
     }

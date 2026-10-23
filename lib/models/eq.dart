@@ -428,6 +428,43 @@ class Tone {
         );
 }
 
+/// Global stereo tools, applied on top of both layers.
+class Stereo {
+  const Stereo({this.width = 1, this.delayMs = 0, this.invertLeft = false, this.invertRight = false});
+
+  /// 0 = mono, 1 = as recorded, 2 = twice the side signal.
+  final double width;
+
+  /// Positive delays the right channel, negative the left (speakers at
+  /// different distances: ~2.9 ms per metre).
+  final double delayMs;
+  final bool invertLeft;
+  final bool invertRight;
+
+  static const maxWidth = 2.0;
+  static const maxDelayMs = 20.0;
+
+  bool get isNeutral => width == 1 && delayMs == 0 && !invertLeft && !invertRight;
+
+  Stereo copyWith({double? width, double? delayMs, bool? invertLeft, bool? invertRight}) => Stereo(
+        width: width ?? this.width,
+        delayMs: delayMs ?? this.delayMs,
+        invertLeft: invertLeft ?? this.invertLeft,
+        invertRight: invertRight ?? this.invertRight,
+      );
+
+  Map<String, Object> toJson() => {'width': width, 'delay': delayMs, 'invL': invertLeft, 'invR': invertRight};
+
+  factory Stereo.fromJson(Map<String, dynamic>? j) => j == null
+      ? const Stereo()
+      : Stereo(
+          width: ((j['width'] as num?)?.toDouble() ?? 1).clamp(0, maxWidth),
+          delayMs: ((j['delay'] as num?)?.toDouble() ?? 0).clamp(-maxDelayMs, maxDelayMs),
+          invertLeft: j['invL'] as bool? ?? false,
+          invertRight: j['invR'] as bool? ?? false,
+        );
+}
+
 class EqSettings {
   const EqSettings({
     this.enabled = false,
@@ -436,6 +473,7 @@ class EqSettings {
     this.autoPreamp = true,
     this.devices = const {},
     this.tone = const Tone(),
+    this.stereo = const Stereo(),
   });
 
   final bool enabled;
@@ -453,6 +491,9 @@ class EqSettings {
   /// Bass / treble / tilt / loudness on top of the presets.
   final Tone tone;
 
+  /// Width / delay / polarity on top of the presets.
+  final Stereo stereo;
+
   EqSettings copyWith({
     bool? enabled,
     String? defaultSoundId,
@@ -460,6 +501,7 @@ class EqSettings {
     bool? autoPreamp,
     Map<String, EqDevice>? devices,
     Tone? tone,
+    Stereo? stereo,
   }) =>
       EqSettings(
         enabled: enabled ?? this.enabled,
@@ -468,6 +510,7 @@ class EqSettings {
         autoPreamp: autoPreamp ?? this.autoPreamp,
         devices: devices ?? this.devices,
         tone: tone ?? this.tone,
+        stereo: stereo ?? this.stereo,
       );
 
   String encode() => jsonEncode({
@@ -477,6 +520,7 @@ class EqSettings {
         'autoPreamp': autoPreamp,
         'devices': [for (final d in devices.values) d.toJson()],
         'tone': tone.toJson(),
+        'stereo': stereo.toJson(),
       });
 
   static EqSettings decode(String? raw) {
@@ -493,6 +537,7 @@ class EqSettings {
         autoPreamp: j['autoPreamp'] as bool? ?? true,
         devices: {for (final d in devices) d.key: d},
         tone: Tone.fromJson(j['tone'] as Map<String, dynamic>?),
+        stereo: Stereo.fromJson(j['stereo'] as Map<String, dynamic>?),
       );
     } catch (_) {
       return const EqSettings();
@@ -507,6 +552,7 @@ Map<String, Object> combineForNative({
   required EqPreset sound,
   required bool autoPreamp,
   Tone tone = const Tone(),
+  Stereo stereo = const Stereo(),
 }) {
   final bands = [...device.bands, ...sound.bands, ...tone.bands];
   var preamp = device.preampDb + sound.preampDb;
@@ -522,5 +568,9 @@ Map<String, Object> combineForNative({
     'crossfeed': device.crossfeed,
     'limiter': true,
     'loudness': tone.loudness,
+    'width': stereo.width,
+    'delayMs': stereo.delayMs,
+    'invertLeft': stereo.invertLeft,
+    'invertRight': stereo.invertRight,
   };
 }

@@ -512,5 +512,13 @@
   "warmer": "warmer",
   "loudnessCompensation": "Loudness compensation",
   "loudnessCompensationHint": "At low volume the ear hears less bass and treble: they are raised as you turn the volume down (equal-loudness curves), never at full volume.",
-  "loudnessBass": "loudness {db} bass"
+  "loudnessBass": "loudness {db} bass",
+  "stereoSection": "Stereo",
+  "width": "Width",
+  "channelDelay": "Channel delay",
+  "channelDelayHint": "Speakers at different distances: delay the nearer one by about 2.9 ms per metre of difference.",
+  "invertLeft": "Invert left polarity",
+  "invertRight": "Invert right polarity",
+  "resetTone": "Reset tone",
+  "resetStereo": "Reset stereo"
 }

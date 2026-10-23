@@ -3175,6 +3175,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'loudness {db} bass'**
   String loudnessBass(Object db);
+
+  /// No description provided for @stereoSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Stereo'**
+  String get stereoSection;
+
+  /// No description provided for @width.
+  ///
+  /// In en, this message translates to:
+  /// **'Width'**
+  String get width;
+
+  /// No description provided for @channelDelay.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel delay'**
+  String get channelDelay;
+
+  /// No description provided for @channelDelayHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Speakers at different distances: delay the nearer one by about 2.9 ms per metre of difference.'**
+  String get channelDelayHint;
+
+  /// No description provided for @invertLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Invert left polarity'**
+  String get invertLeft;
+
+  /// No description provided for @invertRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Invert right polarity'**
+  String get invertRight;
+
+  /// No description provided for @resetTone.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset tone'**
+  String get resetTone;
+
+  /// No description provided for @resetStereo.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset stereo'**
+  String get resetStereo;
 }
 
 class _AppLocalizationsDelegate
