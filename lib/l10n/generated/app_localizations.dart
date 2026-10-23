@@ -3325,6 +3325,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'compressor {strength}'**
   String compressorIs(Object strength);
+
+  /// No description provided for @findHeadphones.
+  ///
+  /// In en, this message translates to:
+  /// **'Find my headphones'**
+  String get findHeadphones;
+
+  /// No description provided for @findHeadphonesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready-made correction from the AutoEQ database (online)'**
+  String get findHeadphonesHint;
+
+  /// No description provided for @headphoneModelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Model, e.g. HD 600, AirPods Pro'**
+  String get headphoneModelHint;
+
+  /// No description provided for @autoEqIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} headphones and earphones measured by reviewers (oratory1990, crinacle…), each with a correction to the Harman target. Type a model; when several reviewers measured it, pick one.'**
+  String autoEqIntro(Object count);
+
+  /// No description provided for @measuredBy.
+  ///
+  /// In en, this message translates to:
+  /// **'measured by {source}'**
+  String measuredBy(Object source);
+
+  /// No description provided for @autoEqOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'The AutoEQ database couldn\'t be downloaded. Check your connection.'**
+  String get autoEqOffline;
+
+  /// No description provided for @autoEqDownloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'This correction couldn\'t be downloaded'**
+  String get autoEqDownloadFailed;
+
+  /// No description provided for @autoEqCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Data: AutoEQ project by Jaakko Pasanen (github.com/jaakkopasanen/AutoEq)'**
+  String get autoEqCredit;
 }
 
 class _AppLocalizationsDelegate

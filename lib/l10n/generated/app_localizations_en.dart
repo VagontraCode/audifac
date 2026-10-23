@@ -2002,4 +2002,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String compressorIs(Object strength) {
     return 'compressor $strength';
   }
+
+  @override
+  String get findHeadphones => 'Find my headphones';
+
+  @override
+  String get findHeadphonesHint =>
+      'Ready-made correction from the AutoEQ database (online)';
+
+  @override
+  String get headphoneModelHint => 'Model, e.g. HD 600, AirPods Pro';
+
+  @override
+  String autoEqIntro(Object count) {
+    return '$count headphones and earphones measured by reviewers (oratory1990, crinacle…), each with a correction to the Harman target. Type a model; when several reviewers measured it, pick one.';
+  }
+
+  @override
+  String measuredBy(Object source) {
+    return 'measured by $source';
+  }
+
+  @override
+  String get autoEqOffline =>
+      'The AutoEQ database couldn\'t be downloaded. Check your connection.';
+
+  @override
+  String get autoEqDownloadFailed => 'This correction couldn\'t be downloaded';
+
+  @override
+  String get autoEqCredit =>
+      'Data: AutoEQ project by Jaakko Pasanen (github.com/jaakkopasanen/AutoEq)';
 }

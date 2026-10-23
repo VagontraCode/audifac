@@ -537,5 +537,13 @@
   "compressorMedium": "Moyen",
   "compressorStrong": "Fort",
   "compressorHint": "Rapproche passages calmes et forts : pour les lieux bruyants ou l'écoute de nuit. Désactivé, la dynamique de la musique reste intacte.",
-  "compressorIs": "compresseur {strength}"
+  "compressorIs": "compresseur {strength}",
+  "findHeadphones": "Trouver mon casque",
+  "findHeadphonesHint": "Correction toute faite de la base AutoEQ (en ligne)",
+  "headphoneModelHint": "Modèle, ex. HD 600, AirPods Pro",
+  "autoEqIntro": "{count} casques et écouteurs mesurés par des testeurs (oratory1990, crinacle…), chacun avec une correction vers la cible Harman. Tapez un modèle ; s'il a été mesuré par plusieurs testeurs, choisissez-en un.",
+  "measuredBy": "mesuré par {source}",
+  "autoEqOffline": "Impossible de télécharger la base AutoEQ. Vérifiez votre connexion.",
+  "autoEqDownloadFailed": "Impossible de télécharger cette correction",
+  "autoEqCredit": "Données : projet AutoEQ de Jaakko Pasanen (github.com/jaakkopasanen/AutoEq)"
 }

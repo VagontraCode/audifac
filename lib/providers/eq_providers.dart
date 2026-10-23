@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/autoeq_database.dart';
 import '../data/dsp_channel.dart';
 import '../models/eq.dart';
 import '../models/eq_rules.dart';
@@ -11,6 +12,9 @@ import 'player_providers.dart';
 import 'user_data_providers.dart';
 
 final dspChannelProvider = Provider<DspChannel>((ref) => DspChannel());
+
+/// The AutoEQ headphone database (downloaded on demand).
+final autoEqDatabaseProvider = Provider<AutoEqDatabase>((ref) => AutoEqDatabase());
 
 // --- Settings ------------------------------------------------------------------
 

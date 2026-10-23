@@ -537,5 +537,13 @@
   "compressorMedium": "Medium",
   "compressorStrong": "Strong",
   "compressorHint": "Brings quiet and loud passages closer: for noisy places or night listening. Off keeps the music's dynamics intact.",
-  "compressorIs": "compressor {strength}"
+  "compressorIs": "compressor {strength}",
+  "findHeadphones": "Find my headphones",
+  "findHeadphonesHint": "Ready-made correction from the AutoEQ database (online)",
+  "headphoneModelHint": "Model, e.g. HD 600, AirPods Pro",
+  "autoEqIntro": "{count} headphones and earphones measured by reviewers (oratory1990, crinacle…), each with a correction to the Harman target. Type a model; when several reviewers measured it, pick one.",
+  "measuredBy": "measured by {source}",
+  "autoEqOffline": "The AutoEQ database couldn't be downloaded. Check your connection.",
+  "autoEqDownloadFailed": "This correction couldn't be downloaded",
+  "autoEqCredit": "Data: AutoEQ project by Jaakko Pasanen (github.com/jaakkopasanen/AutoEq)"
 }

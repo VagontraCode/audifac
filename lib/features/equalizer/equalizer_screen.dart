@@ -14,6 +14,7 @@ import '../../providers/eq_providers.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/player_providers.dart';
 import '../../widgets/eq_curve.dart';
+import 'autoeq_search_screen.dart';
 import 'eq_rules_screen.dart';
 import 'quick_eq_sheet.dart';
 import '../../l10n/l10n.dart';
@@ -30,6 +31,13 @@ Future<EqPreset?> createPreset(BuildContext context, WidgetRef ref, EqPresetKind
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (kind == EqPresetKind.device)
+            ListTile(
+              leading: HugeIcon(icon: HugeIcons.strokeRoundedHeadphones, color: palette.ink, size: 22),
+              title: Text(context.l10n.findHeadphones),
+              subtitle: Text(context.l10n.findHeadphonesHint),
+              onTap: () => Navigator.pop(context, 'database'),
+            ),
           ListTile(
             leading: HugeIcon(icon: HugeIcons.strokeRoundedSlidersHorizontal, color: palette.ink, size: 22),
             title: Text(context.l10n.blankGraphic),
@@ -67,6 +75,15 @@ Future<EqPreset?> createPreset(BuildContext context, WidgetRef ref, EqPresetKind
       preset = EqPreset.flatGraphic(id: id, name: suggested, kind: kind);
     case 'parametric':
       preset = EqPreset(id: id, name: suggested, kind: kind, bands: const [EqBand(frequency: 1000, q: 1)]);
+    case 'database':
+      final found = await AutoEqSearchScreen.open(context);
+      if (found == null) return null;
+      suggested = found.name;
+      preset = EqPreset.fromAutoEq(found.text, id: id, name: found.name, kind: kind);
+      if (preset == null) {
+        messenger.showSnackBar(SnackBar(content: Text(l10n.noAutoEqLines)));
+        return null;
+      }
     case 'file':
     case 'paste':
       String? text;
