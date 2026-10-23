@@ -197,7 +197,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.0 ✅ | **Crossfade / DSP fixes** — no freezes at song ends, EQ after the crossfade reserve, MP3 duration-correction stutter | M | prerequisite; verified on the S24+ |
 | 7.1 ✅ | **Dither** — TPDF whenever the output is reduced to 16-bit (speed changes) | S | DSP sink |
 | 7.2 ✅ | **High-quality resampler** — windowed-sinc polyphase in the DSP to the device's mixer rate (Android otherwise resamples, usually to 48 kHz, with its own filter); quality / phase options; output rate choice (device rate, 96, 192 kHz); same output rate for every song → gapless across sample-rate changes | L | off while bit-perfect is active |
-| 7.3 | **Clip counter + richer signal path** — limiter activity and clipped samples per song; file → decoder → resampler → DSP → mixer → device, rate / depth at each step | S | signal sheet |
+| 7.3 ✅ | **Clip counter + richer signal path** — limiter activity and clipped samples per song; file → decoder → resampler → DSP → mixer → device, rate / depth at each step | S | signal sheet |
 | 7.4 | **Tone controls** — loudness compensation (ISO 226, follows the volume), tilt EQ, bass / treble shelves | M | device layer |
 | 7.5 | **Stereo tools** — width (mid / side), per-channel delay and polarity | S | device layer |
 | 7.6 | **Convolution** — load an impulse response (WAV, mono / stereo / true-stereo) for room or headphone correction; partitioned FFT | L | device layer |
@@ -225,6 +225,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.0 | S24+: crossfade at song ends, no stuck / skip, MP3 stutter gone | — |
 | 7.1 | unit-tested: 0.3 LSB survives on average, error within ±1.5 LSB, clamps | on device (only used while the speed is changed) |
 | 7.2 | Nokia: 44.1 kHz MP3 → 48 kHz on the speaker, AudioTrack at 48 kHz, 0 underruns; NEON loop verified against Kotlin at first use; playback thread 11 % → 13.7 % of a core (Kotlin loop: 26–30 %); unit-tested: −80 dB accuracy and phase, flat to 18 kHz, −80 dB alias rejection, exact frame counts, gapless 44.1 → 48 kHz | headphone jack (the Nokia has one; not plugged in) |
+| 7.3 | Nokia: signal path shows resampler, "To Android 32-bit float · 48 kHz", mixer "no resampling" (green), Levels "peak −20.6 dBFS · no clipping" with Bass boost; unit-tested: limiter activity, clipping with the limiter off, nothing on quiet audio | a song that really hits the limiter on device |
 
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".

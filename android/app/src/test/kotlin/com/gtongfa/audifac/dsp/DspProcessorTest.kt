@@ -164,4 +164,29 @@ class DspProcessorTest {
         p.process(b, rate)
         assertEquals(rms(input), rms(b), 1e-4) // after the fade, untouched
     }
+
+    @Test
+    fun levelStatsCountLimitingAndClipping() {
+        val boost = DspConfig(enabled = true, preampDb = 12.0)
+        val loud = sine(1000.0, rate, amp = 0.5)
+        val (limited, _) = processor(boost)
+        limited.process(loud.copyOf(), rate)
+        val s = limited.takeStats()
+        assertTrue("peak ${s.peak}", s.peak > 1.9) // +12 dB on 0.5 before the limiter
+        assertTrue("limited ${s.limited}", s.limited > rate / 2)
+        assertEquals(0L, s.clipped)
+        assertEquals(rate.toLong(), s.frames)
+        // Taken: starts over.
+        assertEquals(0L, limited.takeStats().frames)
+
+        val (unlimited, _) = processor(boost.copy(limiter = false))
+        unlimited.process(loud.copyOf(), rate)
+        assertTrue(unlimited.takeStats().clipped > rate / 2)
+
+        val (quiet, _) = processor(DspConfig(enabled = true, preampDb = -6.0))
+        quiet.process(sine(1000.0, rate, amp = 0.5), rate)
+        val q = quiet.takeStats()
+        assertEquals(0L, q.limited)
+        assertEquals(0L, q.clipped)
+    }
 }

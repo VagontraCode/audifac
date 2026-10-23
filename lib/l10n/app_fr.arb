@@ -495,5 +495,13 @@
   "bitPerfectOn": "Contourné — bit-perfect vers le DAC USB",
   "hqResampler": "Rééchantillonnage haute qualité",
   "hqResamplerHint": "Haut-parleur et prise casque : les titres sont convertis à la fréquence du mélangeur d'Android par le rééchantillonneur d'audifac (plus précis, phase linéaire) au lieu de celui d'Android — et des titres de fréquences différentes s'enchaînent sans blanc. À partir du titre suivant.",
-  "resampledByAudifac": "{from} → {to}, phase linéaire"
+  "resampledByAudifac": "{from} → {to}, phase linéaire",
+  "levels": "Niveaux",
+  "peakDbfs": "crête {db} dBFS",
+  "limiterShare": "limiteur actif {percent} % du temps",
+  "clippedCount": "{count} échantillons saturés",
+  "noClipping": "aucune saturation",
+  "toAndroid": "Vers Android",
+  "float32": "Flottant 32 bits",
+  "pcm16Dithered": "16 bits avec dither (vitesse modifiée)"
 }

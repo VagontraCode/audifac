@@ -173,6 +173,12 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
     final resampledTo = (p?['resampledTo'] as num?)?.toInt() ?? 0;
     // The rate that reaches Android's mixer.
     final reaching = resampledTo > 0 ? resampledTo : rate;
+    final outputRate = (p?['outputRate'] as num?)?.toInt() ?? 0;
+    final output16 = p?['output16'] == true;
+    final levelFrames = (p?['levelFrames'] as num?)?.toInt() ?? 0;
+    final peakDb = (p?['peakDb'] as num?)?.toDouble() ?? -100;
+    final limitedPct = ((p?['limitedFraction'] as num?)?.toDouble() ?? 0) * 100;
+    final clipped = (p?['clippedFrames'] as num?)?.toInt() ?? 0;
     String khz(int hz) => '${AudioInfo.formatSampleRate(hz)} kHz';
 
     final dspParts = [
@@ -210,6 +216,25 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
           title: l10n.hqResampler,
           value: l10n.resampledByAudifac(khz(rate), khz(resampledTo)),
           good: true,
+        ),
+      if (levelFrames > 0)
+        _Step(
+          title: l10n.levels,
+          value: [
+            l10n.peakDbfs(peakDb.toStringAsFixed(1)),
+            if (limitedPct >= 0.01)
+              l10n.limiterShare(limitedPct < 1 ? limitedPct.toStringAsFixed(2) : limitedPct.toStringAsFixed(1))
+            else if (clipped > 0)
+              l10n.clippedCount(clipped)
+            else
+              l10n.noClipping,
+          ].join(' · '),
+          good: limitedPct < 0.01 && clipped == 0,
+        ),
+      if (outputRate > 0 && !bitPerfect)
+        _Step(
+          title: l10n.toAndroid,
+          value: '${output16 ? l10n.pcm16Dithered : l10n.float32} · ${khz(outputRate)}',
         ),
       _Step(
         title: l10n.androidMixer,

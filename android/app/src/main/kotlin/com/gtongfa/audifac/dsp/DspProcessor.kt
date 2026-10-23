@@ -91,6 +91,9 @@ class DspProcessor(
 
     // Peak limiter (linked across channels): instant attack, ~80 ms release.
     private val ceiling = 0.989 // -0.1 dBFS
+
+    /** Gain below which the limiter counts as working (−0.01 dB). */
+    private val limiting = 0.999
     private val release = exp(-1.0 / (0.08 * sampleRate))
     private var limiterGain = 1.0
 
@@ -182,18 +185,37 @@ class DspProcessor(
                 if (++fadePos >= fadeLength) previous = null
             }
 
+            var framePeak = 0.0
+            for (ch in 0 until channels) framePeak = max(framePeak, abs(outCurrent[ch]))
+            if (framePeak > statPeak) statPeak = framePeak
             if (useLimiter || limiterGain < 1.0) {
-                var peak = 0.0
-                for (ch in 0 until channels) peak = max(peak, abs(outCurrent[ch]))
                 // Release towards unity first, then clamp: never above the ceiling.
                 val released = min(1.0, 1.0 - (1.0 - limiterGain) * release)
-                limiterGain = if (useLimiter && peak * released > ceiling) ceiling / peak else released
+                limiterGain = if (useLimiter && framePeak * released > ceiling) ceiling / framePeak else released
                 for (ch in 0 until channels) outCurrent[ch] *= limiterGain
+                if (limiterGain < limiting) statLimited++
+            } else if (framePeak > 1.0) {
+                statClipped++
             }
+            statFrames++
 
             for (ch in 0 until channels) samples[idx + ch] = outCurrent[ch].toFloat()
             idx += channels
         }
+    }
+
+    // Level statistics since the last takeStats (the sink publishes them per song).
+    private var statPeak = 0.0
+    private var statLimited = 0L
+    private var statClipped = 0L
+    private var statFrames = 0L
+
+    /** Peak before the limiter, frames limited, frames clipped (limiter off), frames seen; then starts over. */
+    fun takeStats(): LevelStats = LevelStats(statPeak, statLimited, statClipped, statFrames).also {
+        statPeak = 0.0
+        statLimited = 0
+        statClipped = 0
+        statFrames = 0
     }
 
     fun reset() {
@@ -204,3 +226,6 @@ class DspProcessor(
         limiterGain = 1.0
     }
 }
+
+/** Levels the EQ produced: [peak] (linear, before the limiter), frames the limiter worked on, frames clipped. */
+data class LevelStats(val peak: Double, val limited: Long, val clipped: Long, val frames: Long)

@@ -169,6 +169,15 @@ object SignalPath {
     /** Rate our resampler converts to (0: not resampling). */
     @Volatile var resampledTo = 0
 
+    /** Rate audio leaves the DSP at (what the AudioTrack gets). */
+    @Volatile var outputRate = 0
+
+    // Levels after the EQ for the current song (see SongLevels); levelFrames 0 = none measured.
+    @Volatile var peakDb = -100.0
+    @Volatile var limitedFraction = 0.0
+    @Volatile var clippedFrames = 0L
+    @Volatile var levelFrames = 0L
+
     /** What the AudioTrack gets: float, or 16-bit while the speed is changed. */
     @Volatile var outputEncoding = androidx.media3.common.C.ENCODING_PCM_FLOAT
 
@@ -189,8 +198,40 @@ object SignalPath {
         "crossfade" to Crossfade.seconds,
         "bitPerfect" to bitPerfect,
         "resampledTo" to resampledTo,
+        "outputRate" to outputRate,
+        "peakDb" to peakDb,
+        "limitedFraction" to limitedFraction,
+        "clippedFrames" to clippedFrames,
+        "levelFrames" to levelFrames,
         "output16" to (outputEncoding == androidx.media3.common.C.ENCODING_PCM_16BIT),
         "bitPerfectReason" to BitPerfect.reason,
         "bitPerfectSupported" to BitPerfect.supported,
     )
+}
+
+/** Levels after the EQ for one song, published to [SignalPath] as they add up. */
+class SongLevels {
+    private var peak = 0.0
+    private var limited = 0L
+    private var clipped = 0L
+    private var frames = 0L
+
+    fun reset() {
+        peak = 0.0
+        limited = 0
+        clipped = 0
+        frames = 0
+        SignalPath.levelFrames = 0
+    }
+
+    fun add(s: LevelStats) {
+        if (s.peak > peak) peak = s.peak
+        limited += s.limited
+        clipped += s.clipped
+        frames += s.frames
+        SignalPath.peakDb = if (peak > 0) 20 * kotlin.math.log10(peak) else -100.0
+        SignalPath.limitedFraction = if (frames > 0) limited.toDouble() / frames else 0.0
+        SignalPath.clippedFrames = clipped
+        SignalPath.levelFrames = frames
+    }
 }

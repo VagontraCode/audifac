@@ -1854,4 +1854,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String resampledByAudifac(Object from, Object to) {
     return '$from → $to, linear phase';
   }
+
+  @override
+  String get levels => 'Levels';
+
+  @override
+  String peakDbfs(Object db) {
+    return 'peak $db dBFS';
+  }
+
+  @override
+  String limiterShare(Object percent) {
+    return 'limiter working $percent % of the time';
+  }
+
+  @override
+  String clippedCount(Object count) {
+    return '$count clipped samples';
+  }
+
+  @override
+  String get noClipping => 'no clipping';
+
+  @override
+  String get toAndroid => 'To Android';
+
+  @override
+  String get float32 => '32-bit float';
+
+  @override
+  String get pcm16Dithered => '16-bit, dithered (speed changed)';
 }

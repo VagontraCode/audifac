@@ -495,5 +495,13 @@
   "bitPerfectOn": "Bypassed — bit-perfect to the USB DAC",
   "hqResampler": "High-quality resampling",
   "hqResamplerHint": "Phone speaker and headphone jack: songs are converted to the rate Android mixes at by audifac's own resampler (sharper, linear phase) instead of Android's — and songs of different rates follow each other without a gap. From the next song.",
-  "resampledByAudifac": "{from} → {to}, linear phase"
+  "resampledByAudifac": "{from} → {to}, linear phase",
+  "levels": "Levels",
+  "peakDbfs": "peak {db} dBFS",
+  "limiterShare": "limiter working {percent} % of the time",
+  "clippedCount": "{count} clipped samples",
+  "noClipping": "no clipping",
+  "toAndroid": "To Android",
+  "float32": "32-bit float",
+  "pcm16Dithered": "16-bit, dithered (speed changed)"
 }

@@ -3073,6 +3073,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{from} → {to}, linear phase'**
   String resampledByAudifac(Object from, Object to);
+
+  /// No description provided for @levels.
+  ///
+  /// In en, this message translates to:
+  /// **'Levels'**
+  String get levels;
+
+  /// No description provided for @peakDbfs.
+  ///
+  /// In en, this message translates to:
+  /// **'peak {db} dBFS'**
+  String peakDbfs(Object db);
+
+  /// No description provided for @limiterShare.
+  ///
+  /// In en, this message translates to:
+  /// **'limiter working {percent} % of the time'**
+  String limiterShare(Object percent);
+
+  /// No description provided for @clippedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} clipped samples'**
+  String clippedCount(Object count);
+
+  /// No description provided for @noClipping.
+  ///
+  /// In en, this message translates to:
+  /// **'no clipping'**
+  String get noClipping;
+
+  /// No description provided for @toAndroid.
+  ///
+  /// In en, this message translates to:
+  /// **'To Android'**
+  String get toAndroid;
+
+  /// No description provided for @float32.
+  ///
+  /// In en, this message translates to:
+  /// **'32-bit float'**
+  String get float32;
+
+  /// No description provided for @pcm16Dithered.
+  ///
+  /// In en, this message translates to:
+  /// **'16-bit, dithered (speed changed)'**
+  String get pcm16Dithered;
 }
 
 class _AppLocalizationsDelegate

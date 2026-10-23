@@ -87,6 +87,9 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
      */
     private var effects: DspProcessor? = null
 
+    /** Levels after the EQ for the current song (signal path: peak, limiter, clipping). */
+    private val trackLevels = SongLevels()
+
     /** Last volume matching gain, given to a new effects processor (its limiter guards boosts). */
     private var lastGain = 1.0
 
@@ -111,6 +114,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         delegateFormat = out
         outEncoding = out.pcmEncoding
         SignalPath.outputEncoding = outEncoding
+        SignalPath.outputRate = out.sampleRate
     }
 
     override fun setPlaybackParameters(playbackParameters: PlaybackParameters) {
@@ -182,6 +186,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         // Configured at this track's first sample: its own volume matching gain.
         trackFormat = inputFormat
         trackFrames = 0
+        trackLevels.reset()
         applyGain(immediate = fresh)
         SignalPath.pcmEncoding = encoding
         SignalPath.sampleRate = rate
@@ -325,7 +330,10 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
             effects?.let { p ->
                 val processing = !p.isEffectsPassThrough()
                 SignalPath.processing = processing || !p.isGainPassThrough()
-                if (processing) p.processEffects(chunk, n)
+                if (processing) {
+                    p.processEffects(chunk, n)
+                    trackLevels.add(p.takeStats())
+                }
             }
             Visualizer.feed(chunk, n, channels, h.rate, outputPts)
             val count = n * channels
