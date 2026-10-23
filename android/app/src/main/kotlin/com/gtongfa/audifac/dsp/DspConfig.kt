@@ -22,12 +22,14 @@ data class DspConfig(
     val delayMs: Double = 0.0,
     val invertLeft: Boolean = false,
     val invertRight: Boolean = false,
+    /** Impulse response to convolve with (room / headphone correction), null for none. */
+    val ir: ImpulseResponse? = null,
 ) {
     /** True when processing would not change the signal at all. */
     val isTransparent: Boolean
         get() = !enabled || (
             preampDb == 0.0 && balance == 0.0 && !mono && crossfeed == 0.0 && width == 1.0 &&
-                delayMs == 0.0 && !invertLeft && !invertRight &&
+                delayMs == 0.0 && !invertLeft && !invertRight && ir == null &&
                 bands.all { it.gainDb == 0.0 && (it.type == FilterType.PEAKING || it.type == FilterType.LOW_SHELF || it.type == FilterType.HIGH_SHELF) }
             )
 
@@ -57,6 +59,7 @@ data class DspConfig(
                 delayMs = num("delayMs").coerceIn(-MAX_DELAY_MS, MAX_DELAY_MS),
                 invertLeft = map["invertLeft"] as? Boolean ?: false,
                 invertRight = map["invertRight"] as? Boolean ?: false,
+                ir = (map["irPath"] as? String)?.let { ImpulseResponse.load(it) },
             )
         }
     }
@@ -106,6 +109,7 @@ object DspEngine {
     private fun rebuild() {
         config = LoudnessCompensation.apply(base, attenuationDb)
         SignalPath.loudnessBassDb = if (base.loudness && base.enabled) LoudnessCompensation.bassDb(attenuationDb) else 0.0
+        SignalPath.convolution = if (base.enabled) base.ir?.name ?: "" else ""
         version++
     }
 }

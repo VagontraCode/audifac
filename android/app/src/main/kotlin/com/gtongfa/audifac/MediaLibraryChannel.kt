@@ -103,6 +103,7 @@ class MediaLibraryChannel(
             }
             "pickFolder" -> pickFolder(result)
             "openTextDocument" -> openTextDocument(result, call.argument<Boolean>("anyType") ?: false)
+            "importImpulseResponse" -> importImpulseResponse(result)
             "saveTextDocument" -> {
                 val name = call.argument<String>("name") ?: "audifac.txt"
                 val mime = call.argument<String>("mime") ?: "text/plain"
@@ -492,6 +493,69 @@ class MediaLibraryChannel(
         host.startActivityForResult(intent, OPEN_DOCUMENT_REQUEST)
     }
 
+    private var pendingIr: MethodChannel.Result? = null
+
+    /**
+     * Lets the user pick a WAV impulse response; a copy goes into the app's
+     * own storage (the original is never touched). Returns its path and
+     * details, or an error if it isn't a usable response.
+     */
+    private fun importImpulseResponse(result: MethodChannel.Result) {
+        val host = activity() ?: return result.error("no_activity", "No foreground activity", null)
+        if (pendingIr != null) return result.error("busy", "Picker already open", null)
+        pendingIr = result
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+            .addCategory(Intent.CATEGORY_OPENABLE)
+            .setType("*/*")
+            .putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("audio/wav", "audio/x-wav", "audio/wave", "application/octet-stream"))
+        @Suppress("DEPRECATION")
+        host.startActivityForResult(intent, IMPORT_IR_REQUEST)
+    }
+
+    private fun onImpulseResponseResult(resultCode: Int, data: Intent?) {
+        val result = pendingIr ?: return
+        pendingIr = null
+        val uri = data?.data
+        if (resultCode != Activity.RESULT_OK || uri == null) return result.success(null)
+        executor.execute {
+            try {
+                val bytes = context.contentResolver.openInputStream(uri)?.use { input ->
+                    val buffer = java.io.ByteArrayOutputStream()
+                    val chunk = ByteArray(65536)
+                    while (buffer.size() <= MAX_IR_BYTES) {
+                        val n = input.read(chunk)
+                        if (n < 0) break
+                        buffer.write(chunk, 0, n)
+                    }
+                    buffer.toByteArray()
+                } ?: throw IllegalStateException("Cannot open the file")
+                val name = (uri.lastPathSegment?.substringAfterLast('/') ?: "response").substringBeforeLast('.')
+                val ir = if (bytes.size > MAX_IR_BYTES) null else com.gtongfa.audifac.dsp.ImpulseResponse.parseWav(bytes, name)
+                if (ir == null) {
+                    mainHandler.post { result.error("not_ir", "Not a usable WAV impulse response", null) }
+                    return@execute
+                }
+                val dir = java.io.File(context.filesDir, "ir").apply { mkdirs() }
+                val safe = name.replace(Regex("[^A-Za-z0-9._ -]"), "_").take(60)
+                val file = java.io.File(dir, "${System.currentTimeMillis()}_$safe.wav")
+                file.writeBytes(bytes)
+                mainHandler.post {
+                    result.success(
+                        mapOf(
+                            "path" to file.absolutePath,
+                            "name" to name,
+                            "channels" to ir.channels.size,
+                            "rate" to ir.rate,
+                            "seconds" to ir.frames.toDouble() / ir.rate,
+                        ),
+                    )
+                }
+            } catch (e: Exception) {
+                mainHandler.post { result.error("read_failed", e.message, null) }
+            }
+        }
+    }
+
     private var pendingDocument: MethodChannel.Result? = null
     private var pendingSave: Pair<MethodChannel.Result, String>? = null
 
@@ -559,6 +623,10 @@ class MediaLibraryChannel(
     fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
         if (requestCode == OPEN_DOCUMENT_REQUEST) {
             onDocumentResult(resultCode, data)
+            return true
+        }
+        if (requestCode == IMPORT_IR_REQUEST) {
+            onImpulseResponseResult(resultCode, data)
             return true
         }
         if (requestCode == SAVE_DOCUMENT_REQUEST) {
@@ -659,6 +727,8 @@ class MediaLibraryChannel(
         private const val PICK_FOLDER_REQUEST = 4711
         private const val OPEN_DOCUMENT_REQUEST = 4712
         private const val SAVE_DOCUMENT_REQUEST = 4713
+        private const val IMPORT_IR_REQUEST = 4714
+        private const val MAX_IR_BYTES = 16 shl 20
 
         // Large enough for a backup of a big library (tens of thousands of refs).
         private const val MAX_TEXT_BYTES = 32 shl 20

@@ -350,7 +350,14 @@ abstract final class EqMath {
 
 /// A known output (headphones, speaker…) and the correction used with it.
 class EqDevice {
-  const EqDevice({required this.key, required this.name, required this.kind, required this.presetId});
+  const EqDevice({
+    required this.key,
+    required this.name,
+    required this.kind,
+    required this.presetId,
+    this.irPath,
+    this.irName,
+  });
 
   /// `speaker`, `wired`, `bt:<product name>`, `usb:<product name>`.
   final String key;
@@ -360,15 +367,33 @@ class EqDevice {
   final String kind;
   final String presetId;
 
-  EqDevice copyWith({String? presetId}) => EqDevice(key: key, name: name, kind: kind, presetId: presetId ?? this.presetId);
+  /// Impulse response (app's own copy of a WAV) convolved for this output.
+  final String? irPath;
+  final String? irName;
 
-  Map<String, Object> toJson() => {'key': key, 'name': name, 'kind': kind, 'preset': presetId};
+  EqDevice copyWith({String? presetId}) =>
+      EqDevice(key: key, name: name, kind: kind, presetId: presetId ?? this.presetId, irPath: irPath, irName: irName);
+
+  /// With [path] / [name] as its impulse response (null: none).
+  EqDevice withImpulseResponse(String? path, String? name) =>
+      EqDevice(key: key, name: this.name, kind: kind, presetId: presetId, irPath: path, irName: path == null ? null : name);
+
+  Map<String, Object> toJson() => {
+        'key': key,
+        'name': name,
+        'kind': kind,
+        'preset': presetId,
+        if (irPath != null) 'ir': irPath!,
+        if (irName != null) 'irName': irName!,
+      };
 
   factory EqDevice.fromJson(Map<String, dynamic> j) => EqDevice(
         key: j['key'] as String,
         name: j['name'] as String? ?? j['key'] as String,
         kind: j['kind'] as String? ?? 'speaker',
         presetId: j['preset'] as String? ?? BuiltInPresets.deviceNone.id,
+        irPath: j['ir'] as String?,
+        irName: j['irName'] as String?,
       );
 
   factory EqDevice.fromNative(Map<dynamic, dynamic> m) => EqDevice(
@@ -553,6 +578,7 @@ Map<String, Object> combineForNative({
   required bool autoPreamp,
   Tone tone = const Tone(),
   Stereo stereo = const Stereo(),
+  String? irPath,
 }) {
   final bands = [...device.bands, ...sound.bands, ...tone.bands];
   var preamp = device.preampDb + sound.preampDb;
@@ -572,5 +598,6 @@ Map<String, Object> combineForNative({
     'delayMs': stereo.delayMs,
     'invertLeft': stereo.invertLeft,
     'invertRight': stereo.invertRight,
+    if (irPath != null) 'irPath': irPath,
   };
 }

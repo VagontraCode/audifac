@@ -1939,4 +1939,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resetStereo => 'Reset stereo';
+
+  @override
+  String get convolution => 'Convolution';
+
+  @override
+  String impulseResponseFor(Object device) {
+    return 'Impulse response · $device';
+  }
+
+  @override
+  String get irNone =>
+      'None. Load a WAV room or headphone correction (mono, stereo or true stereo); it\'s normalised to 0 dB and used for this output only.';
+
+  @override
+  String get loadIr => 'Load WAV';
+
+  @override
+  String get removeIr => 'Remove';
+
+  @override
+  String irLoaded(Object channels, Object name, Object seconds) {
+    return '$name: $channels ch, $seconds s';
+  }
+
+  @override
+  String get irUnusable =>
+      'Not a usable impulse response (a WAV with 1, 2 or 4 channels)';
+
+  @override
+  String convolutionWith(Object name) {
+    return 'IR $name';
+  }
 }

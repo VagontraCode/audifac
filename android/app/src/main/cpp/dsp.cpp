@@ -2,7 +2,10 @@
 // The Kotlin side owns all state; these functions only do the arithmetic.
 
 #include <jni.h>
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
+#include <vector>
 #if defined(__aarch64__)
 #include <arm_neon.h>
 #endif
@@ -66,4 +69,191 @@ Java_com_gtongfa_audifac_dsp_NativeDsp_produceStereo(
     if (l) env->ReleasePrimitiveArrayCritical(jL, l, JNI_ABORT);
     if (table) env->ReleasePrimitiveArrayCritical(jTableRev, table, JNI_ABORT);
     return n;
+}
+
+// ---------------------------------------------------------------------------
+// Partitioned convolution: the same algorithm as the Kotlin Convolver
+// (Convolution.kt), in float, for speed. Kotlin prepares the response
+// spectra; this owns the streaming state.
+
+namespace {
+
+struct FftF {
+    int n;
+    std::vector<float> c, s;
+    std::vector<int> rev;
+    explicit FftF(int size) : n(size), c(size / 2), s(size / 2), rev(size) {
+        for (int i = 0; i < n / 2; i++) {
+            c[i] = static_cast<float>(std::cos(2 * M_PI * i / n));
+            s[i] = static_cast<float>(std::sin(2 * M_PI * i / n));
+        }
+        int bits = 0;
+        while ((1 << bits) < n) bits++;
+        for (int i = 0; i < n; i++) {
+            int r = 0;
+            for (int b = 0; b < bits; b++) if (i & (1 << b)) r |= 1 << (bits - 1 - b);
+            rev[i] = r;
+        }
+    }
+    void transform(float* re, float* im, bool inverse) const {
+        for (int i = 0; i < n; i++) {
+            int j = rev[i];
+            if (i < j) { std::swap(re[i], re[j]); std::swap(im[i], im[j]); }
+        }
+        const float sign = inverse ? 1.f : -1.f;
+        for (int len = 2; len <= n; len <<= 1) {
+            const int half = len / 2, step = n / len;
+            for (int i = 0; i < n; i += len) {
+                int k = 0;
+                for (int j = i; j < i + half; j++, k += step) {
+                    const float wr = c[k], wi = sign * s[k];
+                    const int a = j + half;
+                    const float xr = re[a] * wr - im[a] * wi;
+                    const float xi = re[a] * wi + im[a] * wr;
+                    re[a] = re[j] - xr; im[a] = im[j] - xi;
+                    re[j] += xr; im[j] += xi;
+                }
+            }
+        }
+    }
+};
+
+struct Conv {
+    int B, N, bins, P;
+    std::vector<float> path[2][2];  // [out][in]: P × (bins re, bins im); empty = silent
+    std::vector<float> fdlRe, fdlIm;  // [P][2][bins]
+    int slot = 0;
+    std::vector<float> window[2], outBlock[2];
+    int fill = 0;
+    std::vector<float> re, im, accRe[2], accIm[2];
+    FftF fft;
+
+    Conv(int block, int partitions) : B(block), N(block * 2), bins(block + 1), P(partitions), fft(block * 2) {
+        fdlRe.assign(static_cast<size_t>(P) * 2 * bins, 0.f);
+        fdlIm.assign(static_cast<size_t>(P) * 2 * bins, 0.f);
+        for (int c = 0; c < 2; c++) {
+            window[c].assign(N, 0.f);
+            outBlock[c].assign(B, 0.f);
+            accRe[c].assign(bins, 0.f);
+            accIm[c].assign(bins, 0.f);
+        }
+        re.assign(N, 0.f);
+        im.assign(N, 0.f);
+    }
+
+    void reset() {
+        std::fill(fdlRe.begin(), fdlRe.end(), 0.f);
+        std::fill(fdlIm.begin(), fdlIm.end(), 0.f);
+        for (int c = 0; c < 2; c++) {
+            std::fill(window[c].begin(), window[c].end(), 0.f);
+            std::fill(outBlock[c].begin(), outBlock[c].end(), 0.f);
+        }
+        fill = 0;
+    }
+
+    void runBlock() {
+        for (int k = 0; k < N; k++) { re[k] = window[0][k]; im[k] = window[1][k]; }
+        fft.transform(re.data(), im.data(), false);
+        float* inRe = &fdlRe[static_cast<size_t>(slot) * 2 * bins];
+        float* inIm = &fdlIm[static_cast<size_t>(slot) * 2 * bins];
+        for (int k = 0; k < bins; k++) {
+            const int m = (N - k) & (N - 1);
+            inRe[k] = (re[k] + re[m]) * 0.5f;
+            inIm[k] = (im[k] - im[m]) * 0.5f;
+            inRe[bins + k] = (im[k] + im[m]) * 0.5f;
+            inIm[bins + k] = (re[m] - re[k]) * 0.5f;
+        }
+        for (int o = 0; o < 2; o++) {
+            std::fill(accRe[o].begin(), accRe[o].end(), 0.f);
+            std::fill(accIm[o].begin(), accIm[o].end(), 0.f);
+        }
+        for (int p = 0; p < P; p++) {
+            const int s = (slot - p + P) % P;
+            for (int o = 0; o < 2; o++) for (int i = 0; i < 2; i++) {
+                if (path[o][i].empty()) continue;
+                const float* hr = &path[o][i][static_cast<size_t>(p) * 2 * bins];
+                const float* hi = hr + bins;
+                const float* xr = &fdlRe[(static_cast<size_t>(s) * 2 + i) * bins];
+                const float* xi = &fdlIm[(static_cast<size_t>(s) * 2 + i) * bins];
+                float* ar = accRe[o].data();
+                float* ai = accIm[o].data();
+                for (int k = 0; k < bins; k++) {
+                    ar[k] += xr[k] * hr[k] - xi[k] * hi[k];
+                    ai[k] += xr[k] * hi[k] + xi[k] * hr[k];
+                }
+            }
+        }
+        slot = (slot + 1) % P;
+        for (int k = 0; k < N; k++) {
+            if (k < bins) {
+                re[k] = accRe[0][k] - accIm[1][k];
+                im[k] = accIm[0][k] + accRe[1][k];
+            } else {
+                const int m = N - k;
+                re[k] = accRe[0][m] + accIm[1][m];
+                im[k] = -accIm[0][m] + accRe[1][m];
+            }
+        }
+        fft.transform(re.data(), im.data(), true);
+        const float scale = 1.f / N;
+        for (int j = 0; j < B; j++) {
+            outBlock[0][j] = re[B + j] * scale;
+            outBlock[1][j] = im[B + j] * scale;
+        }
+        for (int c = 0; c < 2; c++) std::copy(window[c].begin() + B, window[c].end(), window[c].begin());
+    }
+
+    void process(float* x, int frames, int channels) {
+        const bool stereo = channels >= 2;
+        for (int f = 0; f < frames; f++, x += channels) {
+            window[0][B + fill] = x[0];
+            window[1][B + fill] = stereo ? x[1] : 0.f;
+            x[0] = outBlock[0][fill];
+            if (stereo) x[1] = outBlock[1][fill];
+            if (++fill == B) {
+                runBlock();
+                fill = 0;
+            }
+        }
+    }
+};
+
+void copyPath(JNIEnv* env, std::vector<float>& dst, jfloatArray src) {
+    if (src == nullptr) return;
+    const jsize n = env->GetArrayLength(src);
+    dst.resize(static_cast<size_t>(n));
+    env->GetFloatArrayRegion(src, 0, n, dst.data());
+}
+
+}  // namespace
+
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_gtongfa_audifac_dsp_NativeDsp_convCreate(JNIEnv* env, jclass, jint block, jint partitions,
+                                                  jfloatArray ll, jfloatArray rl, jfloatArray lr, jfloatArray rr) {
+    auto* c = new Conv(block, partitions);
+    copyPath(env, c->path[0][0], ll);
+    copyPath(env, c->path[0][1], rl);
+    copyPath(env, c->path[1][0], lr);
+    copyPath(env, c->path[1][1], rr);
+    return reinterpret_cast<jlong>(c);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_gtongfa_audifac_dsp_NativeDsp_convProcess(JNIEnv* env, jclass, jlong handle, jfloatArray samples,
+                                                   jint frames, jint offset, jint channels) {
+    auto* c = reinterpret_cast<Conv*>(handle);
+    auto* x = static_cast<float*>(env->GetPrimitiveArrayCritical(samples, nullptr));
+    if (x == nullptr) return;
+    c->process(x + offset, frames, channels);
+    env->ReleasePrimitiveArrayCritical(samples, x, 0);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_gtongfa_audifac_dsp_NativeDsp_convReset(JNIEnv*, jclass, jlong handle) {
+    reinterpret_cast<Conv*>(handle)->reset();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_gtongfa_audifac_dsp_NativeDsp_convDestroy(JNIEnv*, jclass, jlong handle) {
+    delete reinterpret_cast<Conv*>(handle);
 }

@@ -520,5 +520,13 @@
   "invertLeft": "Invert left polarity",
   "invertRight": "Invert right polarity",
   "resetTone": "Reset tone",
-  "resetStereo": "Reset stereo"
+  "resetStereo": "Reset stereo",
+  "convolution": "Convolution",
+  "impulseResponseFor": "Impulse response · {device}",
+  "irNone": "None. Load a WAV room or headphone correction (mono, stereo or true stereo); it's normalised to 0 dB and used for this output only.",
+  "loadIr": "Load WAV",
+  "removeIr": "Remove",
+  "irLoaded": "{name}: {channels} ch, {seconds} s",
+  "irUnusable": "Not a usable impulse response (a WAV with 1, 2 or 4 channels)",
+  "convolutionWith": "IR {name}"
 }

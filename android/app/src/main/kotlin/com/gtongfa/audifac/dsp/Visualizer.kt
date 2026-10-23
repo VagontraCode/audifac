@@ -181,6 +181,9 @@ object SignalPath {
     /** Bass loudness compensation adds now (0: off or near full volume). */
     @Volatile var loudnessBassDb = 0.0
 
+    /** Name of the impulse response being convolved ("" for none). */
+    @Volatile var convolution = ""
+
     /** What the AudioTrack gets: float, or 16-bit while the speed is changed. */
     @Volatile var outputEncoding = androidx.media3.common.C.ENCODING_PCM_FLOAT
 
@@ -207,6 +210,7 @@ object SignalPath {
         "clippedFrames" to clippedFrames,
         "levelFrames" to levelFrames,
         "loudnessBassDb" to loudnessBassDb,
+        "convolution" to convolution,
         "output16" to (outputEncoding == androidx.media3.common.C.ENCODING_PCM_16BIT),
         "bitPerfectReason" to BitPerfect.reason,
         "bitPerfectSupported" to BitPerfect.supported,

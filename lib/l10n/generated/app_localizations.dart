@@ -3223,6 +3223,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reset stereo'**
   String get resetStereo;
+
+  /// No description provided for @convolution.
+  ///
+  /// In en, this message translates to:
+  /// **'Convolution'**
+  String get convolution;
+
+  /// No description provided for @impulseResponseFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Impulse response · {device}'**
+  String impulseResponseFor(Object device);
+
+  /// No description provided for @irNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None. Load a WAV room or headphone correction (mono, stereo or true stereo); it\'s normalised to 0 dB and used for this output only.'**
+  String get irNone;
+
+  /// No description provided for @loadIr.
+  ///
+  /// In en, this message translates to:
+  /// **'Load WAV'**
+  String get loadIr;
+
+  /// No description provided for @removeIr.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get removeIr;
+
+  /// No description provided for @irLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: {channels} ch, {seconds} s'**
+  String irLoaded(Object channels, Object name, Object seconds);
+
+  /// No description provided for @irUnusable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not a usable impulse response (a WAV with 1, 2 or 4 channels)'**
+  String get irUnusable;
+
+  /// No description provided for @convolutionWith.
+  ///
+  /// In en, this message translates to:
+  /// **'IR {name}'**
+  String convolutionWith(Object name);
 }
 
 class _AppLocalizationsDelegate

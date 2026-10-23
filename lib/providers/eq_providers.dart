@@ -34,6 +34,12 @@ class EqSettingsNotifier extends Notifier<EqSettings> {
   void setTone(Tone tone) => _set(state.copyWith(tone: tone));
   void setStereo(Stereo stereo) => _set(state.copyWith(stereo: stereo));
 
+  /// Impulse response for [device] (null path: none).
+  void setImpulseResponse(EqDevice device, String? path, String? name) {
+    final known = state.devices[device.key] ?? device;
+    _set(state.copyWith(devices: {...state.devices, device.key: known.withImpulseResponse(path, name)}));
+  }
+
   /// Correction preset to use whenever [device] is the output.
   void assignDevice(EqDevice device, String presetId) =>
       _set(state.copyWith(devices: {...state.devices, device.key: device.copyWith(presetId: presetId)}));
@@ -203,6 +209,7 @@ final dspSyncProvider = Provider<void>((ref) {
     autoPreamp: settings.autoPreamp,
     tone: settings.tone,
     stereo: settings.stereo,
+    irPath: settings.devices[ref.watch(outputDeviceProvider).key]?.irPath,
   );
   ref.read(dspChannelProvider).setConfig(config);
 });

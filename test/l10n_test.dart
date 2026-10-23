@@ -24,6 +24,8 @@ void main() {
     expect(en.rulesDevicesCount(2, 5), '5 rules · 2 devices');
     expect(en.songsOf(3, 12), '3 of 12 songs');
     expect(en.resampled('44.1 kHz', '48 kHz'), 'Resampled 44.1 kHz → 48 kHz');
+    expect(en.resampledByAudifac('44.1 kHz', '48 kHz'), '44.1 kHz → 48 kHz, linear phase');
+    expect(en.irLoaded(2, 'Room', '0.50'), 'Room: 2 ch, 0.50 s');
   });
 
   test('French has exactly the English keys', () {

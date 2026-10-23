@@ -19,6 +19,19 @@ internal object NativeDsp {
         out: FloatArray,
     ): Int
 
+    /** Partitioned convolution (cpp/dsp.cpp, see Convolver): [out][in] path spectra, null = silent. */
+    @JvmStatic
+    external fun convCreate(block: Int, partitions: Int, ll: FloatArray?, rl: FloatArray?, lr: FloatArray?, rr: FloatArray?): Long
+
+    @JvmStatic
+    external fun convProcess(handle: Long, samples: FloatArray, frames: Int, offset: Int, channels: Int)
+
+    @JvmStatic
+    external fun convReset(handle: Long)
+
+    @JvmStatic
+    external fun convDestroy(handle: Long)
+
     fun info(message: String) {
         try {
             Log.i("AudifacDsp", message)

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -168,6 +169,35 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
     _unsaved = updated;
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(milliseconds: 400), _flush);
+  }
+
+  Future<void> _loadIr(EqDevice output) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
+    try {
+      final ir = await ref.read(mediaLibraryProvider).importImpulseResponse();
+      if (ir == null) return;
+      final settings = ref.read(eqSettingsProvider.notifier);
+      final old = ref.read(eqSettingsProvider).devices[output.key]?.irPath;
+      settings.setImpulseResponse(output, ir.path, ir.name);
+      if (!ref.read(eqSettingsProvider).enabled) settings.setEnabled(true);
+      _deleteIr(old);
+      messenger.showSnackBar(SnackBar(content: Text(l10n.irLoaded(ir.channels, ir.name, ir.seconds.toStringAsFixed(2)))));
+    } on PlatformException {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.irUnusable)));
+    }
+  }
+
+  void _removeIr(EqDevice output) {
+    final old = ref.read(eqSettingsProvider).devices[output.key]?.irPath;
+    ref.read(eqSettingsProvider.notifier).setImpulseResponse(output, null, null);
+    _deleteIr(old);
+  }
+
+  /// The app's own copy (never the user's original file).
+  void _deleteIr(String? path) {
+    if (path == null) return;
+    File(path).delete().ignore();
   }
 
   void _setTone(Tone tone) {
@@ -584,6 +614,19 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
                 child: TextButton(onPressed: () => _setStereo(const Stereo()), child: Text(context.l10n.resetStereo)),
               ),
             ),
+
+          section(context.l10n.convolution),
+          Builder(builder: (context) {
+            final ir = settings.devices[output.key];
+            return ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+              title: Text(context.l10n.impulseResponseFor(output.name), style: TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text(ir?.irPath == null ? context.l10n.irNone : ir!.irName ?? '—'),
+              trailing: ir?.irPath == null
+                  ? TextButton(onPressed: () => _loadIr(output), child: Text(context.l10n.loadIr))
+                  : TextButton(onPressed: () => _removeIr(output), child: Text(context.l10n.removeIr)),
+            );
+          }),
 
           section(context.l10n.behaviour),
           SwitchListTile(

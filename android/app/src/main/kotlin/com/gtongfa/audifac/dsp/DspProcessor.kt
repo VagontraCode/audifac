@@ -22,7 +22,13 @@ class DspProcessor(
     private class Chain(val config: DspConfig, sampleRate: Int, val channels: Int) {
         val transparent = config.isTransparent
         val preamp = 10.0.pow(config.preampDb / 20.0)
-        val coefficients = config.bands.map { Coefficients.of(it, sampleRate) }
+        /** Bands that change something (a 0 dB peak or shelf is skipped: e.g. Flat's ten). */
+        val bandIndex = config.bands.indices.filterNot { i ->
+            val b = config.bands[i]
+            b.gainDb == 0.0 && (b.type == FilterType.PEAKING || b.type == FilterType.LOW_SHELF || b.type == FilterType.HIGH_SHELF)
+        }
+        val bands = bandIndex.map { config.bands[it] }
+        val coefficients = bands.map { Coefficients.of(it, sampleRate) }
         /** filters[channel][band] */
         val filters = Array(channels) { coefficients.map { Biquad(it) }.toTypedArray() }
 
@@ -48,13 +54,14 @@ class DspProcessor(
         var delayPos = 0
 
         fun inheritState(old: Chain) {
+            // Same band (by its place in the settings) and type: keep its state.
+            val oldPos = HashMap<Int, Int>().apply { old.bandIndex.forEachIndexed { pos, band -> put(band, pos) } }
             for (ch in filters.indices) {
                 val mine = filters[ch]
                 val theirs = old.filters.getOrNull(ch) ?: continue
                 for (i in mine.indices) {
-                    if (i < theirs.size && config.bands[i].type == old.config.bands[i].type) {
-                        mine[i].copyStateFrom(theirs[i])
-                    }
+                    val j = oldPos[bandIndex[i]] ?: continue
+                    if (bands[i].type == old.bands[j].type) mine[i].copyStateFrom(theirs[j])
                 }
             }
             lpLeft = old.lpLeft
@@ -204,36 +211,78 @@ class DspProcessor(
         // A volume boost can clip even with the EQ off.
         val useLimiter = chain.config.limiter &&
             ((chain.config.enabled && !chain.transparent) || gainTarget > 1.0 || gain > 1.0)
+        val conv = convolverFor(chain.config.ir)
+        if (conv != null) {
+            // Convolution works on blocks: EQ for the whole chunk, then the
+            // impulse response, then the limiter.
+            var idx = offset
+            for (frame in 0 until frameCount) {
+                eqFrame(chain, samples, idx)
+                for (ch in 0 until channels) samples[idx + ch] = outCurrent[ch].toFloat()
+                idx += channels
+            }
+            conv.process(samples, frameCount, offset)
+            idx = offset
+            for (frame in 0 until frameCount) {
+                for (ch in 0 until channels) outCurrent[ch] = samples[idx + ch].toDouble()
+                limitFrame(useLimiter)
+                for (ch in 0 until channels) samples[idx + ch] = outCurrent[ch].toFloat()
+                idx += channels
+            }
+            return
+        }
         var idx = offset
         for (frame in 0 until frameCount) {
-            for (ch in 0 until channels) inFrame[ch] = samples[idx + ch].toDouble()
-
-            chain.frame(inFrame, outCurrent)
-            val prev = previous
-            if (prev != null) {
-                prev.frame(inFrame, outPrevious)
-                val t = fadePos.toDouble() / fadeLength
-                for (ch in 0 until channels) outCurrent[ch] = outPrevious[ch] * (1 - t) + outCurrent[ch] * t
-                if (++fadePos >= fadeLength) previous = null
-            }
-
-            var framePeak = 0.0
-            for (ch in 0 until channels) framePeak = max(framePeak, abs(outCurrent[ch]))
-            if (framePeak > statPeak) statPeak = framePeak
-            if (useLimiter || limiterGain < 1.0) {
-                // Release towards unity first, then clamp: never above the ceiling.
-                val released = min(1.0, 1.0 - (1.0 - limiterGain) * release)
-                limiterGain = if (useLimiter && framePeak * released > ceiling) ceiling / framePeak else released
-                for (ch in 0 until channels) outCurrent[ch] *= limiterGain
-                if (limiterGain < limiting) statLimited++
-            } else if (framePeak > 1.0) {
-                statClipped++
-            }
-            statFrames++
-
+            eqFrame(chain, samples, idx)
+            limitFrame(useLimiter)
             for (ch in 0 until channels) samples[idx + ch] = outCurrent[ch].toFloat()
             idx += channels
         }
+    }
+
+    /** One frame from [samples] at [idx] through the chain (cross-fading from the previous one) into outCurrent. */
+    private fun eqFrame(chain: Chain, samples: FloatArray, idx: Int) {
+        for (ch in 0 until channels) inFrame[ch] = samples[idx + ch].toDouble()
+        chain.frame(inFrame, outCurrent)
+        val prev = previous
+        if (prev != null) {
+            prev.frame(inFrame, outPrevious)
+            val t = fadePos.toDouble() / fadeLength
+            for (ch in 0 until channels) outCurrent[ch] = outPrevious[ch] * (1 - t) + outCurrent[ch] * t
+            if (++fadePos >= fadeLength) previous = null
+        }
+    }
+
+    /** Level statistics and the peak limiter on outCurrent. */
+    private fun limitFrame(useLimiter: Boolean) {
+        var framePeak = 0.0
+        for (ch in 0 until channels) framePeak = max(framePeak, abs(outCurrent[ch]))
+        if (framePeak > statPeak) statPeak = framePeak
+        if (useLimiter || limiterGain < 1.0) {
+            // Release towards unity first, then clamp: never above the ceiling.
+            val released = min(1.0, 1.0 - (1.0 - limiterGain) * release)
+            limiterGain = if (useLimiter && framePeak * released > ceiling) ceiling / framePeak else released
+            for (ch in 0 until channels) outCurrent[ch] *= limiterGain
+            if (limiterGain < limiting) statLimited++
+        } else if (framePeak > 1.0) {
+            statClipped++
+        }
+        statFrames++
+    }
+
+    // Convolution with the configured impulse response (kept while it doesn't change).
+    private var convolver: Convolver? = null
+
+    private fun convolverFor(ir: ImpulseResponse?): Convolver? {
+        if (ir == null || channels > 2) {
+            convolver?.close()
+            convolver = null
+            return null
+        }
+        val c = convolver
+        if (c != null && c.ir === ir) return c
+        c?.close()
+        return Convolver(ir, sampleRate, channels).also { convolver = it }
     }
 
     // Level statistics since the last takeStats (the sink publishes them per song).
@@ -254,6 +303,7 @@ class DspProcessor(
         current?.filters?.forEach { ch -> ch.forEach { it.reset() } }
         current?.lpLeft = 0.0
         current?.lpRight = 0.0
+        convolver?.reset()
         previous = null
         limiterGain = 1.0
     }

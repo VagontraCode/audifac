@@ -204,6 +204,33 @@ Filter 5: ON HPQ Fc 20 Hz Q 0.71
     });
   });
 
+  group('impulse response', () {
+    test('kept per output device and sent to the native side', () {
+      final speaker = EqDevice.fromNative(const {'key': 'speaker', 'kind': 'speaker', 'name': 'Phone speaker'});
+      final withIr = speaker.withImpulseResponse('/data/ir/room.wav', 'Room');
+      final back = EqDevice.fromJson(withIr.toJson());
+      expect(back.irPath, '/data/ir/room.wav');
+      expect(back.irName, 'Room');
+      expect(back.copyWith(presetId: 'x').irPath, '/data/ir/room.wav'); // survives preset changes
+      expect(back.withImpulseResponse(null, 'ignored').irName, isNull);
+      final c = combineForNative(
+        enabled: true,
+        device: BuiltInPresets.deviceNone,
+        sound: BuiltInPresets.soundFlat,
+        autoPreamp: true,
+        irPath: withIr.irPath,
+      );
+      expect(c['irPath'], '/data/ir/room.wav');
+      final none = combineForNative(
+        enabled: true,
+        device: BuiltInPresets.deviceNone,
+        sound: BuiltInPresets.soundFlat,
+        autoPreamp: true,
+      );
+      expect(none.containsKey('irPath'), isFalse);
+    });
+  });
+
   group('rules', () {
     final presets = {'p_song', 'p_album', 'p_artist', 'p_genre', 'p_source', 'p_default', 'p_queue'};
     bool valid(String id) => presets.contains(id);

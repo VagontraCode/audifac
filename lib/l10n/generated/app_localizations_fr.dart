@@ -1974,4 +1974,36 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get resetStereo => 'Réinitialiser la stéréo';
+
+  @override
+  String get convolution => 'Convolution';
+
+  @override
+  String impulseResponseFor(Object device) {
+    return 'Réponse impulsionnelle · $device';
+  }
+
+  @override
+  String get irNone =>
+      'Aucune. Chargez une correction de pièce ou de casque en WAV (mono, stéréo ou vraie stéréo) ; normalisée à 0 dB, utilisée pour cette sortie uniquement.';
+
+  @override
+  String get loadIr => 'Charger un WAV';
+
+  @override
+  String get removeIr => 'Retirer';
+
+  @override
+  String irLoaded(Object channels, Object name, Object seconds) {
+    return '$name : $channels canaux, $seconds s';
+  }
+
+  @override
+  String get irUnusable =>
+      'Réponse impulsionnelle inutilisable (un WAV de 1, 2 ou 4 canaux)';
+
+  @override
+  String convolutionWith(Object name) {
+    return 'RI $name';
+  }
 }

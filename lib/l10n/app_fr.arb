@@ -520,5 +520,13 @@
   "invertLeft": "Inverser la polarité gauche",
   "invertRight": "Inverser la polarité droite",
   "resetTone": "Réinitialiser la tonalité",
-  "resetStereo": "Réinitialiser la stéréo"
+  "resetStereo": "Réinitialiser la stéréo",
+  "convolution": "Convolution",
+  "impulseResponseFor": "Réponse impulsionnelle · {device}",
+  "irNone": "Aucune. Chargez une correction de pièce ou de casque en WAV (mono, stéréo ou vraie stéréo) ; normalisée à 0 dB, utilisée pour cette sortie uniquement.",
+  "loadIr": "Charger un WAV",
+  "removeIr": "Retirer",
+  "irLoaded": "{name} : {channels} canaux, {seconds} s",
+  "irUnusable": "Réponse impulsionnelle inutilisable (un WAV de 1, 2 ou 4 canaux)",
+  "convolutionWith": "RI {name}"
 }

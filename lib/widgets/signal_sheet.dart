@@ -180,6 +180,7 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
     final limitedPct = ((p?['limitedFraction'] as num?)?.toDouble() ?? 0) * 100;
     final clipped = (p?['clippedFrames'] as num?)?.toInt() ?? 0;
     final loudnessDb = (p?['loudnessBassDb'] as num?)?.toDouble() ?? 0;
+    final convolution = p?['convolution'] as String? ?? '';
     String khz(int hz) => '${AudioInfo.formatSampleRate(hz)} kHz';
 
     final dspParts = [
@@ -187,6 +188,7 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
       if (gain.abs() >= 0.05) l10n.volumeDb(formatDb(gain)),
       if (crossfade > 0) l10n.crossfadeSeconds(crossfade.round()),
       if (loudnessDb >= 0.1) l10n.loudnessBass(formatDb(loudnessDb)),
+      if (convolution.isNotEmpty) l10n.convolutionWith(convolution),
     ];
     final rates = [for (final r in (out?['deviceRates'] as List? ?? const [])) (r as num).toInt()];
 

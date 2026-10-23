@@ -166,6 +166,25 @@ class MediaLibrary {
     return (name: raw['name'] as String?, text: raw['text'] as String);
   }
 
+  /// Picks a WAV impulse response; the app keeps its own copy. Null if
+  /// cancelled; throws [PlatformException] (code `not_ir`) if unusable.
+  Future<({String path, String name, int channels, int rate, double seconds})?> importImpulseResponse() async {
+    final Map<String, dynamic>? raw;
+    try {
+      raw = await _channel.invokeMapMethod<String, dynamic>('importImpulseResponse');
+    } on MissingPluginException {
+      return null;
+    }
+    if (raw == null) return null;
+    return (
+      path: raw['path'] as String,
+      name: raw['name'] as String,
+      channels: (raw['channels'] as num).toInt(),
+      rate: (raw['rate'] as num).toInt(),
+      seconds: (raw['seconds'] as num).toDouble(),
+    );
+  }
+
   /// "Save as" dialog writing [text]; returns the saved file name, or null if
   /// cancelled.
   Future<String?> saveTextDocument({required String name, required String text, String mime = 'application/json'}) =>
