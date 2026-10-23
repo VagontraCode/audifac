@@ -12,7 +12,6 @@ import androidx.media3.exoplayer.audio.ForwardingAudioSink
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 /**
  * Sits between the decoder and ExoPlayer's DefaultAudioSink.
@@ -46,6 +45,9 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
 
     private var samples = FloatArray(0)
     private var chunk = FloatArray(0)
+
+    /** 16-bit output (while the speed is changed) is dithered, not just rounded. */
+    private val dither = Dither()
     private var shorts = ShortArray(0)
     private var output: ByteBuffer = ByteBuffer.allocateDirect(0)
     private var outputPts = 0L
@@ -291,7 +293,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
             output.clear()
             output.order(ByteOrder.nativeOrder())
             if (outEncoding == C.ENCODING_PCM_16BIT) {
-                for (i in 0 until count) output.putShort(i * 2, toPcm16(chunk[i]))
+                for (i in 0 until count) output.putShort(i * 2, dither.toPcm16(chunk[i]))
             } else {
                 output.asFloatBuffer().put(chunk, 0, count)
             }
@@ -477,8 +479,6 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         fun isSupportedPcm(encoding: Int) = encoding == C.ENCODING_PCM_16BIT ||
             encoding == C.ENCODING_PCM_24BIT || encoding == C.ENCODING_PCM_32BIT ||
             encoding == C.ENCODING_PCM_FLOAT || encoding == C.ENCODING_PCM_8BIT
-
-        fun toPcm16(x: Float): Short = (x.coerceIn(-1f, 1f) * 32767f).roundToInt().toShort()
 
         fun bytesPerSample(encoding: Int) = when (encoding) {
             C.ENCODING_PCM_8BIT -> 1

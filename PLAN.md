@@ -195,7 +195,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | # | Feature | Size | Notes |
 |---|---|---|---|
 | 7.0 ✅ | **Crossfade / DSP fixes** — no freezes at song ends, EQ after the crossfade reserve, MP3 duration-correction stutter | M | prerequisite; verified on the S24+ |
-| 7.1 | **Dither** — TPDF (+ optional noise shaping) whenever the output is reduced to 16-bit (speed changes) | S | DSP sink |
+| 7.1 ✅ | **Dither** — TPDF (+ optional noise shaping) whenever the output is reduced to 16-bit (speed changes) | S | DSP sink |
 | 7.2 | **High-quality resampler** — windowed-sinc polyphase in the DSP to the device's mixer rate (Android otherwise resamples, usually to 48 kHz, with its own filter); quality / phase options; output rate choice (device rate, 96, 192 kHz); same output rate for every song → gapless across sample-rate changes | L | off while bit-perfect is active |
 | 7.3 | **Clip counter + richer signal path** — limiter activity and clipped samples per song; file → decoder → resampler → DSP → mixer → device, rate / depth at each step | S | signal sheet |
 | 7.4 | **Tone controls** — loudness compensation (ISO 226, follows the volume), tilt EQ, bass / treble shelves | M | device layer |
@@ -223,6 +223,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | Step | Verified | Not verified yet |
 |---|---|---|
 | 7.0 | S24+: crossfade at song ends, no stuck / skip, MP3 stutter gone | — |
+| 7.1 | unit-tested: 0.3 LSB survives on average, error within ±1.5 LSB, clamps | on device (only used while the speed is changed) |
 
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".
