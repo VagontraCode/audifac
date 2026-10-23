@@ -105,6 +105,10 @@ class AppSettings {
   /// Bit-perfect USB DAC output when nothing needs processing (Android 14+).
   final bool bitPerfectUsb;
 
+  /// Convert songs to the mixer rate with our own high-quality resampler
+  /// (speaker and headphone jack; Android's resampler otherwise).
+  final bool hqResampler;
+
   const AppSettings({
     this.themeMode = ThemeMode.system,
     this.songSort = SongSort.title,
@@ -117,6 +121,7 @@ class AppSettings {
     this.crossfadeSeconds = 0,
     this.languageCode = '',
     this.bitPerfectUsb = false,
+    this.hqResampler = false,
   });
 
   static const crossfadeChoices = [0, 2, 4, 6, 8, 12];
@@ -135,6 +140,7 @@ class AppSettings {
     int? crossfadeSeconds,
     String? languageCode,
     bool? bitPerfectUsb,
+    bool? hqResampler,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -148,6 +154,7 @@ class AppSettings {
         crossfadeSeconds: crossfadeSeconds ?? this.crossfadeSeconds,
         languageCode: languageCode ?? this.languageCode,
         bitPerfectUsb: bitPerfectUsb ?? this.bitPerfectUsb,
+        hqResampler: hqResampler ?? this.hqResampler,
       );
 
   /// Whether [folder] (or one of its parents) is excluded.
@@ -168,6 +175,7 @@ class AppSettings {
         'crossfadeSeconds': '$crossfadeSeconds',
         'languageCode': languageCode,
         'bitPerfectUsb': '$bitPerfectUsb',
+        'hqResampler': '$hqResampler',
       };
 
   factory AppSettings.fromKeyValues(Map<String, String> kv) {
@@ -194,6 +202,7 @@ class AppSettings {
       crossfadeSeconds: (int.tryParse(kv['crossfadeSeconds'] ?? '') ?? 0).clamp(0, 12),
       languageCode: const {'en', 'fr'}.contains(kv['languageCode']) ? kv['languageCode']! : '',
       bitPerfectUsb: kv['bitPerfectUsb'] == 'true',
+      hqResampler: kv['hqResampler'] == 'true',
     );
   }
 }

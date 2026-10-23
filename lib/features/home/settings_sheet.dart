@@ -171,6 +171,16 @@ class SettingsSheet extends ConsumerWidget {
                   value: settings.bitPerfectUsb,
                   onChanged: notifier.setBitPerfectUsb,
                 ),
+              if (Platform.isAndroid)
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  activeThumbColor: palette.onInk,
+                  activeTrackColor: palette.ink,
+                  title: Text(context.l10n.hqResampler, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(context.l10n.hqResamplerHint),
+                  value: settings.hqResampler,
+                  onChanged: notifier.setHqResampler,
+                ),
               heading(context.l10n.tabLibrary),
               ListTile(
                 contentPadding: EdgeInsets.zero,

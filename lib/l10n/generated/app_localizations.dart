@@ -3055,6 +3055,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bypassed — bit-perfect to the USB DAC'**
   String get bitPerfectOn;
+
+  /// No description provided for @hqResampler.
+  ///
+  /// In en, this message translates to:
+  /// **'High-quality resampling'**
+  String get hqResampler;
+
+  /// No description provided for @hqResamplerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone speaker and headphone jack: songs are converted to the rate Android mixes at by audifac\'s own resampler (sharper, linear phase) instead of Android\'s — and songs of different rates follow each other without a gap. From the next song.'**
+  String get hqResamplerHint;
+
+  /// No description provided for @resampledByAudifac.
+  ///
+  /// In en, this message translates to:
+  /// **'{from} → {to}, linear phase'**
+  String resampledByAudifac(Object from, Object to);
 }
 
 class _AppLocalizationsDelegate

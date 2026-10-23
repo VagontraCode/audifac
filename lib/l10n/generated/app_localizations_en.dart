@@ -1842,4 +1842,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bitPerfectOn => 'Bypassed — bit-perfect to the USB DAC';
+
+  @override
+  String get hqResampler => 'High-quality resampling';
+
+  @override
+  String get hqResamplerHint =>
+      'Phone speaker and headphone jack: songs are converted to the rate Android mixes at by audifac\'s own resampler (sharper, linear phase) instead of Android\'s — and songs of different rates follow each other without a gap. From the next song.';
+
+  @override
+  String resampledByAudifac(Object from, Object to) {
+    return '$from → $to, linear phase';
+  }
 }

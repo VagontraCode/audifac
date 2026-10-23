@@ -166,6 +166,9 @@ object SignalPath {
     @Volatile var gainDb = 0.0
     @Volatile var bitPerfect = false
 
+    /** Rate our resampler converts to (0: not resampling). */
+    @Volatile var resampledTo = 0
+
     /** What the AudioTrack gets: float, or 16-bit while the speed is changed. */
     @Volatile var outputEncoding = androidx.media3.common.C.ENCODING_PCM_FLOAT
 
@@ -185,6 +188,7 @@ object SignalPath {
         "gainDb" to gainDb,
         "crossfade" to Crossfade.seconds,
         "bitPerfect" to bitPerfect,
+        "resampledTo" to resampledTo,
         "output16" to (outputEncoding == androidx.media3.common.C.ENCODING_PCM_16BIT),
         "bitPerfectReason" to BitPerfect.reason,
         "bitPerfectSupported" to BitPerfect.supported,

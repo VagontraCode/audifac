@@ -67,6 +67,19 @@ object BluetoothOutput {
     private fun isBluetooth(type: Int?) = type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
         type == 26 /* BLE_HEADSET */ || type == 27 /* BLE_SPEAKER */ || type == 30 /* BLE_BROADCAST */
 
+    /** Type ([AudioDeviceInfo].TYPE_…) of the output media plays to, null if unknown. */
+    fun mediaOutputType(): Int? {
+        val am = audioManager ?: return null
+        return try {
+            routedType(am) ?: AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** Sample rate Android's mixer runs at for the main outputs (speaker, headphone jack). */
+    fun mixerRate(): Int? = audioManager?.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)?.toIntOrNull()
+
     /** The device media is routed to (Android 13+), else the connected output media would use. */
     private fun routedType(am: AudioManager): Int? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

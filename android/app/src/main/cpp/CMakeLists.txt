@@ -18,3 +18,8 @@ target_compile_options(audifac_ffmpeg PRIVATE -O2 -fvisibility=hidden -ffunction
 # Link order matters for static libs: users before what they use.
 target_link_libraries(audifac_ffmpeg avformat avcodec avutil log m)
 target_link_options(audifac_ffmpeg PRIVATE -Wl,--gc-sections -Wl,--exclude-libs,ALL -Wl,-z,max-page-size=16384)
+
+# DSP hot loops (NEON): no FFmpeg, loaded on its own.
+add_library(audifac_dsp SHARED dsp.cpp)
+target_compile_options(audifac_dsp PRIVATE -O3 -fvisibility=hidden)
+target_link_options(audifac_dsp PRIVATE -Wl,-z,max-page-size=16384)

@@ -15,8 +15,8 @@ import kotlin.math.pow
  * untouched (bit-exact pass-through in the float domain).
  */
 class DspProcessor(
-    private val sampleRate: Int,
-    private val channels: Int,
+    val sampleRate: Int,
+    val channels: Int,
     private val source: () -> Pair<DspConfig, Long> = { (if (DspEngine.bypass) DspConfig.OFF else DspEngine.config) to DspEngine.version * 2 + (if (DspEngine.bypass) 1 else 0) },
 ) {
     private class Chain(val config: DspConfig, sampleRate: Int, val channels: Int) {

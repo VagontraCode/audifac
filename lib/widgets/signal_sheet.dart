@@ -170,6 +170,9 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
     final crossfade = (p?['crossfade'] as num?)?.toDouble() ?? 0;
     final processing = p?['processing'] == true;
     final bitPerfect = p?['bitPerfect'] == true;
+    final resampledTo = (p?['resampledTo'] as num?)?.toInt() ?? 0;
+    // The rate that reaches Android's mixer.
+    final reaching = resampledTo > 0 ? resampledTo : rate;
     String khz(int hz) => '${AudioInfo.formatSampleRate(hz)} kHz';
 
     final dspParts = [
@@ -202,16 +205,22 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
             : l10n.dspProcessing(dspParts.isEmpty ? l10n.processing : dspParts.join(' · ')),
         good: !processing,
       ),
+      if (resampledTo > 0)
+        _Step(
+          title: l10n.hqResampler,
+          value: l10n.resampledByAudifac(khz(rate), khz(resampledTo)),
+          good: true,
+        ),
       _Step(
         title: l10n.androidMixer,
         value: bitPerfect
             ? l10n.bitPerfectOn
-            : mixer == null || rate == 0
+            : mixer == null || reaching == 0
             ? '—'
-            : mixer == rate
+            : mixer == reaching
                 ? l10n.noResampling(khz(mixer))
-                : l10n.resampled(khz(rate), khz(mixer)),
-        good: bitPerfect || (mixer != null && mixer == rate),
+                : l10n.resampled(khz(reaching), khz(mixer)),
+        good: bitPerfect || (mixer != null && mixer == reaching),
       ),
       _Step(
         title: l10n.output,

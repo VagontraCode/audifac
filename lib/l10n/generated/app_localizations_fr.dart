@@ -1877,4 +1877,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get bitPerfectOn => 'Contourné — bit-perfect vers le DAC USB';
+
+  @override
+  String get hqResampler => 'Rééchantillonnage haute qualité';
+
+  @override
+  String get hqResamplerHint =>
+      'Haut-parleur et prise casque : les titres sont convertis à la fréquence du mélangeur d\'Android par le rééchantillonneur d\'audifac (plus précis, phase linéaire) au lieu de celui d\'Android — et des titres de fréquences différentes s\'enchaînent sans blanc. À partir du titre suivant.';
+
+  @override
+  String resampledByAudifac(Object from, Object to) {
+    return '$from → $to, phase linéaire';
+  }
 }

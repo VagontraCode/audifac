@@ -26,6 +26,7 @@ class DspAudioSinkTest {
         val pts = ArrayList<Pair<Int, Long>>() // (sample index where the buffer starts, pts)
         var acceptLimit = Int.MAX_VALUE // buffers accepted before refusing (backpressure test)
         val encodings = ArrayList<Int>() // each configure's PCM encoding
+        val rates = ArrayList<Int>() // each configure's sample rate
         var positionUs = 0L // playback position the "AudioTrack" reports
 
         /** Frames the "AudioTrack" buffers; when full it refuses, and a little time passes (decoding outruns playback). */
@@ -36,6 +37,7 @@ class DspAudioSinkTest {
             when (m.name) {
                 "configure" -> {
                     encodings += (args[0] as Format).pcmEncoding
+                    rates += (args[0] as Format).sampleRate
                     null
                 }
                 "handleBuffer" -> {
@@ -105,11 +107,15 @@ class DspAudioSinkTest {
         }
     }
 
+    private val defaultMixerRate = Resampling.mixerRate
+
     @After
     fun tearDown() {
         Crossfade.seconds = 0.0
         Crossfade.setAlbums(emptyMap())
         DspEngine.update(DspConfig.OFF)
+        Resampling.enabled = false
+        Resampling.mixerRate = defaultMixerRate
         Loudness.update(VolumeMatching())
         Loudness.putGains(emptyMap(), replace = true)
     }
@@ -149,6 +155,44 @@ class DspAudioSinkTest {
         do {
             sink.playToEndOfStream()
         } while (!sink.isEnded && ++calls < 10_000)
+    }
+
+
+    @Test
+    fun resamplesToTheMixerRate() {
+        Resampling.enabled = true
+        Resampling.mixerRate = { 48_000 }
+        val r = Recorder()
+        val sink = DspAudioSink(r.sink)
+        sink.configure(format(), 0, null)
+        feed(sink, rate, 0, value = 8192) // 1 s of 0.25 at 44.1 kHz
+        playToEnd(sink)
+        assertEquals(listOf(48_000), r.rates.distinct())
+        assertEquals(48_000, r.left.size)
+        // Away from the edges (the filter's run-in), the level is exact.
+        for (i in 1000 until 47_000) assertEquals(0.25f, r.left[i], 1e-3f)
+    }
+
+    @Test
+    fun songsOfDifferentRatesJoinWithoutAGap() {
+        Resampling.enabled = true
+        Resampling.mixerRate = { 48_000 }
+        val r = Recorder()
+        val sink = DspAudioSink(r.sink)
+        sink.configure(format(uri = "a"), 0, null) // 44.1 kHz → resampled
+        feed(sink, rate, 0, value = 8192)
+        val b = format(uri = "b").buildUpon().setSampleRate(48_000).build()
+        sink.configure(b, 0, null) // 48 kHz: as is
+        val bb = ByteBuffer.allocate(48_000 * 4).order(ByteOrder.LITTLE_ENDIAN)
+        repeat(48_000) { bb.putShort(16384).putShort(16384) }
+        bb.flip()
+        while (!sink.handleBuffer(bb, 1_000_000L, 1)) { /* retry */ }
+        playToEnd(sink)
+        // One output rate throughout (no AudioTrack rebuild), nothing lost.
+        assertEquals(listOf(48_000), r.rates.distinct())
+        assertEquals(96_000, r.left.size)
+        assertEquals(0.25f, r.left[24_000], 1e-3f)
+        assertEquals(0.5f, r.left[72_000], 1e-6f)
     }
 
     @Test

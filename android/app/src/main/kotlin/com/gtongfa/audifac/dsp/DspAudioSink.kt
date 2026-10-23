@@ -87,8 +87,25 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
      */
     private var effects: DspProcessor? = null
 
+    /** Last volume matching gain, given to a new effects processor (its limiter guards boosts). */
+    private var lastGain = 1.0
+
+    /** The EQ for [rate] / [channels]: kept while they don't change (filter state, gapless). */
+    private fun effectsFor(rate: Int, channels: Int): DspProcessor {
+        val e = effects
+        if (e != null && e.sampleRate == rate && e.channels == channels) return e
+        return DspProcessor(rate, channels).also { it.setGain(lastGain, immediate = true) }
+    }
+
+    // Resampling (see Resampling): the rate audio leaves at, and the converter.
+    private var outRate = 0
+    private var resampler: Resampler? = null
+
+    /** Presentation time of the resampler's input frame 0. */
+    private var resampleAnchorUs = C.TIME_UNSET
+
     private fun configureDelegate(format: Format) {
-        effects = processor
+        effects = effectsFor(format.sampleRate, format.channelCount)
         val out = format.buildUpon().setPcmEncoding(wantedEncoding()).build()
         delegate.configure(out, 0, null)
         delegateFormat = out
@@ -101,7 +118,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         delegate.setPlaybackParameters(playbackParameters)
     }
 
-    private fun holdFrames() = if (Crossfade.seconds > 0 && rate > 0) (Crossfade.seconds * rate).toInt() else 0
+    private fun holdFrames() = if (Crossfade.seconds > 0 && outRate > 0) (Crossfade.seconds * outRate).toInt() else 0
 
     override fun supportsFormat(format: Format): Boolean = delegate.supportsFormat(format)
 
@@ -122,19 +139,37 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         if (!pcm) {
             active = false
             processor = null
+            resampler = null
             held?.clear()
             mixer = null
             delegate.configure(inputFormat, specifiedBufferSize, outputChannels)
             return
         }
-        Log.i(TAG, "PCM in: encoding=${inputFormat.pcmEncoding} ${inputFormat.sampleRate} Hz × ${inputFormat.channelCount}, delay=${inputFormat.encoderDelay} padding=${inputFormat.encoderPadding} → float")
-        val sameOutput = active && rate == inputFormat.sampleRate && channels == inputFormat.channelCount
+        val target = Resampling.targetRate()
+        val newOutRate = if (target != null && target != inputFormat.sampleRate && Resampler.supports(inputFormat.sampleRate, target)) {
+            target
+        } else {
+            inputFormat.sampleRate
+        }
+        Log.i(TAG, "PCM in: encoding=${inputFormat.pcmEncoding} ${inputFormat.sampleRate} Hz × ${inputFormat.channelCount}, delay=${inputFormat.encoderDelay} padding=${inputFormat.encoderPadding} → float${if (newOutRate != inputFormat.sampleRate) ", resampled to $newOutRate Hz" else ""}")
+        val sameOutput = active && outRate == newOutRate && channels == inputFormat.channelCount
+        // The previous song's last frames still inside the resampler go out
+        // first (a converter for another rate / channel count takes over).
+        val r = resampler
+        if (active && r != null &&
+            (r.inRate != inputFormat.sampleRate || r.outRate != newOutRate || channels != inputFormat.channelCount)
+        ) {
+            flushResampler()
+            resampler = null
+        }
         active = true
         encoding = inputFormat.pcmEncoding
         floatLabelChecked = encoding != C.ENCODING_PCM_FLOAT
         floatEvidence = 0
         channels = inputFormat.channelCount
         rate = inputFormat.sampleRate
+        outRate = newOutRate
+        if (outRate != rate && resampler == null) resampler = Resampler(rate, outRate, channels)
         inFrameBytes = bytesPerSample(encoding) * channels
         trimStartRemaining = inputFormat.encoderDelay
         paddingFrames = inputFormat.encoderPadding
@@ -154,10 +189,12 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
 
         // Bit-perfect USB: when our processing would change nothing, the
         // decoder's PCM goes straight on and the mixer is set to leave it alone.
-        val untouched = Crossfade.seconds <= 0 && processor?.isPassThrough() == true &&
+        val untouched = Crossfade.seconds <= 0 && outRate == rate &&
+            processor?.isGainPassThrough() == true && effectsFor(rate, channels).isEffectsPassThrough() &&
             playbackParameters == PlaybackParameters.DEFAULT
         if (BitPerfect.enabled && untouched && BitPerfect.prepare(rate, channels, encoding)) {
             SignalPath.bitPerfect = true
+            SignalPath.resampledTo = 0
             active = false
             held?.clear()
             mixer = null
@@ -167,7 +204,9 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         SignalPath.bitPerfect = false
         if (BitPerfect.active) BitPerfect.release(if (untouched) "not available" else "processing is on")
 
+        SignalPath.resampledTo = if (outRate != rate) outRate else 0
         val floatFormat = inputFormat.buildUpon()
+            .setSampleRate(outRate)
             .setPcmEncoding(C.ENCODING_PCM_FLOAT)
             .setEncoderDelay(0)
             .setEncoderPadding(0)
@@ -183,7 +222,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
             pendingDelegateFormat = floatFormat
         } else {
             fadeArmed = false
-            held = HeldAudio(channels, rate)
+            held = HeldAudio(channels, outRate)
             configureDelegate(floatFormat)
         }
         mixer = null
@@ -210,6 +249,8 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         val gains = Loudness.gainsFor(format)
         val linear = Loudness.settings.linearGain(gains)
         processor?.setGain(linear, immediate)
+        effects?.setGain(linear, immediate)
+        lastGain = linear
         SignalPath.gainDb = 20 * kotlin.math.log10(linear)
         val changed = linear != loggedGain
         loggedGain = linear
@@ -226,7 +267,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
             if (!drain(keep = 0)) return false
             configureDelegate(format)
             pendingDelegateFormat = null
-            held = HeldAudio(channels, rate)
+            held = HeldAudio(channels, outRate)
         }
 
         // The speed changed: switch the delegate between float and 16-bit
@@ -339,18 +380,47 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         tailFrames = hold
         tailPts = startPts + usFor(emit)
 
-        val h = held ?: HeldAudio(channels, rate).also { held = it }
-        if (fadeArmed && emit > 0) {
+        // To the output rate (each song before mixing: a crossfade can join
+        // songs of different rates).
+        var out = samples
+        var outFrames = emit
+        var outPts = startPts
+        val r = resampler
+        if (r != null && emit > 0) {
+            if (r.taken == 0L || resampleAnchorUs == C.TIME_UNSET) {
+                resampleAnchorUs = startPts
+            } else {
+                // Follow real jumps in the timeline; tiny drifts (rounding) stay.
+                val drift = startPts - (resampleAnchorUs + r.taken * 1_000_000L / r.inRate)
+                if (abs(drift) > MAX_RESAMPLE_DRIFT_US) resampleAnchorUs += drift
+            }
+            outPts = resampleAnchorUs + r.produced * 1_000_000L / r.outRate
+            outFrames = r.process(samples, emit)
+            out = r.out
+        }
+
+        val h = held ?: HeldAudio(channels, outRate).also { held = it }
+        if (fadeArmed && outFrames > 0) {
             // The previous song's tail fades out under this one's start.
             fadeArmed = false
             mixer = FadeMixer(h.takeAll(), channels)
             Log.i(TAG, "crossfade into ${trackFormat?.let { SourceUri.of(it) }}")
         }
         mixer?.let { m ->
-            m.mix(samples, 0, emit)
+            m.mix(out, 0, outFrames)
             if (m.done) mixer = null
         }
-        h.append(samples, emit, startPts)
+        h.append(out, outFrames, outPts)
+    }
+
+    /** The resampler's last frames (the filter's delay) go to the held audio; it starts over. */
+    private fun flushResampler() {
+        val r = resampler ?: return
+        if (r.taken == 0L) return
+        val pts = resampleAnchorUs + r.produced * 1_000_000L / r.outRate
+        val n = r.flush()
+        if (n > 0) held?.append(r.out, n, pts)
+        resampleAnchorUs = C.TIME_UNSET
     }
 
     /**
@@ -410,6 +480,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
     override fun playToEndOfStream() {
         tailFrames = 0 // The held-back frames are encoder padding: dropped.
         mixer = null
+        if (active) flushResampler()
         if (active && !drain(keep = 0)) return // Called again until everything is out.
         delegate.playToEndOfStream()
     }
@@ -432,6 +503,8 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         tailFrames = 0
         trimStartRemaining = 0
         processor?.reset()
+        resampler?.reset()
+        resampleAnchorUs = C.TIME_UNSET
         effects?.reset()
         held?.clear()
         output.clear().limit(0)
@@ -442,7 +515,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
             effects = processor
             delegate.configure(format, 0, null)
             pendingDelegateFormat = null
-            held = HeldAudio(channels, rate)
+            held = HeldAudio(channels, outRate)
         }
         delegate.flush()
         if (active && wantedEncoding() != outEncoding) delegateFormat?.let { configureDelegate(it) }
@@ -452,6 +525,8 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         pending = false
         tailFrames = 0
         processor = null
+        resampler = null
+        outRate = 0
         effects = null
         trackFormat = null
         active = false
@@ -472,6 +547,9 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
 
         /** Chunks held audio is handed over in (50 ms): how soon EQ changes are heard. */
         private const val CHUNKS_PER_SECOND = 20
+
+        /** Larger jumps between input timestamps and the resampler's count are followed. */
+        private const val MAX_RESAMPLE_DRIFT_US = 20_000L
 
         /** How early in a song a newly measured gain may still be applied. */
         private const val NEW_GAIN_WINDOW_S = 0.3

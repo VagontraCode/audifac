@@ -93,6 +93,9 @@ class DspChannel {
     }
   }
 
+  /// Our high-quality resampler to the mixer rate (speaker / headphone jack).
+  Future<void> setResampler(bool on) => _invoke('setResampler', on);
+
   Future<void> setCrossfade(int seconds, Map<String, int> albums) =>
       _invoke('setCrossfade', {'seconds': seconds, 'albums': albums});
 

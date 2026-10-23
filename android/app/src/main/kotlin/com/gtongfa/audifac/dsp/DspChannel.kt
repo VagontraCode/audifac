@@ -105,6 +105,10 @@ class DspChannel(private val context: Context) : MethodChannel.MethodCallHandler
                 if (!BitPerfect.enabled) BitPerfect.release("off")
                 result.success(BitPerfect.supported)
             }
+            "setResampler" -> {
+                Resampling.enabled = call.arguments as? Boolean ?: false
+                result.success(null)
+            }
             "setCrossfade" -> {
                 Crossfade.seconds = ((call.argument<Number>("seconds"))?.toDouble() ?: 0.0).coerceIn(0.0, 12.0)
                 @Suppress("UNCHECKED_CAST")

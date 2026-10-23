@@ -492,5 +492,8 @@
   "iosFilesHint": "Songs downloaded in the Apple Music app appear automatically. To add your own files (FLAC, WAV, ALAC…), copy them into audifac with the Files app (On My iPhone → audifac) or from a computer with Finder / iTunes file sharing.",
   "bitPerfect": "Bit-perfect USB output",
   "bitPerfectHint": "Android 14+ with a USB DAC: the file's samples reach the DAC untouched, at their own rate, whenever the EQ, volume matching and crossfade are off.",
-  "bitPerfectOn": "Bypassed — bit-perfect to the USB DAC"
+  "bitPerfectOn": "Bypassed — bit-perfect to the USB DAC",
+  "hqResampler": "High-quality resampling",
+  "hqResamplerHint": "Phone speaker and headphone jack: songs are converted to the rate Android mixes at by audifac's own resampler (sharper, linear phase) instead of Android's — and songs of different rates follow each other without a gap. From the next song.",
+  "resampledByAudifac": "{from} → {to}, linear phase"
 }
