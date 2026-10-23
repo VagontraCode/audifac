@@ -499,6 +499,7 @@ class EqSettings {
     this.devices = const {},
     this.tone = const Tone(),
     this.stereo = const Stereo(),
+    this.linearPhase = false,
   });
 
   final bool enabled;
@@ -519,6 +520,9 @@ class EqSettings {
   /// Width / delay / polarity on top of the presets.
   final Stereo stereo;
 
+  /// Run the EQ as one linear-phase FIR (no phase shift; ~0.1 s more delay).
+  final bool linearPhase;
+
   EqSettings copyWith({
     bool? enabled,
     String? defaultSoundId,
@@ -527,6 +531,7 @@ class EqSettings {
     Map<String, EqDevice>? devices,
     Tone? tone,
     Stereo? stereo,
+    bool? linearPhase,
   }) =>
       EqSettings(
         enabled: enabled ?? this.enabled,
@@ -536,6 +541,7 @@ class EqSettings {
         devices: devices ?? this.devices,
         tone: tone ?? this.tone,
         stereo: stereo ?? this.stereo,
+        linearPhase: linearPhase ?? this.linearPhase,
       );
 
   String encode() => jsonEncode({
@@ -546,6 +552,7 @@ class EqSettings {
         'devices': [for (final d in devices.values) d.toJson()],
         'tone': tone.toJson(),
         'stereo': stereo.toJson(),
+        'linearPhase': linearPhase,
       });
 
   static EqSettings decode(String? raw) {
@@ -563,6 +570,7 @@ class EqSettings {
         devices: {for (final d in devices) d.key: d},
         tone: Tone.fromJson(j['tone'] as Map<String, dynamic>?),
         stereo: Stereo.fromJson(j['stereo'] as Map<String, dynamic>?),
+        linearPhase: j['linearPhase'] as bool? ?? false,
       );
     } catch (_) {
       return const EqSettings();
@@ -579,6 +587,7 @@ Map<String, Object> combineForNative({
   Tone tone = const Tone(),
   Stereo stereo = const Stereo(),
   String? irPath,
+  bool linearPhase = false,
 }) {
   final bands = [...device.bands, ...sound.bands, ...tone.bands];
   var preamp = device.preampDb + sound.preampDb;
@@ -599,5 +608,6 @@ Map<String, Object> combineForNative({
     'invertLeft': stereo.invertLeft,
     'invertRight': stereo.invertRight,
     if (irPath != null) 'irPath': irPath,
+    'linearPhase': linearPhase,
   };
 }

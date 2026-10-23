@@ -2006,4 +2006,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String convolutionWith(Object name) {
     return 'RI $name';
   }
+
+  @override
+  String get linearPhase => 'Égaliseur à phase linéaire';
+
+  @override
+  String get linearPhaseHint =>
+      'L\'égaliseur ne décale aucune phase : chaque fréquence garde son timing (un filtre de 8192 coefficients au lieu des filtres habituels). Ajoute environ 0,1 s de délai et consomme plus de batterie.';
+
+  @override
+  String get linearPhaseShort => 'phase linéaire';
 }

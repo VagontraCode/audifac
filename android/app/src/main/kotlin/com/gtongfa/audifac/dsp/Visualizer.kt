@@ -184,6 +184,9 @@ object SignalPath {
     /** Name of the impulse response being convolved ("" for none). */
     @Volatile var convolution = ""
 
+    /** The EQ runs as a linear-phase FIR. */
+    @Volatile var linearPhase = false
+
     /** What the AudioTrack gets: float, or 16-bit while the speed is changed. */
     @Volatile var outputEncoding = androidx.media3.common.C.ENCODING_PCM_FLOAT
 
@@ -211,6 +214,7 @@ object SignalPath {
         "levelFrames" to levelFrames,
         "loudnessBassDb" to loudnessBassDb,
         "convolution" to convolution,
+        "linearPhase" to linearPhase,
         "output16" to (outputEncoding == androidx.media3.common.C.ENCODING_PCM_16BIT),
         "bitPerfectReason" to BitPerfect.reason,
         "bitPerfectSupported" to BitPerfect.supported,

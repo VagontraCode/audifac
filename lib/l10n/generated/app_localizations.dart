@@ -3271,6 +3271,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'IR {name}'**
   String convolutionWith(Object name);
+
+  /// No description provided for @linearPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'Linear-phase EQ'**
+  String get linearPhase;
+
+  /// No description provided for @linearPhaseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The EQ shifts no phase: every frequency keeps its timing (an 8192-tap filter instead of the usual ones). Adds about 0.1 s of delay and uses more battery.'**
+  String get linearPhaseHint;
+
+  /// No description provided for @linearPhaseShort.
+  ///
+  /// In en, this message translates to:
+  /// **'linear phase'**
+  String get linearPhaseShort;
 }
 
 class _AppLocalizationsDelegate

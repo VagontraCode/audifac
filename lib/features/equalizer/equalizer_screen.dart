@@ -473,6 +473,15 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
             value: settings.autoPreamp,
             onChanged: ref.read(eqSettingsProvider.notifier).setAutoPreamp,
           ),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            activeThumbColor: palette.onInk,
+            activeTrackColor: palette.ink,
+            title: Text(context.l10n.linearPhase, style: TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: Text(context.l10n.linearPhaseHint),
+            value: settings.linearPhase,
+            onChanged: ref.read(eqSettingsProvider.notifier).setLinearPhase,
+          ),
           if (clipping)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),

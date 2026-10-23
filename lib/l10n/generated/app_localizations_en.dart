@@ -1971,4 +1971,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String convolutionWith(Object name) {
     return 'IR $name';
   }
+
+  @override
+  String get linearPhase => 'Linear-phase EQ';
+
+  @override
+  String get linearPhaseHint =>
+      'The EQ shifts no phase: every frequency keeps its timing (an 8192-tap filter instead of the usual ones). Adds about 0.1 s of delay and uses more battery.';
+
+  @override
+  String get linearPhaseShort => 'linear phase';
 }

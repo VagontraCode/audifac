@@ -23,7 +23,8 @@ class DspProcessor(
         val transparent = config.isTransparent
         val preamp = 10.0.pow(config.preampDb / 20.0)
         /** Bands that change something (a 0 dB peak or shelf is skipped: e.g. Flat's ten). */
-        val bandIndex = config.bands.indices.filterNot { i ->
+        // Linear phase: the bands run as one FIR after the chain, not here.
+        val bandIndex = if (config.linearPhase) emptyList() else config.bands.indices.filterNot { i ->
             val b = config.bands[i]
             b.gainDb == 0.0 && (b.type == FilterType.PEAKING || b.type == FilterType.LOW_SHELF || b.type == FilterType.HIGH_SHELF)
         }
@@ -212,7 +213,8 @@ class DspProcessor(
         val useLimiter = chain.config.limiter &&
             ((chain.config.enabled && !chain.transparent) || gainTarget > 1.0 || gain > 1.0)
         val conv = convolverFor(chain.config.ir)
-        if (conv != null) {
+        val eq = eqConvolverFor(chain.config)
+        if (conv != null || eq != null) {
             // Convolution works on blocks: EQ for the whole chunk, then the
             // impulse response, then the limiter.
             var idx = offset
@@ -221,7 +223,8 @@ class DspProcessor(
                 for (ch in 0 until channels) samples[idx + ch] = outCurrent[ch].toFloat()
                 idx += channels
             }
-            conv.process(samples, frameCount, offset)
+            eq?.process(samples, frameCount, offset)
+            conv?.process(samples, frameCount, offset)
             idx = offset
             for (frame in 0 until frameCount) {
                 for (ch in 0 until channels) outCurrent[ch] = samples[idx + ch].toDouble()
@@ -270,6 +273,35 @@ class DspProcessor(
         statFrames++
     }
 
+    // Linear-phase EQ: the bands as one FIR, updated (cross-faded) when they change.
+    private var eqConvolver: Convolver? = null
+    private var eqBands: List<Band>? = null
+
+    private fun eqConvolverFor(config: DspConfig): Convolver? {
+        val active = if (config.enabled && config.linearPhase && channels <= 2) {
+            config.bands.filterNot { b ->
+                b.gainDb == 0.0 && (b.type == FilterType.PEAKING || b.type == FilterType.LOW_SHELF || b.type == FilterType.HIGH_SHELF)
+            }
+        } else {
+            emptyList()
+        }
+        if (active.isEmpty()) {
+            eqConvolver?.close()
+            eqConvolver = null
+            eqBands = null
+            return null
+        }
+        val c = eqConvolver
+        if (c != null && active == eqBands) return c
+        val fir = LinearPhaseEq.fir(active, sampleRate)
+        eqBands = active
+        if (c != null) {
+            c.update(listOf(fir))
+            return c
+        }
+        return Convolver(ImpulseResponse("eq", sampleRate, listOf(fir)), sampleRate, channels, normalise = false).also { eqConvolver = it }
+    }
+
     // Convolution with the configured impulse response (kept while it doesn't change).
     private var convolver: Convolver? = null
 
@@ -304,6 +336,7 @@ class DspProcessor(
         current?.lpLeft = 0.0
         current?.lpRight = 0.0
         convolver?.reset()
+        eqConvolver?.reset()
         previous = null
         limiterGain = 1.0
     }

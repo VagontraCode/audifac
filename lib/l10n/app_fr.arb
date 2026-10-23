@@ -528,5 +528,8 @@
   "removeIr": "Retirer",
   "irLoaded": "{name} : {channels} canaux, {seconds} s",
   "irUnusable": "Réponse impulsionnelle inutilisable (un WAV de 1, 2 ou 4 canaux)",
-  "convolutionWith": "RI {name}"
+  "convolutionWith": "RI {name}",
+  "linearPhase": "Égaliseur à phase linéaire",
+  "linearPhaseHint": "L'égaliseur ne décale aucune phase : chaque fréquence garde son timing (un filtre de 8192 coefficients au lieu des filtres habituels). Ajoute environ 0,1 s de délai et consomme plus de batterie.",
+  "linearPhaseShort": "phase linéaire"
 }

@@ -29,6 +29,10 @@ internal object NativeDsp {
     @JvmStatic
     external fun convReset(handle: Long)
 
+    /** New response spectra, cross-faded in at the next block. */
+    @JvmStatic
+    external fun convUpdate(handle: Long, ll: FloatArray?, rl: FloatArray?, lr: FloatArray?, rr: FloatArray?)
+
     @JvmStatic
     external fun convDestroy(handle: Long)
 

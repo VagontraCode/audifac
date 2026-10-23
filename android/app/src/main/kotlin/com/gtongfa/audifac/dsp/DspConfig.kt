@@ -24,6 +24,8 @@ data class DspConfig(
     val invertRight: Boolean = false,
     /** Impulse response to convolve with (room / headphone correction), null for none. */
     val ir: ImpulseResponse? = null,
+    /** Render the EQ bands as one linear-phase FIR (LinearPhaseEq) instead of biquads. */
+    val linearPhase: Boolean = false,
 ) {
     /** True when processing would not change the signal at all. */
     val isTransparent: Boolean
@@ -60,6 +62,7 @@ data class DspConfig(
                 invertLeft = map["invertLeft"] as? Boolean ?: false,
                 invertRight = map["invertRight"] as? Boolean ?: false,
                 ir = (map["irPath"] as? String)?.let { ImpulseResponse.load(it) },
+                linearPhase = map["linearPhase"] as? Boolean ?: false,
             )
         }
     }
@@ -110,6 +113,7 @@ object DspEngine {
         config = LoudnessCompensation.apply(base, attenuationDb)
         SignalPath.loudnessBassDb = if (base.loudness && base.enabled) LoudnessCompensation.bassDb(attenuationDb) else 0.0
         SignalPath.convolution = if (base.enabled) base.ir?.name ?: "" else ""
+        SignalPath.linearPhase = base.enabled && base.linearPhase
         version++
     }
 }

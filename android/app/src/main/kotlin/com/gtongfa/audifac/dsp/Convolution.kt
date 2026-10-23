@@ -153,6 +153,8 @@ class Convolver(
     private val channels: Int,
     /** Run the C++ engine (verified against this Kotlin code on first use). */
     native: Boolean = nativeVerified,
+    /** Scale so the loudest frequency is at 0 dB (off for an EQ, whose level matters). */
+    private val normalise: Boolean = true,
 ) {
     /** The response at the stream's rate, per channel. */
     private val responses: List<FloatArray> = ir.channels.map { if (ir.rate == sampleRate) it else resample(it, ir.rate, sampleRate) }
@@ -165,7 +167,10 @@ class Convolver(
     private val fft = Fft(n)
 
     /** paths[out][in]: half spectra per partition (re, im), or null when that path is silent. */
-    private val paths: Array<Array<Array<DoubleArray>?>>
+    private var paths: Array<Array<Array<DoubleArray>?>>
+
+    /** Spectra taking over at the next block (see [update]). */
+    private var pending: Array<Array<Array<DoubleArray>?>>? = null
     private val partitions: Int
 
     /** The native engine, 0 when the Kotlin code runs. */
@@ -182,6 +187,7 @@ class Convolver(
     // Time domain: last n input samples per channel, and the block being filled / played.
     private val window = Array(2) { DoubleArray(n) }
     private val outBlock = Array(2) { DoubleArray(block) }
+    private val fadeBlock = Array(2) { DoubleArray(block) }
     private var fill = 0
 
     private val re = DoubleArray(n)
@@ -190,31 +196,48 @@ class Convolver(
     private val accIm = Array(2) { DoubleArray(bins) }
 
     init {
-
-        val h = responses
-        // Which response goes from input channel i to output channel o.
-        val matrix: Array<Array<FloatArray?>> = when (h.size) {
-            1 -> arrayOf(arrayOf(h[0], null), arrayOf(null, h[0]))
-            2 -> arrayOf(arrayOf(h[0], null), arrayOf(null, h[1]))
-            else -> arrayOf(arrayOf(h[0], h[2]), arrayOf(h[1], h[3])) // [out][in]: LL, RL / LR, RR
-        }
-        val length = h.maxOf { it.size }
+        val length = responses.maxOf { it.size }
         partitions = maxOf(1, (length + block - 1) / block)
-        gain = normalisation(matrix, length)
-        paths = Array(2) { o ->
-            Array(2) { i ->
-                matrix[o][i]?.let { response -> spectra(response, gain) }
-            }
-        }
+        val matrix = matrixOf(responses)
+        gain = if (normalise) normalisation(matrix, length) else 1.0
+        paths = pathsOf(matrix)
         fdlRe = Array(partitions) { Array(2) { DoubleArray(bins) } }
         fdlIm = Array(partitions) { Array(2) { DoubleArray(bins) } }
         handle = if (native) {
-            fun flat(o: Int, i: Int): FloatArray? = paths[o][i]?.let { parts ->
-                FloatArray(partitions * bins * 2).also { f -> for (p in 0 until partitions) for (k in 0 until bins * 2) f[p * bins * 2 + k] = parts[p][k].toFloat() }
-            }
-            NativeDsp.convCreate(block, partitions, flat(0, 0), flat(0, 1), flat(1, 0), flat(1, 1))
+            NativeDsp.convCreate(block, partitions, flat(paths, 0, 0), flat(paths, 0, 1), flat(paths, 1, 0), flat(paths, 1, 1))
         } else {
             0L
+        }
+    }
+
+    /** Which response goes from input channel i to output channel o: [out][in]. */
+    private fun matrixOf(h: List<FloatArray>): Array<Array<FloatArray?>> = when (h.size) {
+        1 -> arrayOf(arrayOf(h[0], null), arrayOf(null, h[0]))
+        2 -> arrayOf(arrayOf(h[0], null), arrayOf(null, h[1]))
+        else -> arrayOf(arrayOf(h[0], h[2]), arrayOf(h[1], h[3])) // LL, RL / LR, RR
+    }
+
+    private fun pathsOf(matrix: Array<Array<FloatArray?>>) = Array(2) { o ->
+        Array(2) { i -> matrix[o][i]?.let { response -> spectra(response, gain) } }
+    }
+
+    private fun flat(with: Array<Array<Array<DoubleArray>?>>, o: Int, i: Int): FloatArray? = with[o][i]?.let { parts ->
+        FloatArray(partitions * bins * 2).also { f ->
+            for (p in 0 until partitions) for (k in 0 until bins * 2) f[p * bins * 2 + k] = parts[p][k].toFloat()
+        }
+    }
+
+    /**
+     * Switches to [responses] (at the stream's rate, the same layout and at
+     * most as long): from the next block, cross-faded over it, keeping the
+     * input history — no gap, no click. The gain stays as it was.
+     */
+    fun update(responses: List<FloatArray>) {
+        val next = pathsOf(matrixOf(responses))
+        if (handle != 0L) {
+            NativeDsp.convUpdate(handle, flat(next, 0, 0), flat(next, 0, 1), flat(next, 1, 0), flat(next, 1, 1))
+        } else {
+            pending = next
         }
     }
 
@@ -294,6 +317,26 @@ class Convolver(
             inRe[1][k] = (im[k] + im[m]) * 0.5
             inIm[1][k] = (re[m] - re[k]) * 0.5
         }
+        filter(paths, outBlock)
+        val next = pending
+        if (next != null) {
+            // A new response: this block cross-fades from the old one's output
+            // to the new one's (same input history, so no gap and no click).
+            filter(next, fadeBlock)
+            for (j in 0 until block) {
+                val t = (j + 0.5) / block
+                for (c in 0 until 2) outBlock[c][j] = outBlock[c][j] * (1 - t) + fadeBlock[c][j] * t
+            }
+            paths = next
+            pending = null
+        }
+        slot = (slot + 1) % partitions
+        // Slide: the new half becomes the old half.
+        for (c in 0 until 2) System.arraycopy(window[c], block, window[c], 0, block)
+    }
+
+    /** The current block through [with] (input spectra already in the delay line) into [out]. */
+    private fun filter(with: Array<Array<Array<DoubleArray>?>>, out: Array<DoubleArray>) {
         for (o in 0 until 2) {
             accRe[o].fill(0.0)
             accIm[o].fill(0.0)
@@ -301,7 +344,7 @@ class Convolver(
         for (p in 0 until partitions) {
             val s = (slot - p + partitions) % partitions
             for (o in 0 until 2) for (i in 0 until 2) {
-                val h = paths[o][i]?.get(p) ?: continue
+                val h = with[o][i]?.get(p) ?: continue
                 val xr = fdlRe[s][i]
                 val xi = fdlIm[s][i]
                 val ar = accRe[o]
@@ -314,7 +357,6 @@ class Convolver(
                 }
             }
         }
-        slot = (slot + 1) % partitions
         // Z = Y_L + i·Y_R (full spectrum from the halves), one inverse transform.
         for (k in 0 until n) {
             if (k < bins) {
@@ -330,11 +372,9 @@ class Convolver(
         fft.transform(re, im, true)
         val scale = 1.0 / n
         for (j in 0 until block) {
-            outBlock[0][j] = re[block + j] * scale
-            outBlock[1][j] = im[block + j] * scale
+            out[0][j] = re[block + j] * scale
+            out[1][j] = im[block + j] * scale
         }
-        // Slide: the new half becomes the old half.
-        for (c in 0 until 2) System.arraycopy(window[c], block, window[c], 0, block)
     }
 
     /** Frees the native engine (also done when garbage-collected). */

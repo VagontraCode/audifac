@@ -201,7 +201,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.4 ✅ | **Tone controls** — loudness compensation (ISO 226, follows the volume), tilt EQ, bass / treble shelves | M | global (EQ settings), not per device: built-in device presets are read-only |
 | 7.5 ✅ | **Stereo tools** — width (mid / side), per-channel delay and polarity | S | global (EQ settings), with reset buttons for Tone and Stereo |
 | 7.6 ✅ | **Convolution** — load an impulse response (WAV, mono / stereo / true-stereo) for room or headphone correction; partitioned FFT | L | per output device (EqDevice), C++ engine |
-| 7.7 | **Linear-phase EQ** — option to render the EQ as a linear-phase FIR (no phase shift, adds latency) | M | uses 7.6 |
+| 7.7 ✅ | **Linear-phase EQ** — option to render the EQ as a linear-phase FIR (no phase shift, adds latency) | M | uses 7.6 |
 | 7.8 | **Compressor** — gentle dynamic range compression for noisy places / night, off by default | M | after EQ, before limiter |
 | 7.9 | **Target-curve EQ** — search a headphone model in the AutoEQ database (online), pick a target, import the correction | L | needs network |
 | 7.10 | **Multichannel downmix** — 5.1 / 7.1 / quad files folded to stereo with proper coefficients | M | DSP |
@@ -229,6 +229,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.4 | Nokia: Tone section (bass, treble, tilt, loudness); loudness at the muted volume → "+12.0 dB bass" in the signal path, no clipping; unit-tested: curve, headroom, version bumps, JSON | how it sounds (phone muted) |
 | 7.5 | Nokia: width 0 % → L / R meters equal (−9.7 / −9.5 dBFS, was −2.3 / −5.5), reset button; unit-tested: width 0 / 2, polarity, 1 ms = 48 frames exactly, neutral stays bit-exact | channel delay / polarity by ear (phone muted) |
 | 7.6 | Nokia: WAV picked through the system picker, copied into the app, "IR audifac_test_room" in the signal path, no clipping, 0 underruns; C++ engine verified at first use; 0.5 s stereo response: playback thread 52 % (Kotlin) → 21 % (C++, 4096-frame blocks, identity EQ bands skipped); unit-tested against direct convolution, true stereo, rate conversion, WAV parsing | a real room / headphone response by ear; 4-channel files on device |
+| 7.7 | Nokia: Bass boost in linear phase, signal path "(linear phase)", peak −0.9 dBFS, 0 underruns; playback thread 5.6 % (biquads) → 9.1 % (8192-tap FIR); unit-tested: FIR within 0.1 dB of the biquads 40 Hz–18 kHz and symmetric, same level through the processor, updates fade without a gap | by ear (phone muted) |
 
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".

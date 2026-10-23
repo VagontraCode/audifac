@@ -528,5 +528,8 @@
   "removeIr": "Remove",
   "irLoaded": "{name}: {channels} ch, {seconds} s",
   "irUnusable": "Not a usable impulse response (a WAV with 1, 2 or 4 channels)",
-  "convolutionWith": "IR {name}"
+  "convolutionWith": "IR {name}",
+  "linearPhase": "Linear-phase EQ",
+  "linearPhaseHint": "The EQ shifts no phase: every frequency keeps its timing (an 8192-tap filter instead of the usual ones). Adds about 0.1 s of delay and uses more battery.",
+  "linearPhaseShort": "linear phase"
 }

@@ -181,10 +181,11 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
     final clipped = (p?['clippedFrames'] as num?)?.toInt() ?? 0;
     final loudnessDb = (p?['loudnessBassDb'] as num?)?.toDouble() ?? 0;
     final convolution = p?['convolution'] as String? ?? '';
+    final linearPhase = p?['linearPhase'] == true;
     String khz(int hz) => '${AudioInfo.formatSampleRate(hz)} kHz';
 
     final dspParts = [
-      if (eqOn) 'EQ: ${l10n.presetName(sound)}${device.id == BuiltInPresets.deviceNone.id ? '' : ' + ${l10n.presetName(device)}'}',
+      if (eqOn) 'EQ: ${l10n.presetName(sound)}${device.id == BuiltInPresets.deviceNone.id ? '' : ' + ${l10n.presetName(device)}'}${linearPhase ? ' (${l10n.linearPhaseShort})' : ''}',
       if (gain.abs() >= 0.05) l10n.volumeDb(formatDb(gain)),
       if (crossfade > 0) l10n.crossfadeSeconds(crossfade.round()),
       if (loudnessDb >= 0.1) l10n.loudnessBass(formatDb(loudnessDb)),
