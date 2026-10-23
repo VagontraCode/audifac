@@ -30,6 +30,7 @@ class AudifacApplication : Application() {
         com.gtongfa.audifac.dsp.BitPerfect.context = applicationContext
         com.gtongfa.audifac.dsp.DecoderQuirks.load(applicationContext)
         com.gtongfa.audifac.dsp.BluetoothOutput.install(applicationContext)
+        com.gtongfa.audifac.dsp.VolumeWatcher.install(applicationContext)
         JustAudioHooks.audioSinkDecorator = object : JustAudioHooks.AudioSinkDecorator {
             override fun decorate(context: Context, sink: AudioSink): AudioSink = DspAudioSink(sink)
         }

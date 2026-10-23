@@ -31,6 +31,7 @@ class EqSettingsNotifier extends Notifier<EqSettings> {
   void setDefaultSound(String presetId) => _set(state.copyWith(defaultSoundId: presetId));
   void setAskOnPlay(bool ask) => _set(state.copyWith(askOnPlay: ask));
   void setAutoPreamp(bool auto) => _set(state.copyWith(autoPreamp: auto));
+  void setTone(Tone tone) => _set(state.copyWith(tone: tone));
 
   /// Correction preset to use whenever [device] is the output.
   void assignDevice(EqDevice device, String presetId) =>
@@ -199,6 +200,7 @@ final dspSyncProvider = Provider<void>((ref) {
     device: ref.watch(activeDevicePresetProvider),
     sound: ref.watch(activeSoundProvider).preset,
     autoPreamp: settings.autoPreamp,
+    tone: settings.tone,
   );
   ref.read(dspChannelProvider).setConfig(config);
 });

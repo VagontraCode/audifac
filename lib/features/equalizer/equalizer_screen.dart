@@ -170,6 +170,14 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
     _saveTimer = Timer(const Duration(milliseconds: 400), _flush);
   }
 
+  void _setTone(Tone tone) {
+    if (!ref.read(eqSettingsProvider).enabled) ref.read(eqSettingsProvider.notifier).setEnabled(true);
+    ref.read(eqSettingsProvider.notifier).setTone(tone);
+  }
+
+  /// Slider value in dB, to 0.5 dB, snapping to 0 near the middle.
+  static double _snapDb(double v) => v.abs() < 0.3 ? 0 : (v * 2).round() / 2;
+
   void _switchLayer(EqPresetKind layer) {
     if (layer == _layer) return;
     _flush();
@@ -237,7 +245,7 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
     final theme = Theme.of(context);
 
     final editing = _layer == EqPresetKind.device ? device : sound.preset;
-    final combined = [...device.bands, ...sound.preset.bands];
+    final combined = [...device.bands, ...sound.preset.bands, ...settings.tone.bands];
     final totalPreamp = device.preampDb + sound.preset.preampDb;
     final headroom = -EqMath.maxBoostDb(combined);
     final effectivePreamp = settings.autoPreamp ? math.min(totalPreamp, headroom) : totalPreamp;
@@ -475,6 +483,43 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
               onChanged: (v) => _edit(editing.copyWith(mono: v)),
             ),
           ],
+
+          section(context.l10n.tone),
+          _SliderRow(
+            label: context.l10n.bass,
+            value: settings.tone.bassDb,
+            min: -Tone.maxDb,
+            max: Tone.maxDb,
+            display: formatDb(settings.tone.bassDb),
+            onChanged: (v) => _setTone(settings.tone.copyWith(bassDb: _snapDb(v))),
+          ),
+          _SliderRow(
+            label: context.l10n.treble,
+            value: settings.tone.trebleDb,
+            min: -Tone.maxDb,
+            max: Tone.maxDb,
+            display: formatDb(settings.tone.trebleDb),
+            onChanged: (v) => _setTone(settings.tone.copyWith(trebleDb: _snapDb(v))),
+          ),
+          _SliderRow(
+            label: context.l10n.tilt,
+            value: settings.tone.tiltDb,
+            min: -Tone.maxTiltDb,
+            max: Tone.maxTiltDb,
+            display: settings.tone.tiltDb == 0
+                ? context.l10n.off
+                : '${formatDb(settings.tone.tiltDb)} ${settings.tone.tiltDb > 0 ? context.l10n.brighter : context.l10n.warmer}',
+            onChanged: (v) => _setTone(settings.tone.copyWith(tiltDb: _snapDb(v))),
+          ),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            activeThumbColor: palette.onInk,
+            activeTrackColor: palette.ink,
+            title: Text(context.l10n.loudnessCompensation, style: TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: Text(context.l10n.loudnessCompensationHint),
+            value: settings.tone.loudness,
+            onChanged: (v) => _setTone(settings.tone.copyWith(loudness: v)),
+          ),
 
           section(context.l10n.behaviour),
           SwitchListTile(

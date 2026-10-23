@@ -44,8 +44,8 @@ object BluetoothOutput {
         audioManager = am
         JustAudioHooks.audioTrackBufferSizeProvider = BufferSizes
         am.registerAudioDeviceCallback(object : AudioDeviceCallback() {
-            override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) { update() }
-            override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) { update() }
+            override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) { update(); VolumeWatcher.update() }
+            override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) { update(); VolumeWatcher.update() }
         }, Handler(Looper.getMainLooper()))
         update()
     }

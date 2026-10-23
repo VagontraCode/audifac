@@ -503,5 +503,14 @@
   "noClipping": "aucune saturation",
   "toAndroid": "Vers Android",
   "float32": "Flottant 32 bits",
-  "pcm16Dithered": "16 bits avec dither (vitesse modifiée)"
+  "pcm16Dithered": "16 bits avec dither (vitesse modifiée)",
+  "tone": "Tonalité",
+  "bass": "Graves",
+  "treble": "Aigus",
+  "tilt": "Inclinaison",
+  "brighter": "plus brillant",
+  "warmer": "plus chaud",
+  "loudnessCompensation": "Compensation physiologique",
+  "loudnessCompensationHint": "À faible volume, l'oreille perçoit moins les graves et les aigus : ils sont relevés à mesure que vous baissez le volume (courbes d'isosonie), jamais à plein volume.",
+  "loudnessBass": "compensation {db} graves"
 }

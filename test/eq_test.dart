@@ -138,6 +138,48 @@ Filter 5: ON HPQ Fc 20 Hz Q 0.71
     });
   });
 
+  group('tone', () {
+    test('adds shelves, counted in the automatic headroom', () {
+      const tone = Tone(bassDb: 6, trebleDb: -3, tiltDb: 2);
+      expect(tone.bands.length, 4);
+      final c = combineForNative(
+        enabled: true,
+        device: BuiltInPresets.deviceNone,
+        sound: BuiltInPresets.soundFlat,
+        autoPreamp: true,
+        tone: tone,
+      );
+      expect((c['bands'] as List).length, BuiltInPresets.soundFlat.bands.length + 4);
+      expect(c['preampDb'] as double, closeTo(-EqMath.maxBoostDb(tone.bands), 1e-9)); // the tone's biggest boost
+      expect(c['loudness'], isFalse);
+    });
+
+    test('neutral adds nothing; loudness is a flag for the native side', () {
+      expect(const Tone().bands, isEmpty);
+      expect(const Tone().isNeutral, isTrue);
+      final c = combineForNative(
+        enabled: true,
+        device: BuiltInPresets.deviceNone,
+        sound: BuiltInPresets.soundFlat,
+        autoPreamp: true,
+        tone: const Tone(loudness: true),
+      );
+      expect((c['bands'] as List).length, BuiltInPresets.soundFlat.bands.length);
+      expect(c['loudness'], isTrue);
+    });
+
+    test('saved with the settings, clamped when read', () {
+      const s = EqSettings(tone: Tone(bassDb: 4.5, trebleDb: -2, tiltDb: 1, loudness: true));
+      final back = EqSettings.decode(s.encode());
+      expect(back.tone.bassDb, 4.5);
+      expect(back.tone.trebleDb, -2);
+      expect(back.tone.tiltDb, 1);
+      expect(back.tone.loudness, isTrue);
+      expect(Tone.fromJson({'bass': 40}).bassDb, Tone.maxDb);
+      expect(EqSettings.decode('{"enabled":true}').tone.isNeutral, isTrue);
+    });
+  });
+
   group('rules', () {
     final presets = {'p_song', 'p_album', 'p_artist', 'p_genre', 'p_source', 'p_default', 'p_queue'};
     bool valid(String id) => presets.contains(id);

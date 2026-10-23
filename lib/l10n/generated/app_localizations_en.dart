@@ -1884,4 +1884,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pcm16Dithered => '16-bit, dithered (speed changed)';
+
+  @override
+  String get tone => 'Tone';
+
+  @override
+  String get bass => 'Bass';
+
+  @override
+  String get treble => 'Treble';
+
+  @override
+  String get tilt => 'Tilt';
+
+  @override
+  String get brighter => 'brighter';
+
+  @override
+  String get warmer => 'warmer';
+
+  @override
+  String get loudnessCompensation => 'Loudness compensation';
+
+  @override
+  String get loudnessCompensationHint =>
+      'At low volume the ear hears less bass and treble: they are raised as you turn the volume down (equal-loudness curves), never at full volume.';
+
+  @override
+  String loudnessBass(Object db) {
+    return 'loudness $db bass';
+  }
 }

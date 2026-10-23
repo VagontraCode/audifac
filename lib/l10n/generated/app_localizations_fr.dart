@@ -1919,4 +1919,34 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get pcm16Dithered => '16 bits avec dither (vitesse modifiée)';
+
+  @override
+  String get tone => 'Tonalité';
+
+  @override
+  String get bass => 'Graves';
+
+  @override
+  String get treble => 'Aigus';
+
+  @override
+  String get tilt => 'Inclinaison';
+
+  @override
+  String get brighter => 'plus brillant';
+
+  @override
+  String get warmer => 'plus chaud';
+
+  @override
+  String get loudnessCompensation => 'Compensation physiologique';
+
+  @override
+  String get loudnessCompensationHint =>
+      'À faible volume, l\'oreille perçoit moins les graves et les aigus : ils sont relevés à mesure que vous baissez le volume (courbes d\'isosonie), jamais à plein volume.';
+
+  @override
+  String loudnessBass(Object db) {
+    return 'compensation $db graves';
+  }
 }

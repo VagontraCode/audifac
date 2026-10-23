@@ -178,6 +178,9 @@ object SignalPath {
     @Volatile var clippedFrames = 0L
     @Volatile var levelFrames = 0L
 
+    /** Bass loudness compensation adds now (0: off or near full volume). */
+    @Volatile var loudnessBassDb = 0.0
+
     /** What the AudioTrack gets: float, or 16-bit while the speed is changed. */
     @Volatile var outputEncoding = androidx.media3.common.C.ENCODING_PCM_FLOAT
 
@@ -203,6 +206,7 @@ object SignalPath {
         "limitedFraction" to limitedFraction,
         "clippedFrames" to clippedFrames,
         "levelFrames" to levelFrames,
+        "loudnessBassDb" to loudnessBassDb,
         "output16" to (outputEncoding == androidx.media3.common.C.ENCODING_PCM_16BIT),
         "bitPerfectReason" to BitPerfect.reason,
         "bitPerfectSupported" to BitPerfect.supported,

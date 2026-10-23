@@ -379,6 +379,55 @@ class EqDevice {
       );
 }
 
+/// Global tone controls, applied on top of both layers.
+class Tone {
+  const Tone({this.bassDb = 0, this.trebleDb = 0, this.tiltDb = 0, this.loudness = false});
+
+  /// Low shelf at 105 Hz, −12…+12 dB.
+  final double bassDb;
+
+  /// High shelf at 9 kHz, −12…+12 dB.
+  final double trebleDb;
+
+  /// Whole-spectrum tilt around 1 kHz, −6…+6 dB (positive: brighter).
+  final double tiltDb;
+
+  /// Loudness compensation: bass / treble follow the volume (done natively).
+  final bool loudness;
+
+  static const maxDb = 12.0;
+  static const maxTiltDb = 6.0;
+
+  bool get isNeutral => bassDb == 0 && trebleDb == 0 && tiltDb == 0 && !loudness;
+
+  Tone copyWith({double? bassDb, double? trebleDb, double? tiltDb, bool? loudness}) => Tone(
+        bassDb: bassDb ?? this.bassDb,
+        trebleDb: trebleDb ?? this.trebleDb,
+        tiltDb: tiltDb ?? this.tiltDb,
+        loudness: loudness ?? this.loudness,
+      );
+
+  /// The shelves that make the tone (none when neutral).
+  List<EqBand> get bands => [
+        if (bassDb != 0) EqBand(type: EqFilterType.lowShelf, frequency: 105, gainDb: bassDb, q: 0.707),
+        if (trebleDb != 0) EqBand(type: EqFilterType.highShelf, frequency: 9000, gainDb: trebleDb, q: 0.707),
+        // A tilt: half down below 1 kHz, half up above (gentle slopes).
+        if (tiltDb != 0) EqBand(type: EqFilterType.lowShelf, frequency: 1000, gainDb: -tiltDb / 2, q: 0.5),
+        if (tiltDb != 0) EqBand(type: EqFilterType.highShelf, frequency: 1000, gainDb: tiltDb / 2, q: 0.5),
+      ];
+
+  Map<String, Object> toJson() => {'bass': bassDb, 'treble': trebleDb, 'tilt': tiltDb, 'loudness': loudness};
+
+  factory Tone.fromJson(Map<String, dynamic>? j) => j == null
+      ? const Tone()
+      : Tone(
+          bassDb: ((j['bass'] as num?)?.toDouble() ?? 0).clamp(-maxDb, maxDb),
+          trebleDb: ((j['treble'] as num?)?.toDouble() ?? 0).clamp(-maxDb, maxDb),
+          tiltDb: ((j['tilt'] as num?)?.toDouble() ?? 0).clamp(-maxTiltDb, maxTiltDb),
+          loudness: j['loudness'] as bool? ?? false,
+        );
+}
+
 class EqSettings {
   const EqSettings({
     this.enabled = false,
@@ -386,6 +435,7 @@ class EqSettings {
     this.askOnPlay = true,
     this.autoPreamp = true,
     this.devices = const {},
+    this.tone = const Tone(),
   });
 
   final bool enabled;
@@ -400,12 +450,16 @@ class EqSettings {
   /// Known outputs by key, with their correction preset.
   final Map<String, EqDevice> devices;
 
+  /// Bass / treble / tilt / loudness on top of the presets.
+  final Tone tone;
+
   EqSettings copyWith({
     bool? enabled,
     String? defaultSoundId,
     bool? askOnPlay,
     bool? autoPreamp,
     Map<String, EqDevice>? devices,
+    Tone? tone,
   }) =>
       EqSettings(
         enabled: enabled ?? this.enabled,
@@ -413,6 +467,7 @@ class EqSettings {
         askOnPlay: askOnPlay ?? this.askOnPlay,
         autoPreamp: autoPreamp ?? this.autoPreamp,
         devices: devices ?? this.devices,
+        tone: tone ?? this.tone,
       );
 
   String encode() => jsonEncode({
@@ -421,6 +476,7 @@ class EqSettings {
         'ask': askOnPlay,
         'autoPreamp': autoPreamp,
         'devices': [for (final d in devices.values) d.toJson()],
+        'tone': tone.toJson(),
       });
 
   static EqSettings decode(String? raw) {
@@ -436,6 +492,7 @@ class EqSettings {
         askOnPlay: j['ask'] as bool? ?? true,
         autoPreamp: j['autoPreamp'] as bool? ?? true,
         devices: {for (final d in devices) d.key: d},
+        tone: Tone.fromJson(j['tone'] as Map<String, dynamic>?),
       );
     } catch (_) {
       return const EqSettings();
@@ -449,8 +506,9 @@ Map<String, Object> combineForNative({
   required EqPreset device,
   required EqPreset sound,
   required bool autoPreamp,
+  Tone tone = const Tone(),
 }) {
-  final bands = [...device.bands, ...sound.bands];
+  final bands = [...device.bands, ...sound.bands, ...tone.bands];
   var preamp = device.preampDb + sound.preampDb;
   // Enough headroom for the biggest boost — without stacking on top of a
   // preamp the preset already has (AutoEQ profiles include one).
@@ -463,5 +521,6 @@ Map<String, Object> combineForNative({
     'mono': device.mono,
     'crossfeed': device.crossfeed,
     'limiter': true,
+    'loudness': tone.loudness,
   };
 }

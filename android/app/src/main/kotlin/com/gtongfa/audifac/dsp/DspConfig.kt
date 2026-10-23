@@ -14,6 +14,8 @@ data class DspConfig(
     /** 0 = off … 1 = strongest headphone crossfeed. */
     val crossfeed: Double = 0.0,
     val limiter: Boolean = true,
+    /** Loudness compensation (bass / treble that follow the volume, see LoudnessCompensation). */
+    val loudness: Boolean = false,
 ) {
     /** True when processing would not change the signal at all. */
     val isTransparent: Boolean
@@ -40,6 +42,7 @@ data class DspConfig(
                 mono = map["mono"] as? Boolean ?: false,
                 crossfeed = num("crossfeed").coerceIn(0.0, 1.0),
                 limiter = map["limiter"] as? Boolean ?: true,
+                loudness = map["loudness"] as? Boolean ?: false,
             )
         }
     }
@@ -47,6 +50,12 @@ data class DspConfig(
 
 /** Process-wide settings shared by every player's sink. */
 object DspEngine {
+    /** The settings as the app sent them. */
+    @Volatile
+    var base: DspConfig = DspConfig.OFF
+        private set
+
+    /** What the processors use: [base] plus loudness compensation for the current volume. */
     @Volatile
     var config: DspConfig = DspConfig.OFF
         private set
@@ -60,8 +69,58 @@ object DspEngine {
     var version: Long = 0
         private set
 
+    /** How far the media volume is below full, in dB (positive). */
+    @Volatile
+    var attenuationDb: Double = 0.0
+        private set
+
+    @Synchronized
     fun update(newConfig: DspConfig) {
-        config = newConfig
+        base = newConfig
+        rebuild()
+    }
+
+    /** The media volume changed (loudness compensation follows it). */
+    @Synchronized
+    fun setAttenuation(db: Double) {
+        val clamped = db.coerceIn(0.0, 100.0)
+        if (kotlin.math.abs(clamped - attenuationDb) < 0.5) return
+        attenuationDb = clamped
+        if (base.loudness) rebuild()
+    }
+
+    private fun rebuild() {
+        config = LoudnessCompensation.apply(base, attenuationDb)
+        SignalPath.loudnessBassDb = if (base.loudness && base.enabled) LoudnessCompensation.bassDb(attenuationDb) else 0.0
         version++
+    }
+}
+
+/**
+ * Loudness compensation: the ear loses bass (and some treble) faster than
+ * mids as the level drops (ISO 226 equal-loudness contours), so music played
+ * quietly sounds thin. Shelves follow the volume: nothing near full volume,
+ * up to +12 dB of bass / +4 dB of treble when very quiet. The pre-amp drops by
+ * the larger boost, so it never clips.
+ */
+object LoudnessCompensation {
+    /** Attenuation (dB below full volume) where compensation starts. */
+    const val REFERENCE_DB = 10.0
+
+    fun bassDb(attenuationDb: Double) = ((attenuationDb - REFERENCE_DB) * 0.35).coerceIn(0.0, 12.0)
+    fun trebleDb(attenuationDb: Double) = ((attenuationDb - REFERENCE_DB) * 0.12).coerceIn(0.0, 4.0)
+
+    fun apply(config: DspConfig, attenuationDb: Double): DspConfig {
+        if (!config.loudness || !config.enabled) return config
+        val bass = bassDb(attenuationDb)
+        val treble = trebleDb(attenuationDb)
+        if (bass == 0.0 && treble == 0.0) return config
+        return config.copy(
+            preampDb = config.preampDb - maxOf(bass, treble),
+            bands = config.bands + listOf(
+                Band(FilterType.LOW_SHELF, 100.0, bass, 0.7),
+                Band(FilterType.HIGH_SHELF, 9000.0, treble, 0.7),
+            ),
+        )
     }
 }

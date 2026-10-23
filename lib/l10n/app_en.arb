@@ -503,5 +503,14 @@
   "noClipping": "no clipping",
   "toAndroid": "To Android",
   "float32": "32-bit float",
-  "pcm16Dithered": "16-bit, dithered (speed changed)"
+  "pcm16Dithered": "16-bit, dithered (speed changed)",
+  "tone": "Tone",
+  "bass": "Bass",
+  "treble": "Treble",
+  "tilt": "Tilt",
+  "brighter": "brighter",
+  "warmer": "warmer",
+  "loudnessCompensation": "Loudness compensation",
+  "loudnessCompensationHint": "At low volume the ear hears less bass and treble: they are raised as you turn the volume down (equal-loudness curves), never at full volume.",
+  "loudnessBass": "loudness {db} bass"
 }

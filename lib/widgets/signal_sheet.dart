@@ -179,12 +179,14 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
     final peakDb = (p?['peakDb'] as num?)?.toDouble() ?? -100;
     final limitedPct = ((p?['limitedFraction'] as num?)?.toDouble() ?? 0) * 100;
     final clipped = (p?['clippedFrames'] as num?)?.toInt() ?? 0;
+    final loudnessDb = (p?['loudnessBassDb'] as num?)?.toDouble() ?? 0;
     String khz(int hz) => '${AudioInfo.formatSampleRate(hz)} kHz';
 
     final dspParts = [
       if (eqOn) 'EQ: ${l10n.presetName(sound)}${device.id == BuiltInPresets.deviceNone.id ? '' : ' + ${l10n.presetName(device)}'}',
       if (gain.abs() >= 0.05) l10n.volumeDb(formatDb(gain)),
       if (crossfade > 0) l10n.crossfadeSeconds(crossfade.round()),
+      if (loudnessDb >= 0.1) l10n.loudnessBass(formatDb(loudnessDb)),
     ];
     final rates = [for (final r in (out?['deviceRates'] as List? ?? const [])) (r as num).toInt()];
 

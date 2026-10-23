@@ -3121,6 +3121,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'16-bit, dithered (speed changed)'**
   String get pcm16Dithered;
+
+  /// No description provided for @tone.
+  ///
+  /// In en, this message translates to:
+  /// **'Tone'**
+  String get tone;
+
+  /// No description provided for @bass.
+  ///
+  /// In en, this message translates to:
+  /// **'Bass'**
+  String get bass;
+
+  /// No description provided for @treble.
+  ///
+  /// In en, this message translates to:
+  /// **'Treble'**
+  String get treble;
+
+  /// No description provided for @tilt.
+  ///
+  /// In en, this message translates to:
+  /// **'Tilt'**
+  String get tilt;
+
+  /// No description provided for @brighter.
+  ///
+  /// In en, this message translates to:
+  /// **'brighter'**
+  String get brighter;
+
+  /// No description provided for @warmer.
+  ///
+  /// In en, this message translates to:
+  /// **'warmer'**
+  String get warmer;
+
+  /// No description provided for @loudnessCompensation.
+  ///
+  /// In en, this message translates to:
+  /// **'Loudness compensation'**
+  String get loudnessCompensation;
+
+  /// No description provided for @loudnessCompensationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'At low volume the ear hears less bass and treble: they are raised as you turn the volume down (equal-loudness curves), never at full volume.'**
+  String get loudnessCompensationHint;
+
+  /// No description provided for @loudnessBass.
+  ///
+  /// In en, this message translates to:
+  /// **'loudness {db} bass'**
+  String loudnessBass(Object db);
 }
 
 class _AppLocalizationsDelegate
