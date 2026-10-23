@@ -531,5 +531,11 @@
   "convolutionWith": "RI {name}",
   "linearPhase": "Égaliseur à phase linéaire",
   "linearPhaseHint": "L'égaliseur ne décale aucune phase : chaque fréquence garde son timing (un filtre de 8192 coefficients au lieu des filtres habituels). Ajoute environ 0,1 s de délai et consomme plus de batterie.",
-  "linearPhaseShort": "phase linéaire"
+  "linearPhaseShort": "phase linéaire",
+  "compressor": "Compresseur",
+  "compressorLight": "Léger",
+  "compressorMedium": "Moyen",
+  "compressorStrong": "Fort",
+  "compressorHint": "Rapproche passages calmes et forts : pour les lieux bruyants ou l'écoute de nuit. Désactivé, la dynamique de la musique reste intacte.",
+  "compressorIs": "compresseur {strength}"
 }

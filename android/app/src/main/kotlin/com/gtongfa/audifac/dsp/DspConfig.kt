@@ -26,12 +26,14 @@ data class DspConfig(
     val ir: ImpulseResponse? = null,
     /** Render the EQ bands as one linear-phase FIR (LinearPhaseEq) instead of biquads. */
     val linearPhase: Boolean = false,
+    /** Dynamic range compression: 0 off, 1 light, 2 medium, 3 strong (night). */
+    val compressor: Int = 0,
 ) {
     /** True when processing would not change the signal at all. */
     val isTransparent: Boolean
         get() = !enabled || (
             preampDb == 0.0 && balance == 0.0 && !mono && crossfeed == 0.0 && width == 1.0 &&
-                delayMs == 0.0 && !invertLeft && !invertRight && ir == null &&
+                delayMs == 0.0 && !invertLeft && !invertRight && ir == null && compressor == 0 &&
                 bands.all { it.gainDb == 0.0 && (it.type == FilterType.PEAKING || it.type == FilterType.LOW_SHELF || it.type == FilterType.HIGH_SHELF) }
             )
 
@@ -63,6 +65,7 @@ data class DspConfig(
                 invertRight = map["invertRight"] as? Boolean ?: false,
                 ir = (map["irPath"] as? String)?.let { ImpulseResponse.load(it) },
                 linearPhase = map["linearPhase"] as? Boolean ?: false,
+                compressor = ((map["compressor"] as? Number)?.toInt() ?: 0).coerceIn(0, 3),
             )
         }
     }
@@ -114,6 +117,7 @@ object DspEngine {
         SignalPath.loudnessBassDb = if (base.loudness && base.enabled) LoudnessCompensation.bassDb(attenuationDb) else 0.0
         SignalPath.convolution = if (base.enabled) base.ir?.name ?: "" else ""
         SignalPath.linearPhase = base.enabled && base.linearPhase
+        SignalPath.compressor = if (base.enabled) base.compressor else 0
         version++
     }
 }

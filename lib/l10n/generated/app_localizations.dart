@@ -3289,6 +3289,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'linear phase'**
   String get linearPhaseShort;
+
+  /// No description provided for @compressor.
+  ///
+  /// In en, this message translates to:
+  /// **'Compressor'**
+  String get compressor;
+
+  /// No description provided for @compressorLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get compressorLight;
+
+  /// No description provided for @compressorMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get compressorMedium;
+
+  /// No description provided for @compressorStrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Strong'**
+  String get compressorStrong;
+
+  /// No description provided for @compressorHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Brings quiet and loud passages closer: for noisy places or night listening. Off keeps the music\'s dynamics intact.'**
+  String get compressorHint;
+
+  /// No description provided for @compressorIs.
+  ///
+  /// In en, this message translates to:
+  /// **'compressor {strength}'**
+  String compressorIs(Object strength);
 }
 
 class _AppLocalizationsDelegate

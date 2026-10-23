@@ -34,6 +34,7 @@ class EqSettingsNotifier extends Notifier<EqSettings> {
   void setTone(Tone tone) => _set(state.copyWith(tone: tone));
   void setStereo(Stereo stereo) => _set(state.copyWith(stereo: stereo));
   void setLinearPhase(bool on) => _set(state.copyWith(linearPhase: on));
+  void setCompressor(int strength) => _set(state.copyWith(compressor: strength));
 
   /// Impulse response for [device] (null path: none).
   void setImpulseResponse(EqDevice device, String? path, String? name) {
@@ -212,6 +213,7 @@ final dspSyncProvider = Provider<void>((ref) {
     stereo: settings.stereo,
     irPath: settings.devices[ref.watch(outputDeviceProvider).key]?.irPath,
     linearPhase: settings.linearPhase,
+    compressor: settings.compressor,
   );
   ref.read(dspChannelProvider).setConfig(config);
 });

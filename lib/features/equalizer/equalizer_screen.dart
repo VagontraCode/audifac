@@ -482,6 +482,36 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
             value: settings.linearPhase,
             onChanged: ref.read(eqSettingsProvider.notifier).setLinearPhase,
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(context.l10n.compressor, style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<int>(
+                    showSelectedIcon: false,
+                    segments: [
+                      ButtonSegment(value: 0, label: Text(context.l10n.off)),
+                      ButtonSegment(value: 1, label: Text(context.l10n.compressorLight)),
+                      ButtonSegment(value: 2, label: Text(context.l10n.compressorMedium)),
+                      ButtonSegment(value: 3, label: Text(context.l10n.compressorStrong)),
+                    ],
+                    selected: {settings.compressor},
+                    onSelectionChanged: (s) {
+                      final notifier = ref.read(eqSettingsProvider.notifier);
+                      if (s.first > 0 && !settings.enabled) notifier.setEnabled(true);
+                      notifier.setCompressor(s.first);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(context.l10n.compressorHint, style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted)),
+              ],
+            ),
+          ),
           if (clipping)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),

@@ -212,6 +212,9 @@ class DspProcessor(
         // A volume boost can clip even with the EQ off.
         val useLimiter = chain.config.limiter &&
             ((chain.config.enabled && !chain.transparent) || gainTarget > 1.0 || gain > 1.0)
+        compressor = chain.config.compressor.takeIf { chain.config.enabled && it > 0 }?.let { s ->
+            compressor?.takeIf { it.strength == s } ?: Compressor(sampleRate, s)
+        }
         val conv = convolverFor(chain.config.ir)
         val eq = eqConvolverFor(chain.config)
         if (conv != null || eq != null) {
@@ -258,6 +261,12 @@ class DspProcessor(
 
     /** Level statistics and the peak limiter on outCurrent. */
     private fun limitFrame(useLimiter: Boolean) {
+        compressor?.let { c ->
+            var p = 0.0
+            for (ch in 0 until channels) p = max(p, abs(outCurrent[ch]))
+            val g = c.gain(p)
+            for (ch in 0 until channels) outCurrent[ch] *= g
+        }
         var framePeak = 0.0
         for (ch in 0 until channels) framePeak = max(framePeak, abs(outCurrent[ch]))
         if (framePeak > statPeak) statPeak = framePeak
@@ -272,6 +281,9 @@ class DspProcessor(
         }
         statFrames++
     }
+
+    /** Dynamic range compression (before the limiter), kept while its strength doesn't change. */
+    private var compressor: Compressor? = null
 
     // Linear-phase EQ: the bands as one FIR, updated (cross-faded) when they change.
     private var eqConvolver: Convolver? = null
@@ -337,6 +349,7 @@ class DspProcessor(
         current?.lpRight = 0.0
         convolver?.reset()
         eqConvolver?.reset()
+        compressor?.reset()
         previous = null
         limiterGain = 1.0
     }

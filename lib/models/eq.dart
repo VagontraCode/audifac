@@ -500,6 +500,7 @@ class EqSettings {
     this.tone = const Tone(),
     this.stereo = const Stereo(),
     this.linearPhase = false,
+    this.compressor = 0,
   });
 
   final bool enabled;
@@ -523,6 +524,9 @@ class EqSettings {
   /// Run the EQ as one linear-phase FIR (no phase shift; ~0.1 s more delay).
   final bool linearPhase;
 
+  /// Dynamic range compression: 0 off, 1 light, 2 medium, 3 strong.
+  final int compressor;
+
   EqSettings copyWith({
     bool? enabled,
     String? defaultSoundId,
@@ -532,6 +536,7 @@ class EqSettings {
     Tone? tone,
     Stereo? stereo,
     bool? linearPhase,
+    int? compressor,
   }) =>
       EqSettings(
         enabled: enabled ?? this.enabled,
@@ -542,6 +547,7 @@ class EqSettings {
         tone: tone ?? this.tone,
         stereo: stereo ?? this.stereo,
         linearPhase: linearPhase ?? this.linearPhase,
+        compressor: compressor ?? this.compressor,
       );
 
   String encode() => jsonEncode({
@@ -553,6 +559,7 @@ class EqSettings {
         'tone': tone.toJson(),
         'stereo': stereo.toJson(),
         'linearPhase': linearPhase,
+        'compressor': compressor,
       });
 
   static EqSettings decode(String? raw) {
@@ -571,6 +578,7 @@ class EqSettings {
         tone: Tone.fromJson(j['tone'] as Map<String, dynamic>?),
         stereo: Stereo.fromJson(j['stereo'] as Map<String, dynamic>?),
         linearPhase: j['linearPhase'] as bool? ?? false,
+        compressor: ((j['compressor'] as num?)?.toInt() ?? 0).clamp(0, 3),
       );
     } catch (_) {
       return const EqSettings();
@@ -588,6 +596,7 @@ Map<String, Object> combineForNative({
   Stereo stereo = const Stereo(),
   String? irPath,
   bool linearPhase = false,
+  int compressor = 0,
 }) {
   final bands = [...device.bands, ...sound.bands, ...tone.bands];
   var preamp = device.preampDb + sound.preampDb;
@@ -609,5 +618,6 @@ Map<String, Object> combineForNative({
     'invertRight': stereo.invertRight,
     if (irPath != null) 'irPath': irPath,
     'linearPhase': linearPhase,
+    'compressor': compressor,
   };
 }

@@ -1981,4 +1981,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get linearPhaseShort => 'linear phase';
+
+  @override
+  String get compressor => 'Compressor';
+
+  @override
+  String get compressorLight => 'Light';
+
+  @override
+  String get compressorMedium => 'Medium';
+
+  @override
+  String get compressorStrong => 'Strong';
+
+  @override
+  String get compressorHint =>
+      'Brings quiet and loud passages closer: for noisy places or night listening. Off keeps the music\'s dynamics intact.';
+
+  @override
+  String compressorIs(Object strength) {
+    return 'compressor $strength';
+  }
 }

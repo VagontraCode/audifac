@@ -531,5 +531,11 @@
   "convolutionWith": "IR {name}",
   "linearPhase": "Linear-phase EQ",
   "linearPhaseHint": "The EQ shifts no phase: every frequency keeps its timing (an 8192-tap filter instead of the usual ones). Adds about 0.1 s of delay and uses more battery.",
-  "linearPhaseShort": "linear phase"
+  "linearPhaseShort": "linear phase",
+  "compressor": "Compressor",
+  "compressorLight": "Light",
+  "compressorMedium": "Medium",
+  "compressorStrong": "Strong",
+  "compressorHint": "Brings quiet and loud passages closer: for noisy places or night listening. Off keeps the music's dynamics intact.",
+  "compressorIs": "compressor {strength}"
 }

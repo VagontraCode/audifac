@@ -182,6 +182,7 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
     final loudnessDb = (p?['loudnessBassDb'] as num?)?.toDouble() ?? 0;
     final convolution = p?['convolution'] as String? ?? '';
     final linearPhase = p?['linearPhase'] == true;
+    final compressor = (p?['compressor'] as num?)?.toInt() ?? 0;
     String khz(int hz) => '${AudioInfo.formatSampleRate(hz)} kHz';
 
     final dspParts = [
@@ -190,6 +191,7 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
       if (crossfade > 0) l10n.crossfadeSeconds(crossfade.round()),
       if (loudnessDb >= 0.1) l10n.loudnessBass(formatDb(loudnessDb)),
       if (convolution.isNotEmpty) l10n.convolutionWith(convolution),
+      if (compressor > 0) l10n.compressorIs([l10n.compressorLight, l10n.compressorMedium, l10n.compressorStrong][compressor - 1]),
     ];
     final rates = [for (final r in (out?['deviceRates'] as List? ?? const [])) (r as num).toInt()];
 

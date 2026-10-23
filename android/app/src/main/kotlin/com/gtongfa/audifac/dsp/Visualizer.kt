@@ -187,6 +187,9 @@ object SignalPath {
     /** The EQ runs as a linear-phase FIR. */
     @Volatile var linearPhase = false
 
+    /** Compressor strength in use (0: off). */
+    @Volatile var compressor = 0
+
     /** What the AudioTrack gets: float, or 16-bit while the speed is changed. */
     @Volatile var outputEncoding = androidx.media3.common.C.ENCODING_PCM_FLOAT
 
@@ -215,6 +218,7 @@ object SignalPath {
         "loudnessBassDb" to loudnessBassDb,
         "convolution" to convolution,
         "linearPhase" to linearPhase,
+        "compressor" to compressor,
         "output16" to (outputEncoding == androidx.media3.common.C.ENCODING_PCM_16BIT),
         "bitPerfectReason" to BitPerfect.reason,
         "bitPerfectSupported" to BitPerfect.supported,
