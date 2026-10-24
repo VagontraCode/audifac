@@ -183,6 +183,7 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
     final convolution = p?['convolution'] as String? ?? '';
     final linearPhase = p?['linearPhase'] == true;
     final compressor = (p?['compressor'] as num?)?.toInt() ?? 0;
+    final downmixed = p?['downmixed'] == true;
     String khz(int hz) => '${AudioInfo.formatSampleRate(hz)} kHz';
 
     final dspParts = [
@@ -209,7 +210,7 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
       ),
       _Step(
         title: l10n.decoded,
-        value: rate == 0 ? l10n.notThroughDsp : 'PCM ${bits ?? '?'}-bit · ${khz(rate)} · ${p?['channels']} ch',
+        value: rate == 0 ? l10n.notThroughDsp : 'PCM ${bits ?? '?'}-bit · ${khz(rate)} · ${p?['channels']} ch${downmixed ? ' → ${l10n.stereo.toLowerCase()}' : ''}',
       ),
       _Step(
         title: 'audifac DSP',

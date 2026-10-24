@@ -169,11 +169,15 @@ class DspProcessor(
     /** No volume matching gain: [applyGain] may be skipped. */
     fun isGainPassThrough(): Boolean = gain == 1.0 && gainTarget == 1.0
 
+    /** Keep the limiter on even when nothing else processes (a downmix can add peaks up). */
+    @Volatile
+    var forceLimiter = false
+
     /** EQ and limiter leave audio untouched: [processEffects] may be skipped. */
     fun isEffectsPassThrough(): Boolean {
         refresh()
         val c = current
-        return c != null && c.transparent && previous == null && limiterGain == 1.0 &&
+        return !forceLimiter && c != null && c.transparent && previous == null && limiterGain == 1.0 &&
             gain <= 1.0 && gainTarget <= 1.0
     }
 
@@ -211,7 +215,7 @@ class DspProcessor(
         // Never limit untouched audio: keeps pass-through bit-exact.
         // A volume boost can clip even with the EQ off.
         val useLimiter = chain.config.limiter &&
-            ((chain.config.enabled && !chain.transparent) || gainTarget > 1.0 || gain > 1.0)
+            ((chain.config.enabled && !chain.transparent) || gainTarget > 1.0 || gain > 1.0 || forceLimiter)
         compressor = chain.config.compressor.takeIf { chain.config.enabled && it > 0 }?.let { s ->
             compressor?.takeIf { it.strength == s } ?: Compressor(sampleRate, s)
         }

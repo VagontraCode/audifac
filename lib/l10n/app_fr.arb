@@ -545,5 +545,7 @@
   "measuredBy": "mesuré par {source}",
   "autoEqOffline": "Impossible de télécharger la base AutoEQ. Vérifiez votre connexion.",
   "autoEqDownloadFailed": "Impossible de télécharger cette correction",
-  "autoEqCredit": "Données : projet AutoEQ de Jaakko Pasanen (github.com/jaakkopasanen/AutoEq)"
+  "autoEqCredit": "Données : projet AutoEQ de Jaakko Pasanen (github.com/jaakkopasanen/AutoEq)",
+  "downmix": "Réduire le surround en stéréo",
+  "downmixHint": "Les fichiers 5.1 et 7.1 sont d'abord ramenés en stéréo (coefficients UIT), pour que l'égaliseur, les outils stéréo et la convolution s'appliquent à ce que vous entendez. Désactivé : Android reçoit tous les canaux."
 }

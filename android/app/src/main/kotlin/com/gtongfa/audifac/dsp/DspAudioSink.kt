@@ -31,7 +31,9 @@ import kotlin.math.abs
 class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delegate) {
     private var active = false
     private var encoding = C.ENCODING_INVALID
-    private var channels = 0
+    private var channels = 0 // after a downmix (what the DSP and the AudioTrack get)
+    private var inChannels = 0 // as decoded
+    private var multi = FloatArray(0) // surround frames before the downmix
     private var rate = 0
     private var inFrameBytes = 0
     private var processor: DspProcessor? = null
@@ -155,13 +157,14 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         } else {
             inputFormat.sampleRate
         }
-        Log.i(TAG, "PCM in: encoding=${inputFormat.pcmEncoding} ${inputFormat.sampleRate} Hz × ${inputFormat.channelCount}, delay=${inputFormat.encoderDelay} padding=${inputFormat.encoderPadding} → float${if (newOutRate != inputFormat.sampleRate) ", resampled to $newOutRate Hz" else ""}")
-        val sameOutput = active && outRate == newOutRate && channels == inputFormat.channelCount
+        val newChannels = if (Downmix.applies(inputFormat.channelCount)) 2 else inputFormat.channelCount
+        Log.i(TAG, "PCM in: encoding=${inputFormat.pcmEncoding} ${inputFormat.sampleRate} Hz × ${inputFormat.channelCount}, delay=${inputFormat.encoderDelay} padding=${inputFormat.encoderPadding} → float${if (newOutRate != inputFormat.sampleRate) ", resampled to $newOutRate Hz" else ""}${if (newChannels != inputFormat.channelCount) ", folded to stereo" else ""}")
+        val sameOutput = active && outRate == newOutRate && channels == newChannels
         // The previous song's last frames still inside the resampler go out
         // first (a converter for another rate / channel count takes over).
         val r = resampler
         if (active && r != null &&
-            (r.inRate != inputFormat.sampleRate || r.outRate != newOutRate || channels != inputFormat.channelCount)
+            (r.inRate != inputFormat.sampleRate || r.outRate != newOutRate || channels != newChannels)
         ) {
             flushResampler()
             resampler = null
@@ -170,11 +173,12 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         encoding = inputFormat.pcmEncoding
         floatLabelChecked = encoding != C.ENCODING_PCM_FLOAT
         floatEvidence = 0
-        channels = inputFormat.channelCount
+        inChannels = inputFormat.channelCount
+        channels = newChannels
         rate = inputFormat.sampleRate
         outRate = newOutRate
         if (outRate != rate && resampler == null) resampler = Resampler(rate, outRate, channels)
-        inFrameBytes = bytesPerSample(encoding) * channels
+        inFrameBytes = bytesPerSample(encoding) * inChannels
         trimStartRemaining = inputFormat.encoderDelay
         paddingFrames = inputFormat.encoderPadding
         val fresh = processor == null || processorRate != inputFormat.sampleRate || processorChannels != channels
@@ -190,11 +194,12 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         applyGain(immediate = fresh)
         SignalPath.pcmEncoding = encoding
         SignalPath.sampleRate = rate
-        SignalPath.channels = channels
+        SignalPath.channels = inChannels
+        SignalPath.downmixed = inChannels != channels
 
         // Bit-perfect USB: when our processing would change nothing, the
         // decoder's PCM goes straight on and the mixer is set to leave it alone.
-        val untouched = Crossfade.seconds <= 0 && outRate == rate &&
+        val untouched = Crossfade.seconds <= 0 && outRate == rate && channels == inChannels &&
             processor?.isGainPassThrough() == true && effectsFor(rate, channels).isEffectsPassThrough() &&
             playbackParameters == PlaybackParameters.DEFAULT
         if (BitPerfect.enabled && untouched && BitPerfect.prepare(rate, channels, encoding)) {
@@ -212,6 +217,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         SignalPath.resampledTo = if (outRate != rate) outRate else 0
         val floatFormat = inputFormat.buildUpon()
             .setSampleRate(outRate)
+            .setChannelCount(channels)
             .setPcmEncoding(C.ENCODING_PCM_FLOAT)
             .setEncoderDelay(0)
             .setEncoderPadding(0)
@@ -328,6 +334,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
             h.drop(n)
             // EQ here, after the crossfade reserve: changes are heard at once.
             effects?.let { p ->
+                p.forceLimiter = inChannels != channels
                 val processing = !p.isEffectsPassThrough()
                 SignalPath.processing = processing || !p.isGainPassThrough()
                 if (processing) {
@@ -367,7 +374,14 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
         trimStartRemaining -= skip
         src.position(src.position() + skip * inFrameBytes)
         val decoded = frames - skip
-        readFloats(src, samples, count * channels, decoded * channels)
+        if (inChannels != channels) {
+            // Surround: decoded frames folded to stereo (see Downmix).
+            if (multi.size < decoded * inChannels) multi = FloatArray(decoded * inChannels)
+            readFloats(src, multi, 0, decoded * inChannels)
+            Downmix.mix(multi, inChannels, samples, count * channels, decoded)
+        } else {
+            readFloats(src, samples, count * channels, decoded * channels)
+        }
         val startPts = if (tailFrames > 0) tailPts else pts + usFor(skip)
 
         // Volume matching on the new frames only (the held tail had it last
@@ -445,7 +459,7 @@ class DspAudioSink(private val delegate: AudioSink) : ForwardingAudioSink(delega
             if (v.isNaN() || v.isInfinite() || abs(v) > 8f) {
                 Log.w(TAG, "\"float\" input is 16-bit PCM: reading it as such")
                 encoding = C.ENCODING_PCM_16BIT
-                inFrameBytes = 2 * channels
+                inFrameBytes = 2 * inChannels
                 SignalPath.pcmEncoding = encoding
                 floatLabelChecked = true
                 DecoderQuirks.reportMislabelledFloat()

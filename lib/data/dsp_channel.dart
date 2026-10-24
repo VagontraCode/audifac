@@ -93,6 +93,9 @@ class DspChannel {
     }
   }
 
+  /// Fold surround to stereo before the DSP (Downmix.kt).
+  Future<void> setDownmix(bool on) => _invoke('setDownmix', on);
+
   /// Our high-quality resampler to the mixer rate (speaker / headphone jack).
   Future<void> setResampler(bool on) => _invoke('setResampler', on);
 

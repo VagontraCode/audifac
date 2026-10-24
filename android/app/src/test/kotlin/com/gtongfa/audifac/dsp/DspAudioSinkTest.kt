@@ -195,6 +195,22 @@ class DspAudioSinkTest {
         assertEquals(0.5f, r.left[72_000], 1e-6f)
     }
 
+
+    @Test
+    fun surroundReachesTheAudioTrackAsStereo() {
+        val r = Recorder()
+        val sink = DspAudioSink(r.sink)
+        val surround = format().buildUpon().setChannelCount(6).build()
+        sink.configure(surround, 0, null)
+        val b = ByteBuffer.allocate(1000 * 6 * 2).order(ByteOrder.LITTLE_ENDIAN)
+        repeat(1000) { repeat(6) { c -> b.putShort(if (c == 0) 16384 else 0) } } // front left only, 0.5
+        b.flip()
+        while (!sink.handleBuffer(b, 0, 1)) { /* retry */ }
+        playToEnd(sink)
+        assertEquals(1000, r.left.size) // 1000 stereo frames (the recorder reads pairs)
+        assertEquals(0.5f * 0.7071f, r.left[500], 1e-3f)
+    }
+
     @Test
     fun crossfadeMixesTheTailIntoTheNextSong() {
         Crossfade.seconds = 0.1 // up to 4410 frames

@@ -2069,4 +2069,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get autoEqCredit =>
       'Données : projet AutoEQ de Jaakko Pasanen (github.com/jaakkopasanen/AutoEq)';
+
+  @override
+  String get downmix => 'Réduire le surround en stéréo';
+
+  @override
+  String get downmixHint =>
+      'Les fichiers 5.1 et 7.1 sont d\'abord ramenés en stéréo (coefficients UIT), pour que l\'égaliseur, les outils stéréo et la convolution s\'appliquent à ce que vous entendez. Désactivé : Android reçoit tous les canaux.';
 }

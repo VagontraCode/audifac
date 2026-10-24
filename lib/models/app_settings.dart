@@ -109,6 +109,9 @@ class AppSettings {
   /// (speaker and headphone jack; Android's resampler otherwise).
   final bool hqResampler;
 
+  /// Fold surround files (5.1, 7.1…) to stereo before the DSP.
+  final bool downmix;
+
   const AppSettings({
     this.themeMode = ThemeMode.system,
     this.songSort = SongSort.title,
@@ -122,6 +125,7 @@ class AppSettings {
     this.languageCode = '',
     this.bitPerfectUsb = false,
     this.hqResampler = false,
+    this.downmix = true,
   });
 
   static const crossfadeChoices = [0, 2, 4, 6, 8, 12];
@@ -141,6 +145,7 @@ class AppSettings {
     String? languageCode,
     bool? bitPerfectUsb,
     bool? hqResampler,
+    bool? downmix,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -155,6 +160,7 @@ class AppSettings {
         languageCode: languageCode ?? this.languageCode,
         bitPerfectUsb: bitPerfectUsb ?? this.bitPerfectUsb,
         hqResampler: hqResampler ?? this.hqResampler,
+        downmix: downmix ?? this.downmix,
       );
 
   /// Whether [folder] (or one of its parents) is excluded.
@@ -176,6 +182,7 @@ class AppSettings {
         'languageCode': languageCode,
         'bitPerfectUsb': '$bitPerfectUsb',
         'hqResampler': '$hqResampler',
+        'downmix': '$downmix',
       };
 
   factory AppSettings.fromKeyValues(Map<String, String> kv) {
@@ -203,6 +210,7 @@ class AppSettings {
       languageCode: const {'en', 'fr'}.contains(kv['languageCode']) ? kv['languageCode']! : '',
       bitPerfectUsb: kv['bitPerfectUsb'] == 'true',
       hqResampler: kv['hqResampler'] == 'true',
+      downmix: kv['downmix'] != 'false',
     );
   }
 }

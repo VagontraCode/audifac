@@ -105,6 +105,10 @@ class DspChannel(private val context: Context) : MethodChannel.MethodCallHandler
                 if (!BitPerfect.enabled) BitPerfect.release("off")
                 result.success(BitPerfect.supported)
             }
+            "setDownmix" -> {
+                Downmix.enabled = call.arguments as? Boolean ?: true
+                result.success(null)
+            }
             "setResampler" -> {
                 Resampling.enabled = call.arguments as? Boolean ?: false
                 result.success(null)

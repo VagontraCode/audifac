@@ -3373,6 +3373,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Data: AutoEQ project by Jaakko Pasanen (github.com/jaakkopasanen/AutoEq)'**
   String get autoEqCredit;
+
+  /// No description provided for @downmix.
+  ///
+  /// In en, this message translates to:
+  /// **'Downmix surround to stereo'**
+  String get downmix;
+
+  /// No description provided for @downmixHint.
+  ///
+  /// In en, this message translates to:
+  /// **'5.1 and 7.1 files are folded to stereo first (ITU coefficients), so the EQ, stereo tools and convolution apply to what you hear. Off: Android gets every channel.'**
+  String get downmixHint;
 }
 
 class _AppLocalizationsDelegate

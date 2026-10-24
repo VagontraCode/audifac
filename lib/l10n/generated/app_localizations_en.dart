@@ -2033,4 +2033,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get autoEqCredit =>
       'Data: AutoEQ project by Jaakko Pasanen (github.com/jaakkopasanen/AutoEq)';
+
+  @override
+  String get downmix => 'Downmix surround to stereo';
+
+  @override
+  String get downmixHint =>
+      '5.1 and 7.1 files are folded to stereo first (ITU coefficients), so the EQ, stereo tools and convolution apply to what you hear. Off: Android gets every channel.';
 }

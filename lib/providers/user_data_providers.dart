@@ -43,6 +43,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
 
   void setBitPerfectUsb(bool on) => _update(state.copyWith(bitPerfectUsb: on));
   void setHqResampler(bool on) => _update(state.copyWith(hqResampler: on));
+  void setDownmix(bool on) => _update(state.copyWith(downmix: on));
 
   /// Restore from a backup.
   void replace(AppSettings settings) => _update(settings);

@@ -181,6 +181,16 @@ class SettingsSheet extends ConsumerWidget {
                   value: settings.hqResampler,
                   onChanged: notifier.setHqResampler,
                 ),
+              if (Platform.isAndroid)
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  activeThumbColor: palette.onInk,
+                  activeTrackColor: palette.ink,
+                  title: Text(context.l10n.downmix, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(context.l10n.downmixHint),
+                  value: settings.downmix,
+                  onChanged: notifier.setDownmix,
+                ),
               heading(context.l10n.tabLibrary),
               ListTile(
                 contentPadding: EdgeInsets.zero,

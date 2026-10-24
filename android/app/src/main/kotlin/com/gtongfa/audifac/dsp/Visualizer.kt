@@ -190,6 +190,9 @@ object SignalPath {
     /** Compressor strength in use (0: off). */
     @Volatile var compressor = 0
 
+    /** Surround folded to stereo (Downmix). */
+    @Volatile var downmixed = false
+
     /** What the AudioTrack gets: float, or 16-bit while the speed is changed. */
     @Volatile var outputEncoding = androidx.media3.common.C.ENCODING_PCM_FLOAT
 
@@ -219,6 +222,7 @@ object SignalPath {
         "convolution" to convolution,
         "linearPhase" to linearPhase,
         "compressor" to compressor,
+        "downmixed" to downmixed,
         "output16" to (outputEncoding == androidx.media3.common.C.ENCODING_PCM_16BIT),
         "bitPerfectReason" to BitPerfect.reason,
         "bitPerfectSupported" to BitPerfect.supported,
