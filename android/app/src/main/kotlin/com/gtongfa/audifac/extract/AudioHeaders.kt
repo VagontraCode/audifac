@@ -31,17 +31,20 @@ object AudioHeaders {
 
     /** Returns null when the file isn't one of the formats above. */
     fun probe(context: Context, location: String): Info? = try {
-        open(context, location).use { ch ->
-            val head = read(ch, 0, 16) ?: return null
-            when {
-                ascii(head, 0, 4) == "FORM" && (ascii(head, 8, 4) == "AIFF" || ascii(head, 8, 4) == "AIFC") -> aiff(ch)
-                ascii(head, 0, 4) == "DSD " -> dsf(ch)
-                ascii(head, 0, 4) == "FRM8" && ascii(head, 12, 4) == "DSD " -> dff(ch)
-                else -> null
-            }
-        } ?: ffmpeg(context, location)
+        open(context, location).use { probe(it) } ?: ffmpeg(context, location)
     } catch (e: Exception) {
         null
+    }
+
+    /** AIFF / DSF / DFF from their headers. */
+    internal fun probe(ch: FileChannel): Info? {
+        val head = read(ch, 0, 16) ?: return null
+        return when {
+            ascii(head, 0, 4) == "FORM" && (ascii(head, 8, 4) == "AIFF" || ascii(head, 8, 4) == "AIFC") -> aiff(ch)
+            ascii(head, 0, 4) == "DSD " -> dsf(ch)
+            ascii(head, 0, 4) == "FRM8" && ascii(head, 12, 4) == "DSD " -> dff(ch)
+            else -> null
+        }
     }
 
     /** FFmpeg codec name → the MIME type the app labels it by. */
@@ -177,6 +180,7 @@ object AudioHeaders {
         var rate = 0
         var dataSize = 0L
         var tags = emptyMap<String, String>()
+        val native = HashMap<String, String>()
         val size = ch.size()
         while (pos + 12 <= size) {
             val h = read(ch, pos, 12) ?: break
@@ -195,12 +199,29 @@ object AudioHeaders {
                 }
                 "DSD " -> dataSize = len
                 "ID3 " -> read(ch, pos + 12, minOf(len, MAX_TAG).toInt())?.let { tags = Id3.parse(it) }
+                // DSDIFF's own title / artist (DITI / DIAR: a 32-bit length, then text).
+                "DIIN" -> read(ch, pos + 12, minOf(len, MAX_TAG).toInt())?.let { diin ->
+                    var p = 0
+                    while (p + 16 <= diin.size) {
+                        val sid = ascii(diin, p, 4)
+                        val slen = be64(diin, p + 4).toInt()
+                        val n = be32(diin, p + 12)
+                        if (n in 1..(slen - 4) && p + 16 + n <= diin.size) {
+                            val text = String(diin, p + 16, n, Charsets.ISO_8859_1).trim()
+                            if (sid == "DITI") native["title"] = text
+                            if (sid == "DIAR") native["artist"] = text
+                        }
+                        if (slen < 0) break
+                        p += 12 + slen + (slen and 1)
+                    }
+                }
             }
             pos += 12 + len + (len and 1)
         }
         if (channels == 0 || rate == 0) return null
         val samples = dataSize / channels * 8
-        return Info("audio/x-dsd", rate, channels, 1, samples * 1000 / rate, rate * channels, tags)
+        // ID3 (richer) first; the DIIN chunk fills what it lacks.
+        return Info("audio/x-dsd", rate, channels, 1, samples * 1000 / rate, rate * channels, native.filterValues { it.isNotEmpty() } + tags)
     }
 
     private const val MAX_TAG = 4L * 1024 * 1024

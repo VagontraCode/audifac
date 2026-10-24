@@ -18,6 +18,7 @@ import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.util.Size
 import com.gtongfa.audifac.extract.AudioHeaders
+import com.gtongfa.audifac.extract.ContainerTags
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -229,18 +230,24 @@ class MediaLibraryChannel(
                 } else {
                     null
                 }
+                // Matroska / Ogg tags Android didn't read.
+                val container = if (own == null && path != null && (artist.isNullOrBlank() || artist == "<unknown>") && ContainerTags.handles(path)) {
+                    ContainerTags.read(context, path)
+                } else {
+                    emptyMap()
+                }
                 songs.add(
                     mapOf(
                         "id" to id,
                         "uri" to ContentUris.withAppendedId(collection, id).toString(),
                         "path" to path,
-                        "title" to (own?.tags?.get("title") ?: c.getString(titleCol)),
-                        "artist" to (own?.tags?.get("artist") ?: own?.tags?.get("albumArtist") ?: artist),
+                        "title" to (own?.tags?.get("title") ?: container["title"] ?: c.getString(titleCol)),
+                        "artist" to (own?.tags?.get("artist") ?: own?.tags?.get("albumArtist") ?: container["artist"] ?: container["albumArtist"] ?: artist),
                         "artistId" to c.getLong(artistIdCol),
-                        "album" to (own?.tags?.get("album") ?: c.getString(albumCol)),
+                        "album" to (own?.tags?.get("album") ?: container["album"] ?: c.getString(albumCol)),
                         "albumId" to c.getLong(albumIdCol),
                         "durationMs" to c.getLong(durationCol).takeIf { it > 0 }.let { it ?: own?.durationMs ?: 0L },
-                        "track" to (own?.tags?.get("track")?.substringBefore('/')?.toIntOrNull() ?: c.getInt(trackCol)),
+                        "track" to ((own?.tags?.get("track") ?: container["track"])?.substringBefore('/')?.toIntOrNull() ?: c.getInt(trackCol)),
                         "dateAdded" to c.getLong(dateAddedCol),
                         "mimeType" to c.getString(mimeCol),
                         "size" to c.getLong(sizeCol),
@@ -476,15 +483,25 @@ class MediaLibraryChannel(
             if (meta(MediaMetadataRetriever.METADATA_KEY_DURATION) == null) {
                 ownFormatMetadata(location)?.let { return it }
             }
+            // Matroska / Ogg tags Android didn't read.
+            val container = if (ContainerTags.handles(location) &&
+                (meta(MediaMetadataRetriever.METADATA_KEY_TITLE) == null || meta(MediaMetadataRetriever.METADATA_KEY_ARTIST) == null)
+            ) {
+                ContainerTags.read(context, location)
+            } else {
+                emptyMap()
+            }
             mapOf(
                 "path" to location,
-                "title" to meta(MediaMetadataRetriever.METADATA_KEY_TITLE),
+                "title" to (meta(MediaMetadataRetriever.METADATA_KEY_TITLE) ?: container["title"]),
                 "artist" to (meta(MediaMetadataRetriever.METADATA_KEY_ARTIST)
-                    ?: meta(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST)),
-                "album" to meta(MediaMetadataRetriever.METADATA_KEY_ALBUM),
+                    ?: meta(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST) ?: container["artist"] ?: container["albumArtist"]),
+                "album" to (meta(MediaMetadataRetriever.METADATA_KEY_ALBUM) ?: container["album"]),
                 "durationMs" to meta(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull(),
-                "track" to meta(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)
-                    ?.substringBefore('/')?.toIntOrNull(),
+                "track" to (
+                    meta(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)?.substringBefore('/')?.toIntOrNull()
+                        ?: container["track"]?.substringBefore('/')?.toIntOrNull()
+                    ),
                 "mimeType" to meta(MediaMetadataRetriever.METADATA_KEY_MIMETYPE),
                 "readable" to true,
             )
