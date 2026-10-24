@@ -215,8 +215,8 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.18 ✅ | **Per-album / artist memory** — volume matching mode and speed remembered | S | rules |
 | 7.19 ✅ | **Waveform seek bar** — loudness envelope computed in the background, cached | M | scanner |
 | 7.20 ✅ | **Spectrogram + goniometer** — scrolling spectrogram and stereo-image scope next to the spectrum | M | visualizer tap |
-| 7.21 | **USB DAC hardware volume** — keep full digital resolution, volume in the DAC | M | needs Android 14+ and a DAC to verify |
-| 7.22 | **DSD over PCM (DoP)** — native DSD to USB DACs instead of converting to PCM | L | bit-perfect path; needs a DoP DAC to verify |
+| 7.21 ⏸ | **USB DAC hardware volume** — keep full digital resolution, volume in the DAC | M | needs Android 14+ and a DAC to verify |
+| 7.22 ⏸ | **DSD over PCM (DoP)** — native DSD to USB DACs instead of converting to PCM | L | bit-perfect path; needs a DoP DAC to verify |
 | 7.23 ✅ | **More tags** — Opus / MKA / DSF / DFF metadata in the library | S | tag reader |
 
 #### Phase 7 status
@@ -244,6 +244,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.19 | Nokia: the player's seek bar becomes the song's loudness over time (200 RMS slices on a 20 dB scale, played part in the accent colour) once known; cached per file / CUE track (DB v9) and instant afterwards; no underrun while it's made. The loudness scanner now shares the decoder (`PcmDecoder`, with a time range for CUE tracks); unit-tested (Kotlin levels / slices, Dart bar pooling) | **first waveform of a 2:45 MP3 took 41 s on the Nokia** (MediaCodec round trips on a slow phone): try the Samsung; if it's slow there too, build it from the playback stream instead |
 | 7.20 | Nokia: Signal sheet → Spectrum / Spectrogram / Stereo. Spectrogram scrolls (96 log bands, magma colours, image decoded only while shown); Stereo: goniometer (mono upright, last 4 frames fading) and correlation meter (0.91 on a near-mono MP3); no underrun, ~1.7 cores while the sheet is open on the Nokia; unit-tested (Kotlin correlation mono / out of phase / unrelated / silence, spectrogram column level, scope points; Dart colour map, trail) | — |
 | 7.23 | Built before 7.21 / 7.22 (those need a DAC). New `ContainerTags`: Matroska / WebM tags (track vs album levels, found through the SeekHead when they sit after the audio, segment title as fallback) and Ogg Opus / Vorbis comments (packets across pages, other streams skipped, up to 16 MB for cover art); DFF's own DIIN title / artist under its ID3. Used when Android's index or reader has no artist / title. Unit-tested on built files (5 tests); Nokia library unchanged | real .mka / .opus / .dff files (none on the test phones) |
+| 7.21 / 7.22 | **Paused, not built.** Both change what reaches a USB DAC (its own volume control; raw DSD packed as DoP instead of today's DSD → PCM) and can only be checked with a DAC on Android 14+. The test phones have no DAC (the Nokia is Android 12), so building them blind could break bit-perfect / DSD playback that works now. To do together with a DAC plugged in | a USB DAC (DoP-capable for 7.22) on an Android 14+ phone |
 
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".
