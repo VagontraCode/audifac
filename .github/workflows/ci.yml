@@ -91,6 +91,9 @@ jobs:
           if [ -n "$PREVIOUS" ]; then RANGE="$PREVIOUS..$CURRENT"; TITLE="Changes since $PREVIOUS"
           else RANGE="$CURRENT"; TITLE="All changes"; fi
           {
+            # Hand-written notes for this version (release-notes/<version>.md) come first.
+            NOTES="release-notes/${{ steps.version.outputs.version }}.md"
+            if [ -f "$NOTES" ]; then cat "$NOTES"; echo; echo '---'; echo; fi
             echo "## $TITLE"
             echo
             echo "Version **${{ steps.version.outputs.version }}** · build **${{ github.run_number }}** · \`${GITHUB_SHA::7}\`"
