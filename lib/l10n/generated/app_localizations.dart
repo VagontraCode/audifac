@@ -3475,6 +3475,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} copies'**
   String copies(Object count);
+
+  /// No description provided for @editTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit tags'**
+  String get editTags;
+
+  /// No description provided for @editTagsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved in audifac only: the music file is never changed. Clear a field to use the file\'s tag.'**
+  String get editTagsHint;
+
+  /// No description provided for @inFile.
+  ///
+  /// In en, this message translates to:
+  /// **'In the file: {value}'**
+  String inFile(Object value);
+
+  /// No description provided for @fieldAlbumArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Album artist'**
+  String get fieldAlbumArtist;
+
+  /// No description provided for @fieldTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Track'**
+  String get fieldTrack;
+
+  /// No description provided for @restoreFileTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore the file\'s tags'**
+  String get restoreFileTags;
+
+  /// No description provided for @tagEditsRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Tags of 1 song} other{Tags of {count} songs}}'**
+  String tagEditsRestored(num count);
 }
 
 class _AppLocalizationsDelegate

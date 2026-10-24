@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'song.dart';
+import 'tag_edit.dart';
 
 /// A song reference that survives a new phone: MediaStore ids change between
 /// devices, so songs are identified by storage-relative path and tags.
@@ -152,6 +153,7 @@ class BackupData {
     this.eqSettings,
     this.settings = const {},
     this.plays = const [],
+    this.tagEdits = const [],
   });
 
   static const format = 'audifac-backup';
@@ -176,6 +178,9 @@ class BackupData {
   /// Listening history behind play counts and stats.
   final List<PlaysBackup> plays;
 
+  /// Tags corrected in the app (the songs as their files tag them).
+  final List<TagEditBackup> tagEdits;
+
   String encode() => const JsonEncoder.withIndent('  ').convert({
         'format': format,
         'version': version,
@@ -191,6 +196,7 @@ class BackupData {
         },
         'settings': settings,
         'plays': [for (final p in plays) p.toJson()],
+        'tagEdits': [for (final t in tagEdits) t.toJson()],
       });
 
   /// Throws [FormatException] for files that aren't audifac backups.
@@ -224,6 +230,9 @@ class BackupData {
       eqSettings: eq['settings'] as String?,
       settings: (raw['settings'] as Map? ?? const {}).map((k, v) => MapEntry('$k', '$v')),
       plays: [for (final p in (raw['plays'] as List? ?? const []).cast<Map<String, dynamic>>()) PlaysBackup.fromJson(p)],
+      tagEdits: [
+        for (final t in (raw['tagEdits'] as List? ?? const []).cast<Map<String, dynamic>>()) TagEditBackup.fromJson(t),
+      ],
     );
   }
 }
@@ -237,6 +246,7 @@ class RestoreReport {
   int rules = 0;
   int recent = 0;
   int plays = 0;
+  int tagEdits = 0;
   int missingSongs = 0;
   bool settings = false;
 }
@@ -259,5 +269,20 @@ class PlaysBackup {
           for (final e in (j['events'] as List? ?? const []).cast<List<dynamic>>())
             if (e.length >= 3) ((e[0] as num).toInt(), (e[1] as num).toInt(), e[2] == 1),
         ],
+      );
+}
+
+/// One song's in-app tag corrections.
+class TagEditBackup {
+  const TagEditBackup({required this.song, required this.edit});
+
+  final SongRef song;
+  final TagEdit edit;
+
+  Map<String, Object?> toJson() => {'song': song.toJson(), 'edit': edit.toJson()};
+
+  factory TagEditBackup.fromJson(Map<String, dynamic> j) => TagEditBackup(
+        song: SongRef.fromJson((j['song'] as Map).cast<String, dynamic>()),
+        edit: TagEdit.fromJson((j['edit'] as Map? ?? const {}).cast<String, dynamic>()),
       );
 }

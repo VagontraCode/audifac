@@ -208,7 +208,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.11 ✅ | **DR meter + transcode detection** — dynamic range (DR14-style) per track / album, and "fake lossless" detection (lossy-style frequency cutoff in a lossless file) during the loudness scan | M | song info, filters |
 | 7.12 ✅ | **Sort / filter by resolution** — bit depth, sample rate, bitrate, DR | S | Songs tab |
 | 7.13 ✅ | **Duplicates** — same song in several files / formats, best version suggested | M | library |
-| 7.14 | **Tag editor (in-app)** — edit title / artist / album / album artist / genre / year / track; stored as overrides in the DB, files untouched | M | DB migration |
+| 7.14 ✅ | **Tag editor (in-app)** — edit title / artist / album / album artist / genre / year / track; stored as overrides in the DB, files untouched | M | DB migration |
 | 7.15 | **Artwork viewer** — full-resolution cover, pinch to zoom | S | player |
 | 7.16 | **M3U / M3U8** — import and export playlists | M | SAF |
 | 7.17 | **CUE sheets** — one-file albums split into tracks in the library and played gaplessly | L | library + clipping |
@@ -236,6 +236,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.11 | Nokia: library analysed (2 tagged, 5 measured, 7 FFmpeg/DSD-only files can't be), MP3 256 → DR13, "up to 18.8 kHz" (was 22.1 before the noise-floor fix); unit-tested: DR of a steady tone / peaky music / too short, 16 kHz and quiet 19.5 kHz brick walls under noise, full band not flagged | a real fake-lossless FLAC (none on the test phones) |
 | 7.12 | Unit-tested: fake-lossless filter (lossless + brick wall only, MP3 and unanalysed files excluded, saved setting), audio-detail sorts; Nokia: sort menu shows Resolution / Bitrate / DR, Resolution puts lossless first (a 48 kHz MP3 used to beat 16/44.1 FLAC), no fake-lossless chip (none found) | — |
 | 7.13 | Nokia: Settings → Library → Duplicates finds the 2 songs in several files (Never Enough (Reprise): FLAC best over WavPack / TTA; Lucky Night: WMA Lossless / APE), "Never Enough" and "(Reprise)" kept apart; unit-tested: feat. credits / punctuation ignored, other lengths split, fake lossless ranked as lossy, MP3 cutoff doesn't count | real duplicate sets in a big library |
+| 7.14 | Nokia: DB v7 → v8 upgrade fine; Edit tags on Lucky Night (WMA): title "(Live)" + genre Jazz → list re-sorted, Song info shows Jazz, kept after a force-stop; "Restore the file's tags" brings the file's tags back; unit-tested: apply (album move groups edited songs, artist id), diff (blank = file tag, disc kept), JSON + backup round trip | restoring a backup with tag edits on device |
 
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".

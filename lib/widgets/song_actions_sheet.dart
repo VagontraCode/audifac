@@ -14,6 +14,7 @@ import '../providers/user_data_providers.dart';
 import 'artwork.dart';
 import 'playlist_dialogs.dart';
 import 'song_info_sheet.dart';
+import 'tag_editor_sheet.dart';
 
 /// An extra, context-specific entry (e.g. "Remove from playlist").
 class SongMenuAction {
@@ -131,6 +132,14 @@ class SongActionsSheet extends ConsumerWidget {
         onSelected: () {
           close();
           SongInfoSheet.show(hostContext, song);
+        },
+      ),
+      SongMenuAction(
+        icon: HugeIcons.strokeRoundedEdit02,
+        label: context.l10n.editTags,
+        onSelected: () {
+          close();
+          TagEditorSheet.show(hostContext, song);
         },
       ),
       if (album != null)

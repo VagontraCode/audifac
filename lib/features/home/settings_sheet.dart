@@ -380,6 +380,7 @@ class SettingsSheet extends ConsumerWidget {
           '• ${context.l10n.eqPresets(report.presets)}, ${context.l10n.rules(report.rules)}',
           '• ${context.l10n.historyEntries(report.recent)}',
           if (report.plays > 0) '• ${context.l10n.listensRestored(report.plays)}',
+          if (report.tagEdits > 0) '• ${context.l10n.tagEditsRestored(report.tagEdits)}',
           if (report.settings) '• ${context.l10n.settings}',
           if (report.missingSongs > 0)
             '\n${context.l10n.missingSongs(report.missingSongs)}',

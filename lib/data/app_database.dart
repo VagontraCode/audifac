@@ -9,6 +9,7 @@ import '../models/eq_rules.dart';
 import '../models/loudness.dart';
 import '../models/play_stats.dart';
 import '../models/playlist.dart';
+import '../models/tag_edit.dart';
 
 /// Everything the app stores itself: favorites, playlists, play history and
 /// small key/value settings. Songs are referenced by their MediaStore id.
@@ -23,7 +24,7 @@ class AppDatabase {
     final path = p.join(await getDatabasesPath(), 'audifac.db');
     final db = await openDatabase(
       path,
-      version: 7,
+      version: 8,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: (db, _) async {
         final batch = db.batch()
@@ -60,6 +61,7 @@ class AppDatabase {
         _createEq(batch);
         _createLoudness(batch);
         _createPlayLog(batch);
+        _createTagEdits(batch);
         await batch.commit(noResult: true);
       },
       onUpgrade: (db, from, _) async {
@@ -73,6 +75,7 @@ class AppDatabase {
         if (from < 5) _createEq(batch);
         if (from < 6) _createLoudness(batch);
         if (from < 7) _createPlayLog(batch);
+        if (from < 8) _createTagEdits(batch);
         await batch.commit(noResult: true);
       },
     );
@@ -95,6 +98,15 @@ class AppDatabase {
           json TEXT NOT NULL,
           PRIMARY KEY (scope, key)
         )''');
+  }
+
+  /// v8: tags corrected in the app (JSON), keyed by location. Files are never written.
+  static void _createTagEdits(Batch batch) {
+    batch.execute('''
+      CREATE TABLE tag_edits (
+        location TEXT PRIMARY KEY,
+        json TEXT NOT NULL
+      )''');
   }
 
   /// v7: every listen (play counts, last played, listening time, stats).
@@ -352,6 +364,25 @@ class AppDatabase {
     return batch.commit(noResult: true);
   }
 
+  // --- Tag edits ---------------------------------------------------------------
+
+  Future<Map<String, TagEdit>> tagEdits() async {
+    final rows = await _db.query('tag_edits');
+    return {
+      for (final r in rows)
+        if (_tryJson(r['json'] as String) case final j?) r['location'] as String: TagEdit.fromJson(j),
+    };
+  }
+
+  /// Saves [edit] for [location], or forgets it when empty.
+  Future<void> putTagEdit(String location, TagEdit edit) => edit.isEmpty
+      ? _db.delete('tag_edits', where: 'location = ?', whereArgs: [location])
+      : _db.insert(
+          'tag_edits',
+          {'location': location, 'json': edit.encode()},
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+
   // --- Equalizer ---------------------------------------------------------------
 
   Future<List<EqPreset>> eqPresets() async {
@@ -451,7 +482,11 @@ class Bootstrap {
     required this.eqRules,
     this.loudness = const {},
     this.playLog = const [],
+    this.tagEdits = const {},
   });
+
+  /// Tags corrected in the app, by file location.
+  final Map<String, TagEdit> tagEdits;
 
   /// Every listen, oldest first.
   final List<PlayEvent> playLog;
@@ -493,6 +528,7 @@ class Bootstrap {
       eqRules: eqRules,
       loudness: loudness,
       playLog: playLog,
+      tagEdits: await db.tagEdits(),
     );
   }
 }

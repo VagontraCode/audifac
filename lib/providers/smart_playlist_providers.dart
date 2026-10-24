@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/audio_info.dart';
 import '../models/smart_playlist.dart';
 import '../models/song.dart';
 import 'audio_info_providers.dart';
@@ -46,8 +47,12 @@ class SmartPlaylistsNotifier extends Notifier<List<SmartPlaylist>> {
 
 final smartContextProvider = Provider<SmartContext>((ref) {
   final infos = ref.watch(audioInfoProvider);
+  final edits = ref.watch(tagEditsProvider);
   return SmartContext(
-    info: (s) => infos[s.location] ?? ref.read(songAudioInfoProvider(s)),
+    info: (s) {
+      final info = infos[s.location] ?? AudioInfo.guess(s);
+      return edits[s.location]?.applyInfo(info) ?? info;
+    },
     stats: ref.watch(songStatsProvider),
     favorites: ref.watch(favoritesProvider).toSet(),
     now: DateTime.now(),

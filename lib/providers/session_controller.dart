@@ -60,7 +60,8 @@ final sessionControllerProvider = Provider<void>((ref) {
     if (handler.queue.value.isNotEmpty) return; // Already playing something.
     // From the library itself: derived providers (songsByIdProvider) aren't
     // recomputed yet inside this listener and would still be empty.
-    final byId = {for (final s in ref.read(libraryProvider).value ?? const <Song>[]) s.id: s};
+    final library = withTagEdits(ref.read(libraryProvider).value ?? const <Song>[], ref.read(tagEditsProvider));
+    final byId = {for (final s in library) s.id: s};
     final saved = SavedSession.decode(ref.read(bootstrapProvider).values[key])
         ?.retainWhere(byId.containsKey);
     if (saved == null) return;

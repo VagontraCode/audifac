@@ -113,7 +113,8 @@ class AudioInfoNotifier extends Notifier<Map<String, AudioInfo>> {
 /// Analysed info for [song], or a guess from its file type until then.
 final songAudioInfoProvider = Provider.family<AudioInfo, Song>((ref, song) {
   final cached = ref.watch(audioInfoProvider.select((m) => m[song.location]));
-  return cached ?? AudioInfo.guess(song);
+  final info = cached ?? AudioInfo.guess(song);
+  return ref.watch(tagEditsProvider.select((m) => m[song.location]))?.applyInfo(info) ?? info;
 });
 
 /// The Songs tab: sorted, then filtered by quality / codec / source.

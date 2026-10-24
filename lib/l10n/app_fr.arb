@@ -562,5 +562,12 @@
   "duplicatesNone": "Aucun doublon",
   "duplicatesNoneHint": "Chaque titre est dans un seul fichier.",
   "bestVersion": "Meilleure version",
-  "copies": "{count} copies"
+  "copies": "{count} copies",
+  "editTags": "Modifier les tags",
+  "editTagsHint": "Enregistré dans audifac uniquement : le fichier musical n’est jamais modifié. Videz un champ pour reprendre le tag du fichier.",
+  "inFile": "Dans le fichier : {value}",
+  "fieldAlbumArtist": "Artiste de l’album",
+  "fieldTrack": "Piste",
+  "restoreFileTags": "Rétablir les tags du fichier",
+  "tagEditsRestored": "{count, plural, =1{Tags d’1 titre} other{Tags de {count} titres}}"
 }

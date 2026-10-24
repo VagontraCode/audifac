@@ -562,5 +562,12 @@
   "duplicatesNone": "No duplicates",
   "duplicatesNoneHint": "Every song is in a single file.",
   "bestVersion": "Best version",
-  "copies": "{count} copies"
+  "copies": "{count} copies",
+  "editTags": "Edit tags",
+  "editTagsHint": "Saved in audifac only: the music file is never changed. Clear a field to use the file's tag.",
+  "inFile": "In the file: {value}",
+  "fieldAlbumArtist": "Album artist",
+  "fieldTrack": "Track",
+  "restoreFileTags": "Restore the file's tags",
+  "tagEditsRestored": "{count, plural, =1{Tags of 1 song} other{Tags of {count} songs}}"
 }

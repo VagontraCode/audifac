@@ -66,6 +66,26 @@ class AudioInfo {
     'FLAC', 'ALAC', 'WAV', 'AIFF', 'TrueHD', 'DSD', 'WMA Lossless', 'APE', 'WavPack', 'TTA',
   };
 
+  /// With some tags replaced (in-app tag edits).
+  AudioInfo copyWith({String? genre, String? year, String? albumArtist}) => AudioInfo(
+        codec: codec,
+        codecMime: codecMime,
+        containerMime: containerMime,
+        sampleRate: sampleRate,
+        channels: channels,
+        bitrate: bitrate,
+        bitDepth: bitDepth,
+        genre: genre ?? this.genre,
+        year: year ?? this.year,
+        composer: composer,
+        albumArtist: albumArtist ?? this.albumArtist,
+        disc: disc,
+        analysed: analysed,
+        sizeBytes: sizeBytes,
+        modifiedMs: modifiedMs,
+        schema: schema,
+      );
+
   AudioQuality get quality {
     if (!losslessCodecs.contains(codec)) {
       return codec == 'Unknown' ? AudioQuality.unknown : AudioQuality.lossy;

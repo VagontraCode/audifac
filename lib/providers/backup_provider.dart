@@ -75,6 +75,11 @@ class BackupService {
               events: [for (final p in e.value) (p.at.millisecondsSinceEpoch, p.listenedMs, p.counted)],
             ),
       ],
+      tagEdits: [
+        // As the files tag them, so a restore finds them on a fresh install.
+        for (final s in _ref.read(libraryProvider).value ?? const <Song>[])
+          if (_ref.read(tagEditsProvider)[s.location] case final edit?) TagEditBackup(song: SongRef.of(s), edit: edit),
+      ],
       settings: {
         ..._ref.read(settingsProvider).toKeyValues(),
         VolumeMatchingNotifier.key: _ref.read(volumeMatchingProvider).encode(),
@@ -115,6 +120,15 @@ class BackupService {
       }
     }
     report.plays = await _ref.read(playLogProvider.notifier).restore(plays);
+
+    // Tag edits: songs already edited here keep their edits.
+    final edits = _ref.read(tagEditsProvider.notifier);
+    for (final t in data.tagEdits) {
+      final song = matcher.match(t.song);
+      if (song == null || t.edit.isEmpty || _ref.read(tagEditsProvider).containsKey(song.location)) continue;
+      await edits.set(song, t.edit);
+      report.tagEdits++;
+    }
 
     // Playlists: same name + same songs = already there; otherwise add.
     final playlists = _ref.read(playlistsProvider.notifier);

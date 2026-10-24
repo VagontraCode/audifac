@@ -2100,4 +2100,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String copies(Object count) {
     return '$count copies';
   }
+
+  @override
+  String get editTags => 'Edit tags';
+
+  @override
+  String get editTagsHint =>
+      'Saved in audifac only: the music file is never changed. Clear a field to use the file\'s tag.';
+
+  @override
+  String inFile(Object value) {
+    return 'In the file: $value';
+  }
+
+  @override
+  String get fieldAlbumArtist => 'Album artist';
+
+  @override
+  String get fieldTrack => 'Track';
+
+  @override
+  String get restoreFileTags => 'Restore the file\'s tags';
+
+  @override
+  String tagEditsRestored(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tags of $count songs',
+      one: 'Tags of 1 song',
+    );
+    return '$_temp0';
+  }
 }

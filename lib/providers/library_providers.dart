@@ -9,6 +9,7 @@ import '../models/album.dart';
 import '../models/artist.dart';
 import '../models/app_settings.dart';
 import '../models/song.dart';
+import '../models/tag_edit.dart';
 import 'user_data_providers.dart';
 
 final mediaLibraryProvider = Provider<MediaLibrary>((ref) => MediaLibrary());
@@ -227,7 +228,8 @@ bool isVisibleSong(Song song, AppSettings settings) {
 final songsProvider = Provider<List<Song>>((ref) {
   final all = ref.watch(libraryProvider).value ?? const <Song>[];
   final settings = ref.watch(settingsProvider);
-  return all.where((s) => isVisibleSong(s, settings)).toList(growable: false);
+  final edits = ref.watch(tagEditsProvider);
+  return withTagEdits(all.where((s) => isVisibleSong(s, settings)).toList(growable: false), edits);
 });
 
 /// Folders that contain audio, with how many files each holds (unfiltered),
@@ -350,3 +352,22 @@ String _albumArtist(List<Song> songs) {
 
 /// The library as folders (Library → Folders).
 final folderTreeProvider = Provider<FolderTree>((ref) => FolderTree.of(ref.watch(songsProvider)));
+
+/// Tags corrected in the app, by file location (files are never written).
+final tagEditsProvider = NotifierProvider<TagEditsNotifier, Map<String, TagEdit>>(TagEditsNotifier.new);
+
+class TagEditsNotifier extends Notifier<Map<String, TagEdit>> {
+  @override
+  Map<String, TagEdit> build() => ref.read(bootstrapProvider).tagEdits;
+
+  /// Saves [edit] for [song] (an empty edit restores the file's tags).
+  Future<void> set(Song song, TagEdit edit) async {
+    state = edit.isEmpty ? ({...state}..remove(song.location)) : {...state, song.location: edit};
+    await ref.read(databaseProvider).putTagEdit(song.location, edit);
+  }
+}
+
+/// [songs] with the user's tag edits.
+List<Song> withTagEdits(List<Song> songs, Map<String, TagEdit> edits) => edits.isEmpty
+    ? songs
+    : [for (final s in songs) edits[s.location]?.apply(s) ?? s];
