@@ -2171,4 +2171,30 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get noArtwork => 'Pas de pochette';
+
+  @override
+  String get importM3u => 'Importer une playlist M3U';
+
+  @override
+  String get importM3uHint =>
+      'Depuis une autre app ou un ordinateur (.m3u, .m3u8)';
+
+  @override
+  String get exportM3u => 'Exporter en M3U';
+
+  @override
+  String get notAPlaylist => 'Ce fichier n’est pas une playlist';
+
+  @override
+  String get m3uNoneFound => 'Aucun de ses titres n’est sur ce téléphone';
+
+  @override
+  String m3uImported(Object found, Object total) {
+    return '$found titres trouvés sur $total';
+  }
+
+  @override
+  String savedAs(Object name) {
+    return '$name enregistré';
+  }
 }

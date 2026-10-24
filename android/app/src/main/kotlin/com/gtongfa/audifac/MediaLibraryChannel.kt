@@ -558,6 +558,22 @@ class MediaLibraryChannel(
         }
     }
 
+    /**
+     * UTF-8 (BOM dropped) when the bytes are valid UTF-8, otherwise Windows-1252:
+     * plain `.m3u` playlists and old `.lrc` files are often saved that way.
+     */
+    private fun decodeText(bytes: ByteArray): String {
+        val decoder = Charsets.UTF_8.newDecoder()
+            .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+            .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+        val text = try {
+            decoder.decode(java.nio.ByteBuffer.wrap(bytes)).toString()
+        } catch (e: java.nio.charset.CharacterCodingException) {
+            String(bytes, charset("windows-1252"))
+        }
+        return text.removePrefix("﻿")
+    }
+
     private var pendingDocument: MethodChannel.Result? = null
     private var pendingSave: Pair<MethodChannel.Result, String>? = null
 
@@ -608,7 +624,7 @@ class MediaLibraryChannel(
                         buffer.write(chunk, 0, n)
                     }
                     val bytes = buffer.toByteArray()
-                    if (bytes.size > MAX_TEXT_BYTES || bytes.contains(0)) null else String(bytes, Charsets.UTF_8)
+                    if (bytes.size > MAX_TEXT_BYTES || bytes.contains(0)) null else decodeText(bytes)
                 }
                 val name = uri.lastPathSegment?.substringAfterLast('/')?.substringBeforeLast('.')
                 mainHandler.post {

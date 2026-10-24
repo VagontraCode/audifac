@@ -570,5 +570,12 @@
   "fieldTrack": "Track",
   "restoreFileTags": "Restore the file's tags",
   "tagEditsRestored": "{count, plural, =1{Tags of 1 song} other{Tags of {count} songs}}",
-  "noArtwork": "No artwork"
+  "noArtwork": "No artwork",
+  "importM3u": "Import M3U playlist",
+  "importM3uHint": "From another app or a computer (.m3u, .m3u8)",
+  "exportM3u": "Export as M3U",
+  "notAPlaylist": "This file isn't a playlist",
+  "m3uNoneFound": "None of its songs are on this phone",
+  "m3uImported": "{found} of {total} songs found",
+  "savedAs": "Saved {name}"
 }

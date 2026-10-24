@@ -3523,6 +3523,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No artwork'**
   String get noArtwork;
+
+  /// No description provided for @importM3u.
+  ///
+  /// In en, this message translates to:
+  /// **'Import M3U playlist'**
+  String get importM3u;
+
+  /// No description provided for @importM3uHint.
+  ///
+  /// In en, this message translates to:
+  /// **'From another app or a computer (.m3u, .m3u8)'**
+  String get importM3uHint;
+
+  /// No description provided for @exportM3u.
+  ///
+  /// In en, this message translates to:
+  /// **'Export as M3U'**
+  String get exportM3u;
+
+  /// No description provided for @notAPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'This file isn\'t a playlist'**
+  String get notAPlaylist;
+
+  /// No description provided for @m3uNoneFound.
+  ///
+  /// In en, this message translates to:
+  /// **'None of its songs are on this phone'**
+  String get m3uNoneFound;
+
+  /// No description provided for @m3uImported.
+  ///
+  /// In en, this message translates to:
+  /// **'{found} of {total} songs found'**
+  String m3uImported(Object found, Object total);
+
+  /// No description provided for @savedAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved {name}'**
+  String savedAs(Object name);
 }
 
 class _AppLocalizationsDelegate

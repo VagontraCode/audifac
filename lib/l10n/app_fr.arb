@@ -570,5 +570,12 @@
   "fieldTrack": "Piste",
   "restoreFileTags": "Rétablir les tags du fichier",
   "tagEditsRestored": "{count, plural, =1{Tags d’1 titre} other{Tags de {count} titres}}",
-  "noArtwork": "Pas de pochette"
+  "noArtwork": "Pas de pochette",
+  "importM3u": "Importer une playlist M3U",
+  "importM3uHint": "Depuis une autre app ou un ordinateur (.m3u, .m3u8)",
+  "exportM3u": "Exporter en M3U",
+  "notAPlaylist": "Ce fichier n’est pas une playlist",
+  "m3uNoneFound": "Aucun de ses titres n’est sur ce téléphone",
+  "m3uImported": "{found} titres trouvés sur {total}",
+  "savedAs": "{name} enregistré"
 }

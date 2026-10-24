@@ -7,6 +7,8 @@ import '../../l10n/l10n.dart';
 import '../../core/audio/queue_logic.dart';
 import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
+import '../../models/m3u.dart';
+import '../../providers/library_providers.dart';
 import '../../providers/player_providers.dart';
 import '../../providers/user_data_providers.dart';
 import '../../widgets/empty_state.dart';
@@ -53,6 +55,18 @@ class PlaylistScreen extends ConsumerWidget {
       if (name != null) await notifier.rename(playlistId, name);
     }
 
+    Future<void> exportM3u() async {
+      final messenger = ScaffoldMessenger.of(context);
+      final l10n = context.l10n;
+      final name = playlist.name.replaceAll(RegExp(r'[\/:*?"<>|]'), '_');
+      final saved = await ref.read(mediaLibraryProvider).saveTextDocument(
+            name: '$name.m3u8',
+            text: M3u.write(playlist.name, songs),
+            mime: 'audio/x-mpegurl',
+          );
+      if (saved != null) messenger.showSnackBar(SnackBar(content: Text(l10n.savedAs(saved))));
+    }
+
     Future<void> delete() async {
       final confirmed = await showDialog<bool>(
         context: context,
@@ -93,9 +107,14 @@ class PlaylistScreen extends ConsumerWidget {
               PopupMenuButton<String>(
                 tooltip: context.l10n.playlistOptions,
                 icon: HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical, color: palette.ink, size: 24),
-                onSelected: (value) => value == 'rename' ? rename() : delete(),
+                onSelected: (value) => switch (value) {
+                  'rename' => rename(),
+                  'export' => exportM3u(),
+                  _ => delete(),
+                },
                 itemBuilder: (_) => [
                   PopupMenuItem(value: 'rename', child: Text(context.l10n.rename)),
+                  PopupMenuItem(value: 'export', child: Text(context.l10n.exportM3u)),
                   PopupMenuItem(value: 'delete', child: Text(context.l10n.delete)),
                 ],
               ),

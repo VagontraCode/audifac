@@ -2135,4 +2135,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noArtwork => 'No artwork';
+
+  @override
+  String get importM3u => 'Import M3U playlist';
+
+  @override
+  String get importM3uHint => 'From another app or a computer (.m3u, .m3u8)';
+
+  @override
+  String get exportM3u => 'Export as M3U';
+
+  @override
+  String get notAPlaylist => 'This file isn\'t a playlist';
+
+  @override
+  String get m3uNoneFound => 'None of its songs are on this phone';
+
+  @override
+  String m3uImported(Object found, Object total) {
+    return '$found of $total songs found';
+  }
+
+  @override
+  String savedAs(Object name) {
+    return 'Saved $name';
+  }
 }

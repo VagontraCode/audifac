@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../models/app_settings.dart';
+import '../../models/m3u.dart';
 import '../../providers/audio_info_providers.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/player_providers.dart';
@@ -424,6 +426,29 @@ class PlaylistsTab extends ConsumerWidget {
       if (context.mounted) PlaylistScreen.open(context, playlist.id);
     }
 
+    Future<void> importM3u() async {
+      final messenger = ScaffoldMessenger.of(context);
+      final l10n = context.l10n;
+      final ({String? name, String text})? doc;
+      try {
+        doc = await ref.read(mediaLibraryProvider).openTextDocument(anyType: true);
+      } on PlatformException {
+        messenger.showSnackBar(SnackBar(content: Text(l10n.notAPlaylist)));
+        return;
+      }
+      if (doc == null) return;
+      final entries = M3u.parse(doc.text);
+      final found = M3u.match(entries, ref.read(songsProvider)).nonNulls.toList();
+      if (found.isEmpty) {
+        messenger.showSnackBar(SnackBar(content: Text(entries.isEmpty ? l10n.notAPlaylist : l10n.m3uNoneFound)));
+        return;
+      }
+      final name = M3u.name(doc.text) ?? doc.name ?? l10n.imported;
+      final playlist = await ref.read(playlistsProvider.notifier).create(name, songIds: [for (final s in found) s.id]);
+      messenger.showSnackBar(SnackBar(content: Text(l10n.m3uImported(found.length, entries.length))));
+      if (context.mounted) PlaylistScreen.open(context, playlist.id);
+    }
+
     return ListView(
       key: const PageStorageKey('playlists'),
       padding: const EdgeInsets.only(bottom: 16),
@@ -439,6 +464,19 @@ class PlaylistsTab extends ConsumerWidget {
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           onTap: create,
+        ),
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 4,
+          ),
+          leading: iconTile(HugeIcons.strokeRoundedFileImport),
+          title: Text(
+            context.l10n.importM3u,
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          subtitle: Text(context.l10n.importM3uHint),
+          onTap: importM3u,
         ),
         ListTile(
           contentPadding: const EdgeInsets.symmetric(
