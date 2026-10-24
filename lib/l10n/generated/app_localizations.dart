@@ -3517,6 +3517,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{Tags of 1 song} other{Tags of {count} songs}}'**
   String tagEditsRestored(num count);
+
+  /// No description provided for @noArtwork.
+  ///
+  /// In en, this message translates to:
+  /// **'No artwork'**
+  String get noArtwork;
 }
 
 class _AppLocalizationsDelegate

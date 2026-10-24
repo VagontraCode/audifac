@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit
  *  - readMetadata(locations) -> List<Map> tags of files that are not in MediaStore
  *  - inspectAudio(locations) -> List<Map> codec, sample rate, bit depth… (see AudioInspector)
  *  - getArtwork(id | location, size)      embedded artwork as JPEG bytes
+ *  - getFullArtwork(id | location)        embedded artwork as stored (full resolution)
  *  - cacheArtwork(id | location, key)     same, written to a cache file (for the notification)
  *  - pickFolder() / grantedFolders() / removeFolder(uri)   system folder picker grants
  *
@@ -97,6 +98,7 @@ class MediaLibraryChannel(
                 val size = call.argument<Int>("size") ?: 300
                 runIn(executor, result) { artworkBitmap(call, size)?.let(::toJpeg) }
             }
+            "getFullArtwork" -> runIn(executor, result) { fullArtwork(call) }
             "cacheArtwork" -> {
                 val key = call.argument<String>("key") ?: return result.error("bad_args", "Missing key", null)
                 runIn(executor, result) { cacheArtwork(call, key) }
@@ -674,6 +676,32 @@ class MediaLibraryChannel(
             id != null -> mediaStoreArtwork(id, size)
             else -> null
         }
+    }
+
+    /**
+     * The embedded picture exactly as stored (JPEG / PNG, full resolution),
+     * or for MediaStore songs without one, Android's largest thumbnail.
+     */
+    private fun fullArtwork(call: MethodCall): ByteArray? {
+        val location = call.argument<String>("path")
+        val id = call.argument<Number>("id")?.toLong()
+        val retriever = MediaMetadataRetriever()
+        val embedded = try {
+            when {
+                location != null -> retriever.open(location)
+                id != null -> retriever.setDataSource(
+                    context, ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id),
+                )
+                else -> return null
+            }
+            retriever.embeddedPicture
+        } catch (e: Exception) {
+            null
+        } finally {
+            retriever.release()
+        }
+        if (embedded != null) return embedded
+        return id?.let { mediaStoreArtwork(it, 2048) }?.let(::toJpeg)
     }
 
     private fun mediaStoreArtwork(songId: Long, size: Int): Bitmap? {

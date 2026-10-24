@@ -569,5 +569,6 @@
   "fieldAlbumArtist": "Album artist",
   "fieldTrack": "Track",
   "restoreFileTags": "Restore the file's tags",
-  "tagEditsRestored": "{count, plural, =1{Tags of 1 song} other{Tags of {count} songs}}"
+  "tagEditsRestored": "{count, plural, =1{Tags of 1 song} other{Tags of {count} songs}}",
+  "noArtwork": "No artwork"
 }

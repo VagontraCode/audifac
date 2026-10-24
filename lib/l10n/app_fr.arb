@@ -569,5 +569,6 @@
   "fieldAlbumArtist": "Artiste de l’album",
   "fieldTrack": "Piste",
   "restoreFileTags": "Rétablir les tags du fichier",
-  "tagEditsRestored": "{count, plural, =1{Tags d’1 titre} other{Tags de {count} titres}}"
+  "tagEditsRestored": "{count, plural, =1{Tags d’1 titre} other{Tags de {count} titres}}",
+  "noArtwork": "Pas de pochette"
 }

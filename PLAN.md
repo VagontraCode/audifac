@@ -209,7 +209,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.12 ✅ | **Sort / filter by resolution** — bit depth, sample rate, bitrate, DR | S | Songs tab |
 | 7.13 ✅ | **Duplicates** — same song in several files / formats, best version suggested | M | library |
 | 7.14 ✅ | **Tag editor (in-app)** — edit title / artist / album / album artist / genre / year / track; stored as overrides in the DB, files untouched | M | DB migration |
-| 7.15 | **Artwork viewer** — full-resolution cover, pinch to zoom | S | player |
+| 7.15 ✅ | **Artwork viewer** — full-resolution cover, pinch to zoom | S | player |
 | 7.16 | **M3U / M3U8** — import and export playlists | M | SAF |
 | 7.17 | **CUE sheets** — one-file albums split into tracks in the library and played gaplessly | L | library + clipping |
 | 7.18 | **Per-album / artist memory** — volume matching mode and speed remembered | S | rules |
@@ -237,6 +237,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.12 | Unit-tested: fake-lossless filter (lossless + brick wall only, MP3 and unanalysed files excluded, saved setting), audio-detail sorts; Nokia: sort menu shows Resolution / Bitrate / DR, Resolution puts lossless first (a 48 kHz MP3 used to beat 16/44.1 FLAC), no fake-lossless chip (none found) | — |
 | 7.13 | Nokia: Settings → Library → Duplicates finds the 2 songs in several files (Never Enough (Reprise): FLAC best over WavPack / TTA; Lucky Night: WMA Lossless / APE), "Never Enough" and "(Reprise)" kept apart; unit-tested: feat. credits / punctuation ignored, other lengths split, fake lossless ranked as lossy, MP3 cutoff doesn't count | real duplicate sets in a big library |
 | 7.14 | Nokia: DB v7 → v8 upgrade fine; Edit tags on Lucky Night (WMA): title "(Live)" + genre Jazz → list re-sorted, Song info shows Jazz, kept after a force-stop; "Restore the file's tags" brings the file's tags back; unit-tested: apply (album move groups edited songs, artist id), diff (blank = file tag, disc kept), JSON + backup round trip | restoring a backup with tag edits on device |
+| 7.15 | Nokia: tap the player cover → embedded picture as stored (Buga 1024 × 1024 JPEG 167 KB, DIPITA 4000 × 4000 JPEG 1.7 MB), double-tap zooms ×3 where tapped, pinch up to ×10; unit-tested: format from magic bytes, size label | a PNG / WebP cover |
 
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".

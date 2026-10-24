@@ -14,6 +14,7 @@ import '../../providers/eq_providers.dart';
 import '../../providers/player_providers.dart';
 import '../../providers/user_data_providers.dart';
 import '../../widgets/artwork.dart';
+import '../../widgets/artwork_viewer.dart';
 import '../../widgets/seek_bar.dart';
 import '../../widgets/lyrics_sheet.dart';
 import '../../widgets/cast_sheet.dart';
@@ -361,6 +362,11 @@ class _AnimatedArtwork extends ConsumerWidget {
     final handler = ref.read(audioHandlerProvider);
 
     return GestureDetector(
+      onTap: () => ArtworkViewer.open(
+        context,
+        songId: item.extras?['songId'] as int? ?? 0,
+        albumId: item.extras?['albumId'] as int? ?? 0,
+      ),
       onHorizontalDragEnd: (d) {
         final v = d.primaryVelocity ?? 0;
         if (v < -300) handler.skipToNext();

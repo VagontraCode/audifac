@@ -275,6 +275,16 @@ class MediaLibrary {
       return null;
     }
   }
+
+  /// [songId]'s embedded artwork at full resolution, as stored (not cached).
+  Future<Uint8List?> fullArtwork(int songId) async {
+    final path = _filePaths[songId];
+    try {
+      return await _channel.invokeMethod<Uint8List>('getFullArtwork', {if (path != null) 'path': path else 'id': songId});
+    } on PlatformException {
+      return null;
+    }
+  }
 }
 
 class _Artwork {
