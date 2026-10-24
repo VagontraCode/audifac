@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit
  *  - inspectAudio(locations) -> List<Map> codec, sample rate, bit depth… (see AudioInspector)
  *  - getArtwork(id | location, size)      embedded artwork as JPEG bytes
  *  - getFullArtwork(id | location)        embedded artwork as stored (full resolution)
+ *  - findCueSheets(folders)               .cue files in those folders: [{path, text}]
  *  - cacheArtwork(id | location, key)     same, written to a cache file (for the notification)
  *  - pickFolder() / grantedFolders() / removeFolder(uri)   system folder picker grants
  *
@@ -99,6 +100,10 @@ class MediaLibraryChannel(
                 runIn(executor, result) { artworkBitmap(call, size)?.let(::toJpeg) }
             }
             "getFullArtwork" -> runIn(executor, result) { fullArtwork(call) }
+            "findCueSheets" -> {
+                val folders = call.argument<List<String>>("folders") ?: emptyList()
+                runIn(executor, result) { findCueSheets(folders) }
+            }
             "cacheArtwork" -> {
                 val key = call.argument<String>("key") ?: return result.error("bad_args", "Missing key", null)
                 runIn(executor, result) { cacheArtwork(call, key) }
@@ -362,6 +367,42 @@ class MediaLibraryChannel(
         )
     }
 
+    /**
+     * `.cue` sheets in [folders] (one-file albums), read directly where Android
+     * lets us (Android ≤ 10, or folders we may read) and through folders
+     * granted with the system picker (Android 11+ hides other files).
+     */
+    private fun findCueSheets(folders: List<String>): List<Map<String, String>> {
+        val out = LinkedHashMap<String, String>()
+        fun isCue(name: String) = name.endsWith(".cue", ignoreCase = true)
+        for (folder in folders) {
+            val files = File(folder).listFiles { f -> f.isFile && isCue(f.name) && f.length() in 1..MAX_CUE_BYTES } ?: continue
+            for (file in files) {
+                try {
+                    out[file.absolutePath] = decodeText(file.readBytes())
+                } catch (e: Exception) {
+                    // Listed but not readable.
+                }
+            }
+        }
+        val wanted = folders.toHashSet()
+        for (permission in context.contentResolver.persistedUriPermissions) {
+            if (!permission.isReadPermission) continue
+            for (entry in walkTree(permission.uri, emptyList()) { name, _ -> isCue(name) }) {
+                val path = entry["path"] as String
+                if (path in out || path.substringBeforeLast('/') !in wanted) continue
+                if ((entry["size"] as Long) !in 1..MAX_CUE_BYTES) continue
+                try {
+                    val bytes = context.contentResolver.openInputStream(Uri.parse(entry["location"] as String))?.use { it.readBytes() }
+                    if (bytes != null) out[path] = decodeText(bytes)
+                } catch (e: Exception) {
+                    // Grant revoked meanwhile.
+                }
+            }
+        }
+        return out.map { (path, text) -> mapOf("path" to path, "text" to text) }
+    }
+
     /** Readable path for a picker document id, e.g. "primary:Music" -> /storage/emulated/0/Music. */
     private fun displayPathFor(documentId: String): String {
         val volume = documentId.substringBefore(':')
@@ -370,7 +411,11 @@ class MediaLibraryChannel(
         return if (relative.isEmpty()) root else "$root/$relative"
     }
 
-    private fun walkTree(treeUri: Uri, excluded: List<String>): List<Map<String, Any?>> {
+    private fun walkTree(
+        treeUri: Uri,
+        excluded: List<String>,
+        wanted: (name: String, mime: String) -> Boolean = { name, mime -> isAudioName(name) || mime.startsWith("audio/") },
+    ): List<Map<String, Any?>> {
         val out = mutableListOf<Map<String, Any?>>()
         val rootId = try {
             DocumentsContract.getTreeDocumentId(treeUri)
@@ -401,7 +446,7 @@ class MediaLibraryChannel(
                             if (!name.startsWith(".") && depth < MAX_DEPTH) {
                                 stack.addLast(Triple(childId, path, depth + 1))
                             }
-                        } else if (isAudioName(name) || mime.startsWith("audio/")) {
+                        } else if (wanted(name, mime)) {
                             out += mapOf(
                                 "location" to DocumentsContract.buildDocumentUriUsingTree(treeUri, childId).toString(),
                                 "path" to path,
@@ -770,6 +815,7 @@ class MediaLibraryChannel(
         const val CHANNEL = "audifac/media_library"
         private const val PICK_FOLDER_REQUEST = 4711
         private const val OPEN_DOCUMENT_REQUEST = 4712
+        private const val MAX_CUE_BYTES = 256L * 1024
         private const val SAVE_DOCUMENT_REQUEST = 4713
         private const val IMPORT_IR_REQUEST = 4714
         private const val MAX_IR_BYTES = 16 shl 20

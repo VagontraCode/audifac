@@ -51,7 +51,7 @@ final smartContextProvider = Provider<SmartContext>((ref) {
   return SmartContext(
     info: (s) {
       final info = infos[s.location] ?? AudioInfo.guess(s);
-      return edits[s.location]?.applyInfo(info) ?? info;
+      return edits[s.key]?.applyInfo(info) ?? info;
     },
     stats: ref.watch(songStatsProvider),
     favorites: ref.watch(favoritesProvider).toSet(),

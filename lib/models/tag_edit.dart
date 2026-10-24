@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'audio_info.dart';
 import 'song.dart';
 
-/// Tags the user corrected in the app, by file location. Stored in the app's
+/// Tags the user corrected in the app, by [Song.key]. Stored in the app's
 /// database only: the music file itself is never written. A null field keeps
 /// the file's own tag.
 class TagEdit {
@@ -87,6 +87,8 @@ class TagEdit {
       isSystemSound: song.isSystemSound,
       isRecording: song.isRecording,
       isPodcast: song.isPodcast,
+      clipStart: song.clipStart,
+      clipEnd: song.clipEnd,
     );
   }
 

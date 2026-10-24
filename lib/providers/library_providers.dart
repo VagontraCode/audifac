@@ -8,6 +8,7 @@ import '../models/folder_tree.dart';
 import '../models/album.dart';
 import '../models/artist.dart';
 import '../models/app_settings.dart';
+import '../models/cue_sheet.dart';
 import '../models/song.dart';
 import '../models/tag_edit.dart';
 import 'user_data_providers.dart';
@@ -221,12 +222,33 @@ bool isVisibleSong(Song song, AppSettings settings) {
   if (song.duration > Duration.zero && song.duration < min) return false;
   return !settings.isExcluded(song.folder);
 }
+/// `.cue` sheets beside the library's files (one-file albums).
+final cueSheetsProvider = FutureProvider<List<CueSheet>>(
+  (ref) => loadCueSheets(ref.read(mediaLibraryProvider), ref.watch(libraryProvider).value ?? const <Song>[]),
+);
+
+/// The `.cue` sheets in the folders of [songs] that Android lets us read.
+Future<List<CueSheet>> loadCueSheets(MediaLibrary library, List<Song> songs) async {
+  final folders = {for (final s in songs) ?s.folder}.toList()..sort();
+  if (folders.isEmpty) return const [];
+  final found = await library.findCueSheets(folders);
+  return [for (final f in found) ?CueSheet.parse(f.text, f.path)];
+}
+
+/// Every audio file, with one-file albums split into their CUE tracks.
+final libraryTracksProvider = Provider<List<Song>>((ref) {
+  final all = ref.watch(libraryProvider).value ?? const <Song>[];
+  final songs = CueSheet.apply(all, ref.watch(cueSheetsProvider).value ?? const []);
+  // Artwork of a track is read from its file.
+  if (!identical(songs, all)) ref.read(mediaLibraryProvider).registerFiles(songs.where((s) => s.isCueTrack));
+  return songs;
+});
 
 /// The library as shown everywhere in the UI: filtered by the user's settings
 /// (minimum length, recordings, excluded folders) and without ringtones /
 /// notification sounds.
 final songsProvider = Provider<List<Song>>((ref) {
-  final all = ref.watch(libraryProvider).value ?? const <Song>[];
+  final all = ref.watch(libraryTracksProvider);
   final settings = ref.watch(settingsProvider);
   final edits = ref.watch(tagEditsProvider);
   return withTagEdits(all.where((s) => isVisibleSong(s, settings)).toList(growable: false), edits);
@@ -353,7 +375,7 @@ String _albumArtist(List<Song> songs) {
 /// The library as folders (Library → Folders).
 final folderTreeProvider = Provider<FolderTree>((ref) => FolderTree.of(ref.watch(songsProvider)));
 
-/// Tags corrected in the app, by file location (files are never written).
+/// Tags corrected in the app, by [Song.key] (files are never written).
 final tagEditsProvider = NotifierProvider<TagEditsNotifier, Map<String, TagEdit>>(TagEditsNotifier.new);
 
 class TagEditsNotifier extends Notifier<Map<String, TagEdit>> {
@@ -362,12 +384,12 @@ class TagEditsNotifier extends Notifier<Map<String, TagEdit>> {
 
   /// Saves [edit] for [song] (an empty edit restores the file's tags).
   Future<void> set(Song song, TagEdit edit) async {
-    state = edit.isEmpty ? ({...state}..remove(song.location)) : {...state, song.location: edit};
-    await ref.read(databaseProvider).putTagEdit(song.location, edit);
+    state = edit.isEmpty ? ({...state}..remove(song.key)) : {...state, song.key: edit};
+    await ref.read(databaseProvider).putTagEdit(song.key, edit);
   }
 }
 
 /// [songs] with the user's tag edits.
 List<Song> withTagEdits(List<Song> songs, Map<String, TagEdit> edits) => edits.isEmpty
     ? songs
-    : [for (final s in songs) edits[s.location]?.apply(s) ?? s];
+    : [for (final s in songs) edits[s.key]?.apply(s) ?? s];

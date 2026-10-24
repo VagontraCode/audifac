@@ -242,7 +242,7 @@
   "foldersWithAudio": "Dossiers avec de l'audio",
   "noneFoundYet": "Aucun pour l'instant.",
   "hiddenFolders": "Dossiers masqués",
-  "hiddenFoldersIntro": "Android masque certains dossiers et fichiers aux applications : les dossiers contenant un fichier « .nomedia » (comme les notes vocales WhatsApp), ainsi que les fichiers WavPack (.wv) et TTA, qu'il ne reconnaît pas comme audio. Ajoutez leur dossier ici pour les inclure.",
+  "hiddenFoldersIntro": "Android masque certains dossiers et fichiers aux applications : les dossiers contenant un fichier « .nomedia » (comme les notes vocales WhatsApp), ainsi que les fichiers WavPack (.wv) et TTA, qu'il ne reconnaît pas comme audio, et les fichiers CUE (albums en un seul fichier découpés en pistes). Ajoutez leur dossier ici pour les inclure.",
   "remove": "Retirer",
   "addFolder": "Ajouter un dossier",
   "rescanLibrary": "Réanalyser la bibliothèque",

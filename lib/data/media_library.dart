@@ -145,6 +145,18 @@ class MediaLibrary {
     }
   }
 
+  /// `.cue` sheets in [folders] that Android lets us read.
+  Future<List<({String path, String text})>> findCueSheets(List<String> folders) async {
+    try {
+      final raw = await _channel.invokeListMethod<Map<dynamic, dynamic>>('findCueSheets', {'folders': folders});
+      return [for (final m in raw ?? const []) (path: m['path'] as String, text: m['text'] as String)];
+    } on PlatformException {
+      return const [];
+    } on MissingPluginException {
+      return const [];
+    }
+  }
+
   // --- Folders granted through the system picker -------------------------------
 
   /// Opens the system folder picker. Returns null when cancelled.

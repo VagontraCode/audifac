@@ -61,7 +61,9 @@ class AudioInfoNotifier extends Notifier<Map<String, AudioInfo>> {
     _running = true;
     final status = ref.read(analysisStatusProvider.notifier);
     try {
-      final todo = songs.where((s) => !_isCurrent(s)).toList();
+      // One analysis per file (a CUE album is many songs in one file).
+      final seen = <String>{};
+      final todo = songs.where((s) => !_isCurrent(s) && seen.add(s.location)).toList();
       status.set(AnalysisStatus(total: todo.length));
       for (var i = 0; i < todo.length; i += _batch) {
         final batch = todo.skip(i).take(_batch).toList();
@@ -114,7 +116,7 @@ class AudioInfoNotifier extends Notifier<Map<String, AudioInfo>> {
 final songAudioInfoProvider = Provider.family<AudioInfo, Song>((ref, song) {
   final cached = ref.watch(audioInfoProvider.select((m) => m[song.location]));
   final info = cached ?? AudioInfo.guess(song);
-  return ref.watch(tagEditsProvider.select((m) => m[song.location]))?.applyInfo(info) ?? info;
+  return ref.watch(tagEditsProvider.select((m) => m[song.key]))?.applyInfo(info) ?? info;
 });
 
 /// The Songs tab: sorted, then filtered by quality / codec / source.

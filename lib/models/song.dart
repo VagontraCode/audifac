@@ -26,6 +26,11 @@ class Song {
   final bool isRecording;
   final bool isPodcast;
 
+  /// A track of a CUE sheet: the part of the file it plays (end null = to
+  /// the end of the file). Null for whole files.
+  final Duration? clipStart;
+  final Duration? clipEnd;
+
   const Song({
     required this.id,
     required this.uri,
@@ -45,6 +50,8 @@ class Song {
     this.isSystemSound = false,
     this.isRecording = false,
     this.isPodcast = false,
+    this.clipStart,
+    this.clipEnd,
   });
 
   static const unknownArtist = 'Unknown artist';
@@ -56,6 +63,13 @@ class Song {
 
   /// What the native side opens: a `content://` URI or an absolute path.
   String get location => uri.startsWith('content://') ? uri : (path ?? uri);
+
+  /// True for a track cut from a one-file album by a CUE sheet.
+  bool get isCueTrack => clipStart != null;
+
+  /// Identifies this track among those of the same file (tag edits): the
+  /// location, plus the start for a CUE track.
+  String get key => clipStart == null ? location : '$location#${clipStart!.inMilliseconds}';
 
   /// Containing folder, e.g. `/storage/emulated/0/Download`.
   String? get folder {

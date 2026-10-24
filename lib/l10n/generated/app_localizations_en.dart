@@ -936,7 +936,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hiddenFoldersIntro =>
-      'Android hides some folders and files from apps: folders with a \".nomedia\" file (like WhatsApp voice notes), and WavPack (.wv) and TTA files, which it doesn\'t recognise as audio. Add their folder here to include them.';
+      'Android hides some folders and files from apps: folders with a \".nomedia\" file (like WhatsApp voice notes), and WavPack (.wv) and TTA files, which it doesn\'t recognise as audio, and CUE sheets (one-file albums split into tracks). Add their folder here to include them.';
 
   @override
   String get remove => 'Remove';

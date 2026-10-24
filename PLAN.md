@@ -211,7 +211,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.14 ✅ | **Tag editor (in-app)** — edit title / artist / album / album artist / genre / year / track; stored as overrides in the DB, files untouched | M | DB migration |
 | 7.15 ✅ | **Artwork viewer** — full-resolution cover, pinch to zoom | S | player |
 | 7.16 ✅ | **M3U / M3U8** — import and export playlists | M | SAF |
-| 7.17 | **CUE sheets** — one-file albums split into tracks in the library and played gaplessly | L | library + clipping |
+| 7.17 ✅ | **CUE sheets** — one-file albums split into tracks in the library and played gaplessly | L | library + clipping |
 | 7.18 | **Per-album / artist memory** — volume matching mode and speed remembered | S | rules |
 | 7.19 | **Waveform seek bar** — loudness envelope computed in the background, cached | M | scanner |
 | 7.20 | **Spectrogram + goniometer** — scrolling spectrogram and stereo-image scope next to the spectrum | M | visualizer tap |
@@ -239,6 +239,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.14 | Nokia: DB v7 → v8 upgrade fine; Edit tags on Lucky Night (WMA): title "(Live)" + genre Jazz → list re-sorted, Song info shows Jazz, kept after a force-stop; "Restore the file's tags" brings the file's tags back; unit-tested: apply (album move groups edited songs, artist id), diff (blank = file tag, disc kept), JSON + backup round trip | restoring a backup with tag edits on device |
 | 7.15 | Nokia: tap the player cover → embedded picture as stored (Buga 1024 × 1024 JPEG 167 KB, DIPITA 4000 × 4000 JPEG 1.7 MB), double-tap zooms ×3 where tapped, pinch up to ×10; unit-tested: format from magic bytes, size label | a PNG / WebP cover |
 | 7.16 | Nokia: imported a Windows-1252 `.m3u` → playlist "Test M3U Café", 4 of 6 found (PC path `C:…01 Kizz…mp3`, renamed file by `#EXTINF` artist – title, relative `FormatTest/sample.ape`, `file://` URI; a missing file and a stream skipped); Export as M3U → `Test M3U Café.m3u8` with `#EXTINF` + absolute paths; test playlist and files removed; unit-tested: parse, components, deepest-folder match, write → read | importing a big playlist from a PC library |
+| 7.17 | Nokia (Android 12): a 3-track sheet beside a FLAC (sheet says `.wav`) is hidden from apps until its folder is added in Folders (now said there) → "Cue Test Album" with Part One / Two / Three (0:25, 0:25, 0:30), Part Two plays its own clip and rolls into Part Three with no underrun, queue restored after a force-stop (sheets loaded before the restore), settings count files not tracks; test folder, grant and file removed; unit-tested: parse (75 frames/s, REM, data tracks), file matching by name / other extension / sheet name, clip bounds, stable ids, per-track tag-edit keys | listening for a click at a track change (muted test phone), a big real CUE rip |
 
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".

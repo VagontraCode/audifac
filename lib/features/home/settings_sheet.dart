@@ -36,7 +36,8 @@ class SettingsSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
-    final visibleCount = ref.watch(songsProvider).length;
+    // Files, not tracks: a one-file album split by a CUE sheet is one file.
+    final visibleCount = ref.watch(songsProvider.select((songs) => {for (final s in songs) s.location}.length));
     final totalCount = ref.watch(libraryProvider).value?.length;
     final scan = ref.watch(scanStatusProvider);
     final analysis = ref.watch(analysisStatusProvider);

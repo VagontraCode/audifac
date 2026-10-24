@@ -36,7 +36,7 @@ class _TagEditorSheetState extends ConsumerState<TagEditorSheet> {
   late final Song _file = (ref.read(libraryProvider).value ?? const <Song>[])
       .firstWhere((s) => s.id == widget.song.id, orElse: () => widget.song);
   late final AudioInfo _fileInfo = ref.read(audioInfoProvider)[_file.location] ?? AudioInfo.guess(_file);
-  late final TagEdit _edit = ref.read(tagEditsProvider)[_file.location] ?? const TagEdit();
+  late final TagEdit _edit = ref.read(tagEditsProvider)[_file.key] ?? const TagEdit();
 
   late final _title = TextEditingController(text: _edit.title ?? _file.title);
   late final _artist = TextEditingController(text: _edit.artist ?? _file.artist);

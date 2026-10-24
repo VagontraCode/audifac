@@ -78,7 +78,7 @@ class BackupService {
       tagEdits: [
         // As the files tag them, so a restore finds them on a fresh install.
         for (final s in _ref.read(libraryProvider).value ?? const <Song>[])
-          if (_ref.read(tagEditsProvider)[s.location] case final edit?) TagEditBackup(song: SongRef.of(s), edit: edit),
+          if (_ref.read(tagEditsProvider)[s.key] case final edit?) TagEditBackup(song: SongRef.of(s), edit: edit),
       ],
       settings: {
         ..._ref.read(settingsProvider).toKeyValues(),
@@ -125,7 +125,7 @@ class BackupService {
     final edits = _ref.read(tagEditsProvider.notifier);
     for (final t in data.tagEdits) {
       final song = matcher.match(t.song);
-      if (song == null || t.edit.isEmpty || _ref.read(tagEditsProvider).containsKey(song.location)) continue;
+      if (song == null || t.edit.isEmpty || _ref.read(tagEditsProvider).containsKey(song.key)) continue;
       await edits.set(song, t.edit);
       report.tagEdits++;
     }

@@ -275,7 +275,7 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
 
     await _player.setShuffleModeEnabled(false);
     await _player.setAudioSources(
-      [for (final item in items) AudioSource.uri(Uri.parse(item.id), tag: item)],
+      [for (final item in items) _source(item)],
       initialIndex: index.clamp(0, items.length - 1),
       initialPosition: position,
       shuffleOrder: _shuffleOrder,
@@ -356,13 +356,14 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
       ..currentIndex = current;
     await _player.insertAudioSources(
       at,
-      [for (final item in newItems) AudioSource.uri(Uri.parse(item.id), tag: item)],
+      [for (final item in newItems) _source(item)],
     );
     queue.add([...items]..insertAll(at, newItems));
   }
 
   MediaItem _toMediaItem(Song song) => MediaItem(
-        id: song.uri,
+        // A CUE track: the file plus where the track starts (ids must differ).
+        id: song.isCueTrack ? '${song.uri}#cue=${song.clipStart!.inMilliseconds}' : song.uri,
         title: song.title,
         artist: song.artist,
         album: song.album,
@@ -375,8 +376,27 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
           'songId': song.id,
           'albumId': song.albumId,
           if (!song.isFile) 'loadThumbnailUri': true,
+          if (song.isCueTrack) ...{
+            'uri': song.uri,
+            'clipStartMs': song.clipStart!.inMilliseconds,
+            'clipEndMs': ?song.clipEnd?.inMilliseconds,
+          },
         },
       );
+
+  /// What the player opens for [item]: the file, or the part of it a CUE
+  /// track covers (ExoPlayer preloads the next part, so an album plays on).
+  static AudioSource _source(MediaItem item) {
+    final start = item.extras?['clipStartMs'] as int?;
+    if (start == null) return AudioSource.uri(Uri.parse(item.id), tag: item);
+    final end = item.extras?['clipEndMs'] as int?;
+    return ClippingAudioSource(
+      child: AudioSource.uri(Uri.parse(item.extras!['uri'] as String)),
+      start: Duration(milliseconds: start),
+      end: end == null ? null : Duration(milliseconds: end),
+      tag: item,
+    );
+  }
 
   void _onCurrentIndexChanged(int? index) {
     final items = queue.value;

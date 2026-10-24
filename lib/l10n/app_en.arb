@@ -242,7 +242,7 @@
   "foldersWithAudio": "Folders with audio",
   "noneFoundYet": "None found yet.",
   "hiddenFolders": "Hidden folders",
-  "hiddenFoldersIntro": "Android hides some folders and files from apps: folders with a \".nomedia\" file (like WhatsApp voice notes), and WavPack (.wv) and TTA files, which it doesn't recognise as audio. Add their folder here to include them.",
+  "hiddenFoldersIntro": "Android hides some folders and files from apps: folders with a \".nomedia\" file (like WhatsApp voice notes), and WavPack (.wv) and TTA files, which it doesn't recognise as audio, and CUE sheets (one-file albums split into tracks). Add their folder here to include them.",
   "remove": "Remove",
   "addFolder": "Add a folder",
   "rescanLibrary": "Rescan library",
