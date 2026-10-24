@@ -2076,4 +2076,19 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get downmixHint =>
       'Les fichiers 5.1 et 7.1 sont d\'abord ramenés en stéréo (coefficients UIT), pour que l\'égaliseur, les outils stéréo et la convolution s\'appliquent à ce que vous entendez. Désactivé : Android reçoit tous les canaux.';
+
+  @override
+  String get dynamicRange => 'Plage dynamique';
+
+  @override
+  String get frequencyContent => 'Contenu fréquentiel';
+
+  @override
+  String upToKhz(Object khz) {
+    return 'jusqu\'à $khz kHz';
+  }
+
+  @override
+  String get likelyFromLossy =>
+      'coupure nette : probablement converti d\'un MP3 / AAC';
 }

@@ -2040,4 +2040,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get downmixHint =>
       '5.1 and 7.1 files are folded to stereo first (ITU coefficients), so the EQ, stereo tools and convolution apply to what you hear. Off: Android gets every channel.';
+
+  @override
+  String get dynamicRange => 'Dynamic range';
+
+  @override
+  String get frequencyContent => 'Frequency content';
+
+  @override
+  String upToKhz(Object khz) {
+    return 'up to $khz kHz';
+  }
+
+  @override
+  String get likelyFromLossy =>
+      'sharp cut: probably converted from an MP3 / AAC';
 }

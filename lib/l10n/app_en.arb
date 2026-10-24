@@ -547,5 +547,9 @@
   "autoEqDownloadFailed": "This correction couldn't be downloaded",
   "autoEqCredit": "Data: AutoEQ project by Jaakko Pasanen (github.com/jaakkopasanen/AutoEq)",
   "downmix": "Downmix surround to stereo",
-  "downmixHint": "5.1 and 7.1 files are folded to stereo first (ITU coefficients), so the EQ, stereo tools and convolution apply to what you hear. Off: Android gets every channel."
+  "downmixHint": "5.1 and 7.1 files are folded to stereo first (ITU coefficients), so the EQ, stereo tools and convolution apply to what you hear. Off: Android gets every channel.",
+  "dynamicRange": "Dynamic range",
+  "frequencyContent": "Frequency content",
+  "upToKhz": "up to {khz} kHz",
+  "likelyFromLossy": "sharp cut: probably converted from an MP3 / AAC"
 }

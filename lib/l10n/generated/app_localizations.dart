@@ -3385,6 +3385,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'5.1 and 7.1 files are folded to stereo first (ITU coefficients), so the EQ, stereo tools and convolution apply to what you hear. Off: Android gets every channel.'**
   String get downmixHint;
+
+  /// No description provided for @dynamicRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Dynamic range'**
+  String get dynamicRange;
+
+  /// No description provided for @frequencyContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Frequency content'**
+  String get frequencyContent;
+
+  /// No description provided for @upToKhz.
+  ///
+  /// In en, this message translates to:
+  /// **'up to {khz} kHz'**
+  String upToKhz(Object khz);
+
+  /// No description provided for @likelyFromLossy.
+  ///
+  /// In en, this message translates to:
+  /// **'sharp cut: probably converted from an MP3 / AAC'**
+  String get likelyFromLossy;
 }
 
 class _AppLocalizationsDelegate

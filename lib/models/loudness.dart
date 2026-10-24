@@ -117,11 +117,16 @@ class LoudnessInfo {
     this.sizeBytes = 0,
     this.modifiedMs = 0,
     this.scanVersion = currentScanVersion,
+    this.dr,
+    this.cutoffHz,
+    this.brickwall = false,
   });
 
   /// Bump to re-measure every scanned file. 2: the scanner no longer asks
   /// for float output, which Samsung decoders mislabel (garbage loudness).
-  static const currentScanVersion = 2;
+  /// 3: dynamic range and spectrum cutoff (tagged files are decoded too).
+  /// 4: brick-wall detection that sees through the noise floor.
+  static const currentScanVersion = 4;
 
   final LoudnessSource source;
 
@@ -139,10 +144,22 @@ class LoudnessInfo {
   final int sizeBytes;
   final int modifiedMs;
 
+  /// Dynamic range (DR14-style), null when unknown.
+  final int? dr;
+
+  /// Highest frequency with real content (Hz), and whether it ends in a
+  /// brick wall (a lowpass, as lossy encoders apply).
+  final int? cutoffHz;
+  final bool brickwall;
+
+  /// Cut sharply below 20 kHz: in a lossless file, a sign it was made from a
+  /// lossy one ("fake lossless").
+  bool get lossyCutoff => brickwall && cutoffHz != null && cutoffHz! < 20000;
+
   bool describes(Song song) =>
       sizeBytes == song.sizeBytes &&
       modifiedMs == song.modifiedMs &&
-      (source == LoudnessSource.tags || scanVersion >= currentScanVersion);
+      scanVersion >= currentScanVersion;
 
   static LoudnessInfo fromNative(Map<dynamic, dynamic> m, Song song) {
     double? d(String k) => (m[k] as num?)?.toDouble();
@@ -157,6 +174,9 @@ class LoudnessInfo {
       albumPeak: d('albumPeak'),
       sizeBytes: song.sizeBytes,
       modifiedMs: song.modifiedMs,
+      dr: (m['dr'] as num?)?.toInt(),
+      cutoffHz: (m['cutoffHz'] as num?)?.toInt(),
+      brickwall: m['brickwall'] == true,
     );
   }
 
@@ -170,6 +190,9 @@ class LoudnessInfo {
         'sizeBytes': sizeBytes,
         'modifiedMs': modifiedMs,
         'scanVersion': scanVersion,
+        'dr': dr,
+        'cutoffHz': cutoffHz,
+        'brickwall': brickwall,
       };
 
   factory LoudnessInfo.fromJson(Map<String, dynamic> j) {
@@ -184,6 +207,9 @@ class LoudnessInfo {
       sizeBytes: (j['sizeBytes'] as num?)?.toInt() ?? 0,
       modifiedMs: (j['modifiedMs'] as num?)?.toInt() ?? 0,
       scanVersion: (j['scanVersion'] as num?)?.toInt() ?? 1,
+      dr: (j['dr'] as num?)?.toInt(),
+      cutoffHz: (j['cutoffHz'] as num?)?.toInt(),
+      brickwall: j['brickwall'] == true,
     );
   }
 }

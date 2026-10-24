@@ -31,33 +31,51 @@ class LoudnessScanner(private val context: Context) {
         } catch (e: Exception) {
             null
         }
-        if (tags != null) {
-            out.putAll(tags.toMap())
-            out["source"] = "tags"
-            out["ok"] = true
-            return out
-        }
+        // Decoded even when tagged: dynamic range and spectrum need the audio.
         val measured = try {
             measure(location)
         } catch (e: Exception) {
             Log.w(TAG, "loudness scan failed for $location: $e")
             null
         }
+        measured?.let { m ->
+            m.dr?.let { out["dr"] = it }
+            m.cutoff?.let { (hz, wall) ->
+                out["cutoffHz"] = hz
+                out["brickwall"] = wall
+            }
+            out["sampleRate"] = m.sampleRate
+        }
+        if (tags != null) {
+            out.putAll(tags.toMap())
+            out["source"] = "tags"
+            out["ok"] = true
+            return out
+        }
         // Real music measures between about -70 and 0 LUFS, with a finite peak.
-        if (measured != null && !(measured.first in -70.0..0.5 && measured.second.isFinite())) {
-            Log.w(TAG, "implausible loudness ${measured.first} LUFS / peak ${measured.second} for $location: ignored")
+        if (measured != null && !(measured.lufs in -70.0..0.5 && measured.peak.isFinite())) {
+            Log.w(TAG, "implausible loudness ${measured.lufs} LUFS / peak ${measured.peak} for $location: ignored")
             out["ok"] = false
             return out
         }
         if (measured != null) {
-            out["lufs"] = measured.first
-            out["trackGainDb"] = LoudnessMeter.REFERENCE_LUFS - measured.first
-            out["trackPeak"] = measured.second
+            out["lufs"] = measured.lufs
+            out["trackGainDb"] = LoudnessMeter.REFERENCE_LUFS - measured.lufs
+            out["trackPeak"] = measured.peak
             out["source"] = "scan"
         }
         out["ok"] = measured != null
         return out
     }
+
+    /** What decoding a file measured. */
+    private class Measurement(
+        val lufs: Double,
+        val peak: Double,
+        val dr: Int?,
+        val cutoff: Pair<Int, Boolean>?,
+        val sampleRate: Int,
+    )
 
     private fun uriOf(location: String): Uri =
         if (location.startsWith("content://")) Uri.parse(location) else Uri.fromFile(File(location))
@@ -78,8 +96,8 @@ class LoudnessScanner(private val context: Context) {
         return null
     }
 
-    /** (integrated LUFS, sample peak) of the first audio track, or null if it can't be decoded / is silent. */
-    private fun measure(location: String): Pair<Double, Double>? {
+    /** Loudness, peak, dynamics and spectrum of the first audio track, or null if it can't be decoded / is silent. */
+    private fun measure(location: String): Measurement? {
         val extractor = MediaExtractor()
         var codec: MediaCodec? = null
         try {
@@ -101,6 +119,8 @@ class LoudnessScanner(private val context: Context) {
 
             val info = MediaCodec.BufferInfo()
             var meter: LoudnessMeter? = null
+            var dynamics: DynamicsMeter? = null
+            var rate = 0
             var channels = 0
             var float = false
             var samples = FloatArray(0)
@@ -112,7 +132,9 @@ class LoudnessScanner(private val context: Context) {
                 float = f.containsKey(MediaFormat.KEY_PCM_ENCODING) &&
                     f.getInteger(MediaFormat.KEY_PCM_ENCODING) == AudioFormat.ENCODING_PCM_FLOAT
                 // (A mid-stream change restarts the measurement — rare and harmless.)
-                meter = LoudnessMeter(f.getInteger(MediaFormat.KEY_SAMPLE_RATE), channels)
+                rate = f.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+                meter = LoudnessMeter(rate, channels)
+                dynamics = DynamicsMeter(rate, channels)
             }
 
             /** Takes one output buffer; true at end of stream. */
@@ -134,6 +156,7 @@ class LoudnessScanner(private val context: Context) {
                     for (i in 0 until count) samples[i] = shorts[i] / 32768f
                 }
                 meter!!.add(samples, count / channels)
+                dynamics!!.add(samples, count / channels)
                 codec.releaseOutputBuffer(index, false)
                 return info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0
             }
@@ -171,7 +194,7 @@ class LoudnessScanner(private val context: Context) {
 
             val m = meter ?: return null
             val lufs = m.integratedLufs() ?: return null
-            return lufs to m.peak
+            return Measurement(lufs, m.peak, dynamics?.dr(), dynamics?.cutoff(), rate)
         } finally {
             try {
                 codec?.stop()

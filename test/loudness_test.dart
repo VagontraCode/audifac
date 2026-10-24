@@ -133,7 +133,7 @@ void main() {
     expect(LoudnessInfo.fromNative({'ok': false}, s).source, LoudnessSource.none);
   });
 
-  test('scans from before the Samsung fix are measured again; tags are kept', () {
+  test('older records are measured again (tagged ones too: dynamic range needs the audio)', () {
     final s = _song(1);
     LoudnessInfo stored(LoudnessSource source, {int? version}) => LoudnessInfo.fromJson({
           'source': source.name,
@@ -144,7 +144,19 @@ void main() {
         });
     expect(stored(LoudnessSource.scan).describes(s), isFalse); // saved before versions existed
     expect(stored(LoudnessSource.scan, version: LoudnessInfo.currentScanVersion).describes(s), isTrue);
-    expect(stored(LoudnessSource.tags).describes(s), isTrue);
+    expect(stored(LoudnessSource.tags).describes(s), isFalse); // tags stay the gain; DR / spectrum need a decode
+    expect(stored(LoudnessSource.tags, version: LoudnessInfo.currentScanVersion).describes(s), isTrue);
     expect(stored(LoudnessSource.none).describes(s), isFalse); // failed scans are retried too
+  });
+
+  test('dynamic range and spectrum cutoff are kept; a sharp cut below 20 kHz is lossy-style', () {
+    final s = _song(2);
+    final info = LoudnessInfo.fromNative({'ok': true, 'source': 'scan', 'trackGainDb': -2.0, 'dr': 9, 'cutoffHz': 16000, 'brickwall': true}, s);
+    final back = LoudnessInfo.fromJson(info.toJson());
+    expect(back.dr, 9);
+    expect(back.cutoffHz, 16000);
+    expect(back.lossyCutoff, isTrue);
+    expect(LoudnessInfo.fromNative({'ok': true, 'cutoffHz': 16000, 'brickwall': false}, s).lossyCutoff, isFalse); // gentle roll-off
+    expect(LoudnessInfo.fromNative({'ok': true, 'cutoffHz': 21500, 'brickwall': true}, s).lossyCutoff, isFalse);
   });
 }

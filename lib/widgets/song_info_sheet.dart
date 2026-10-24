@@ -72,6 +72,16 @@ class _SongInfoSheetState extends ConsumerState<SongInfoSheet> {
           (context.l10n.bitDepth, info.bitDepth == null ? null : '${info.bitDepth}-bit'),
           (context.l10n.channels, channels(info.channels)),
           (context.l10n.duration, formatDuration(song.duration)),
+          (context.l10n.dynamicRange, loudness?.dr == null ? null : 'DR${loudness!.dr}'),
+          (
+            context.l10n.frequencyContent,
+            loudness?.cutoffHz == null
+                ? null
+                : [
+                    context.l10n.upToKhz((loudness!.cutoffHz! / 1000).toStringAsFixed(1)),
+                    if (loudness.lossyCutoff && info.quality.isLossless) context.l10n.likelyFromLossy,
+                  ].join(' · '),
+          ),
         ],
       ),
       (
