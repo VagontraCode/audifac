@@ -2039,8 +2039,20 @@ abstract class AppLocalizations {
   /// No description provided for @speedHint.
   ///
   /// In en, this message translates to:
-  /// **'For audiobooks & podcasts; voices keep their pitch. Music always plays at 1×.'**
+  /// **'For audiobooks & podcasts; voices keep their pitch. Music plays at 1× unless you remember a speed for its album or artist.'**
   String get speedHint;
+
+  /// No description provided for @rememberFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Remember for'**
+  String get rememberFor;
+
+  /// No description provided for @asSetAbove.
+  ///
+  /// In en, this message translates to:
+  /// **'As set above'**
+  String get asSetAbove;
 
   /// No description provided for @chapters.
   ///

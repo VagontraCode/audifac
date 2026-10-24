@@ -144,6 +144,27 @@ class VolumeMatchingTest {
     }
 
     @Test
+    fun rememberedModeOverridesTheAppMode() {
+        val gains = Gains(trackGainDb = -6.0, albumGainDb = -4.0, mode = VolumeMatching.Mode.ALBUM)
+        assertEquals(-4.0, db(VolumeMatching(VolumeMatching.Mode.OFF).linearGain(gains)), 1e-9)
+        assertEquals(-4.0, db(VolumeMatching(VolumeMatching.Mode.TRACK).linearGain(gains)), 1e-9)
+        assertEquals(0.0, db(VolumeMatching(VolumeMatching.Mode.TRACK).linearGain(gains.copy(mode = VolumeMatching.Mode.OFF))), 1e-9)
+        assertEquals(VolumeMatching.Mode.TRACK, Gains.fromMap(mapOf("trackGainDb" to -1.0, "mode" to "TRACK")).mode)
+        assertNull(Gains.fromMap(mapOf("trackGainDb" to -1.0)).mode)
+    }
+
+    @Test
+    fun aRememberedModeChangeAppliesAtOnce() {
+        Loudness.putGains(mapOf("x" to Gains(trackGainDb = -1.0)), replace = true)
+        val settings = Loudness.settingsVersion
+        Loudness.putGains(mapOf("x" to Gains(trackGainDb = -2.0)), replace = false)
+        assertEquals("a new measurement waits for the next song", settings, Loudness.settingsVersion)
+        Loudness.putGains(mapOf("x" to Gains(trackGainDb = -2.0, mode = VolumeMatching.Mode.OFF)), replace = false)
+        assertTrue(Loudness.settingsVersion > settings)
+        Loudness.putGains(emptyMap(), replace = true)
+    }
+
+    @Test
     fun preventClippingCapsBoostAtThePeak() {
         val quietTrack = Gains(trackGainDb = 8.0, trackPeak = 0.5) // peak −6 dBFS
         assertEquals(6.0206, db(VolumeMatching(VolumeMatching.Mode.TRACK).linearGain(quietTrack)), 1e-3)

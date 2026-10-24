@@ -79,14 +79,14 @@ void main() {
 
   group('settings', () {
     test('applied gain mirrors the native rule', () {
-      const gains = (trackGainDb: -6.0, trackPeak: 0.5, albumGainDb: -4.0, albumPeak: 0.6);
+      const gains = (trackGainDb: -6.0, trackPeak: 0.5, albumGainDb: -4.0, albumPeak: 0.6, mode: null);
       expect(const VolumeMatching().appliedDb(gains, albumInOrder: true), isNull);
       expect(const VolumeMatching(mode: VolumeMode.track).appliedDb(gains, albumInOrder: true), -6.0);
       expect(const VolumeMatching(mode: VolumeMode.album).appliedDb(gains, albumInOrder: false), -4.0);
       expect(const VolumeMatching(mode: VolumeMode.smart).appliedDb(gains, albumInOrder: true), -4.0);
       expect(const VolumeMatching(mode: VolumeMode.smart).appliedDb(gains, albumInOrder: false), -6.0);
       // +8 dB on a −6 dBFS peak: capped at +6.02 dB.
-      const quiet = (trackGainDb: 8.0, trackPeak: 0.5, albumGainDb: null, albumPeak: null);
+      const quiet = (trackGainDb: 8.0, trackPeak: 0.5, albumGainDb: null, albumPeak: null, mode: null);
       expect(const VolumeMatching(mode: VolumeMode.track).appliedDb(quiet, albumInOrder: false), closeTo(6.0206, 1e-3));
       expect(const VolumeMatching(mode: VolumeMode.track, untaggedGainDb: -3, preampDb: 2).appliedDb(null, albumInOrder: false),
           -1.0);

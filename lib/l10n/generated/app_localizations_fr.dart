@@ -1291,7 +1291,13 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get speedHint =>
-      'Pour les livres audio et podcasts ; les voix gardent leur hauteur. La musique est toujours lue à 1×.';
+      'Pour les livres audio et podcasts ; les voix gardent leur hauteur. La musique est lue à 1×, sauf vitesse retenue pour son album ou son artiste.';
+
+  @override
+  String get rememberFor => 'Retenir pour';
+
+  @override
+  String get asSetAbove => 'Comme ci-dessus';
 
   @override
   String get chapters => 'Chapitres';

@@ -25,6 +25,7 @@ data class VolumeMatching(
      * falls back to the track gain and vice versa.
      */
     fun linearGain(gains: Gains?): Double {
+        val mode = gains?.mode ?: mode
         if (mode == Mode.OFF) return 1.0
         val album = mode == Mode.ALBUM
         val gainDb = if (album) gains?.albumGainDb ?: gains?.trackGainDb else gains?.trackGainDb ?: gains?.albumGainDb
@@ -76,8 +77,12 @@ object Loudness {
     }
 
     fun putGains(entries: Map<String, Gains>, replace: Boolean) {
+        // A remembered mode that changes for a file applies at once, like a setting.
+        val modeChanged = entries.any { (key, gains) -> known[key]?.mode != gains.mode } ||
+            (replace && known.any { (key, gains) -> gains.mode != null && key !in entries })
         if (replace) known.keys.retainAll(entries.keys)
         known.putAll(entries)
+        if (modeChanged) settingsVersion++
         version++
     }
 
@@ -94,6 +99,7 @@ object Loudness {
             trackPeak = tags.trackPeak ?: app.trackPeak,
             albumGainDb = tags.albumGainDb ?: app.albumGainDb,
             albumPeak = tags.albumPeak ?: app.albumPeak,
+            mode = app.mode,
         )
     }
 }

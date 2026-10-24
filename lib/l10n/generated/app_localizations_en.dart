@@ -1261,7 +1261,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get speedHint =>
-      'For audiobooks & podcasts; voices keep their pitch. Music always plays at 1×.';
+      'For audiobooks & podcasts; voices keep their pitch. Music plays at 1× unless you remember a speed for its album or artist.';
+
+  @override
+  String get rememberFor => 'Remember for';
+
+  @override
+  String get asSetAbove => 'As set above';
 
   @override
   String get chapters => 'Chapters';

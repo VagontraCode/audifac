@@ -7,6 +7,7 @@ import '../models/loudness.dart';
 import '../models/song.dart';
 import 'eq_providers.dart';
 import 'library_providers.dart';
+import 'playback_memory_provider.dart';
 import 'player_providers.dart';
 import 'user_data_providers.dart';
 
@@ -148,14 +149,24 @@ final volumeSyncProvider = Provider<void>((ref) {
   final settings = ref.watch(volumeMatchingProvider);
   final queue = ref.watch(playQueueProvider);
   final known = ref.watch(loudnessProvider);
+  final memories = ref.watch(playbackMemoryProvider);
   final channel = ref.read(dspChannelProvider);
 
-  channel.setVolumeMatching(settings.toNative(albumInOrder: isAlbumInOrder(queue.songs, shuffled: queue.shuffled)));
-  if (settings.mode == VolumeMode.off) return;
+  final albumInOrder = isAlbumInOrder(queue.songs, shuffled: queue.shuffled);
+  // Modes remembered for an album / artist travel with each file's gains.
+  String? modeFor(Song s) {
+    final mode = memories.forSong(s).volume;
+    return mode == null ? null : VolumeMatching.nativeMode(mode, albumInOrder: albumInOrder);
+  }
 
-  final upcoming = queue.songs.skip(queue.current).take(4).toList();
-  scheduleMicrotask(() => ref.read(loudnessProvider.notifier).prioritise(upcoming));
-  channel.setGains(gainsFor(queue.songs, known: known, library: ref.read(songsProvider)));
+  channel.setVolumeMatching(settings.toNative(albumInOrder: albumInOrder));
+  final matched = settings.mode != VolumeMode.off || queue.songs.any((s) => modeFor(s) != null);
+  if (matched) {
+    final upcoming = queue.songs.skip(queue.current).take(4).toList();
+    scheduleMicrotask(() => ref.read(loudnessProvider.notifier).prioritise(upcoming));
+  }
+  // Also when off: replaces modes remembered for songs no longer queued.
+  channel.setGains(matched ? gainsFor(queue.songs, known: known, library: ref.read(songsProvider), modeFor: modeFor) : const {});
 });
 
 /// Crossfade length, album keys for the queue and album-aware shuffle.

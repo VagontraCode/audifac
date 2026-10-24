@@ -19,6 +19,8 @@ data class Gains(
     val trackPeak: Double? = null,
     val albumGainDb: Double? = null,
     val albumPeak: Double? = null,
+    /** Volume matching mode for this file (remembered for its album / artist), null = the app's. */
+    val mode: VolumeMatching.Mode? = null,
 ) {
     val isEmpty: Boolean get() = trackGainDb == null && albumGainDb == null
 
@@ -35,6 +37,7 @@ data class Gains(
             (m["trackPeak"] as? Number)?.toDouble(),
             (m["albumGainDb"] as? Number)?.toDouble(),
             (m["albumPeak"] as? Number)?.toDouble(),
+            VolumeMatching.Mode.entries.firstOrNull { it.name.equals(m["mode"] as? String, ignoreCase = true) },
         )
     }
 }

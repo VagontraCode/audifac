@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/song.dart';
 import '../models/spoken.dart';
 import 'library_providers.dart';
+import 'playback_memory_provider.dart';
 import 'player_providers.dart';
 import 'user_data_providers.dart';
 
@@ -28,6 +29,14 @@ class SpokenSpeedNotifier extends Notifier<double> {
 final currentIsLongFormProvider = Provider<bool>((ref) {
   final song = ref.watch(currentSongProvider);
   return song != null && isLongForm(song);
+});
+
+/// The speed the current item plays at: remembered for its album / artist,
+/// else the spoken-word speed for audiobooks & podcasts, else 1×.
+final effectiveSpeedProvider = Provider<double>((ref) {
+  final remembered = ref.watch(currentPlaybackMemoryProvider).speed;
+  if (remembered != null) return remembered;
+  return ref.watch(currentIsLongFormProvider) ? ref.watch(spokenSpeedProvider) : 1.0;
 });
 
 final chaptersProvider = FutureProvider.family<List<Chapter>, Song>((ref, song) async {
@@ -67,11 +76,7 @@ final spokenControllerProvider = Provider<void>((ref) {
     // the new song. The 5 s saver and the save on pause have it.)
     current = song;
     if (song == null) return;
-    if (!isLongForm(song)) {
-      if (handler.speed != 1.0) await handler.setSpeed(1.0);
-      return;
-    }
-    await handler.setSpeed(ref.read(spokenSpeedProvider));
+    if (!isLongForm(song)) return;
     final saved = int.tryParse(await db.getValue(_resumeKey(song)) ?? '');
     final point = resumePoint(saved == null ? null : Duration(milliseconds: saved), song.duration);
     // Only jump when the song is starting from the top (not a restored session
@@ -81,9 +86,11 @@ final spokenControllerProvider = Provider<void>((ref) {
 
   ref.listen(currentSongProvider, (_, song) => onSong(song), fireImmediately: true);
   final starts = handler.queueStarts.listen((song) => onSong(song, restarted: true));
-  ref.listen(spokenSpeedProvider, (_, speed) {
-    if (current != null && isLongForm(current!)) handler.setSpeed(speed);
-  });
+  // Speed follows the song: remembered for its album / artist, the spoken
+  // speed for books and podcasts, else 1×.
+  ref.listen(effectiveSpeedProvider, (_, speed) {
+    if (handler.speed != speed) handler.setSpeed(speed);
+  }, fireImmediately: true);
   ref.listen(isPlayingProvider, (_, playing) {
     saver?.cancel();
     if (playing) {

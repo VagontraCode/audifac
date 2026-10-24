@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/app_settings.dart';
@@ -6,11 +8,13 @@ import '../models/eq.dart';
 import '../models/eq_rules.dart';
 import '../models/loudness.dart';
 import '../models/play_stats.dart';
+import '../models/playback_memory.dart';
 import '../models/smart_playlist.dart';
 import '../models/song.dart';
 import 'eq_providers.dart';
 import 'library_providers.dart';
 import 'loudness_providers.dart';
+import 'playback_memory_provider.dart';
 import 'smart_playlist_providers.dart';
 import 'stats_providers.dart';
 import 'user_data_providers.dart';
@@ -84,8 +88,40 @@ class BackupService {
         ..._ref.read(settingsProvider).toKeyValues(),
         VolumeMatchingNotifier.key: _ref.read(volumeMatchingProvider).encode(),
         SmartPlaylistsNotifier.key: SmartPlaylist.encodeAll(_ref.read(smartPlaylistsProvider).where((l) => !l.builtIn).toList()),
+        PlaybackMemoryNotifier.key: _memoriesByName(),
       },
     );
+  }
+
+  /// Album ids differ between phones: albums are saved by title and artist.
+  String _memoriesByName() {
+    final memories = _ref.read(playbackMemoryProvider);
+    final albums = {for (final a in _ref.read(albumsProvider)) a.id: a};
+    return jsonEncode({
+      'artists': {for (final e in memories.artists.entries) e.key: e.value.toJson()},
+      'albums': [
+        for (final e in memories.albums.entries)
+          if (albums[e.key] case final a?) {'title': a.title, 'artist': a.artist, ...e.value.toJson()},
+      ],
+    });
+  }
+
+  void _restoreMemories(String text) {
+    final Map<String, dynamic> j;
+    try {
+      j = jsonDecode(text) as Map<String, dynamic>;
+    } catch (_) {
+      return;
+    }
+    final notifier = _ref.read(playbackMemoryProvider.notifier);
+    for (final e in ((j['artists'] as Map?) ?? const {}).entries) {
+      notifier.setArtist('${e.key}', PlaybackMemory.fromJson((e.value as Map).cast<String, dynamic>()));
+    }
+    final albums = _ref.read(albumsProvider);
+    for (final m in ((j['albums'] as List?) ?? const []).cast<Map<dynamic, dynamic>>()) {
+      final album = albums.where((a) => a.title == m['title'] && a.artist == m['artist']).firstOrNull;
+      if (album != null) notifier.setAlbum(album.id, PlaybackMemory.fromJson(m.cast<String, dynamic>()));
+    }
   }
 
   /// Merges [data] into the app: nothing existing is deleted.
@@ -189,6 +225,7 @@ class BackupService {
       if (data.settings[VolumeMatchingNotifier.key] case final volume?) {
         _ref.read(volumeMatchingProvider.notifier).set(VolumeMatching.decode(volume));
       }
+      if (data.settings[PlaybackMemoryNotifier.key] case final memories?) _restoreMemories(memories);
       if (data.settings[SmartPlaylistsNotifier.key] case final smart?) {
         _ref.read(smartPlaylistsProvider.notifier).restore(SmartPlaylist.decodeAll(smart));
       }

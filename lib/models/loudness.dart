@@ -63,14 +63,17 @@ class VolumeMatching {
     return db;
   }
 
+  /// [mode] as the native side names it (smart resolved for the queue).
+  static String nativeMode(VolumeMode mode, {required bool albumInOrder}) => switch (mode) {
+        VolumeMode.off => 'OFF',
+        VolumeMode.track => 'TRACK',
+        VolumeMode.album => 'ALBUM',
+        VolumeMode.smart => albumInOrder ? 'ALBUM' : 'TRACK',
+      };
+
   /// What the native side applies: [mode] resolved for the current queue.
   Map<String, Object> toNative({required bool albumInOrder}) => {
-        'mode': switch (mode) {
-          VolumeMode.off => 'OFF',
-          VolumeMode.track => 'TRACK',
-          VolumeMode.album => 'ALBUM',
-          VolumeMode.smart => albumInOrder ? 'ALBUM' : 'TRACK',
-        },
+        'mode': nativeMode(mode, albumInOrder: albumInOrder),
         'preampDb': preampDb,
         'preventClipping': preventClipping,
         'untaggedGainDb': untaggedGainDb,
@@ -215,7 +218,7 @@ class LoudnessInfo {
 }
 
 /// Gains as sent to the native side for one file.
-typedef Gains = ({double? trackGainDb, double? trackPeak, double? albumGainDb, double? albumPeak});
+typedef Gains = ({double? trackGainDb, double? trackPeak, double? albumGainDb, double? albumPeak, String? mode});
 
 /// Album gain from its tracks' gains: the duration-weighted power mean of
 /// their loudness (what a whole-album measurement gives, minus gating
@@ -237,10 +240,12 @@ typedef Gains = ({double? trackGainDb, double? trackPeak, double? albumGainDb, d
 
 /// Gains for every song in [songs], album gains completed from the other
 /// tracks of the same album in [library] when the file has no album tag.
+/// [modeFor] gives a song's own volume matching mode (native name), if any.
 Map<String, Gains> gainsFor(
   Iterable<Song> songs, {
   required Map<String, LoudnessInfo> known,
   required Iterable<Song> library,
+  String? Function(Song)? modeFor,
 }) {
   final byAlbum = <int, List<Song>>{};
   for (final s in library) {
@@ -255,16 +260,21 @@ Map<String, Gains> gainsFor(
         ]);
       });
 
-  return {
-    for (final s in songs)
-      if (known[s.location] case final i? when i.describes(s) && i.trackGainDb != null)
-        nativeKey(s.uri): (
-          trackGainDb: i.trackGainDb,
-          trackPeak: i.trackPeak,
-          albumGainDb: i.albumGainDb ?? album(s.albumId)?.gainDb,
-          albumPeak: i.albumGainDb != null ? i.albumPeak : album(s.albumId)?.peak,
-        ),
-  };
+  final out = <String, Gains>{};
+  for (final s in songs) {
+    final mode = modeFor?.call(s);
+    final i = known[s.location];
+    final measured = i != null && i.describes(s) && i.trackGainDb != null;
+    if (!measured && mode == null) continue;
+    out[nativeKey(s.uri)] = (
+      trackGainDb: measured ? i.trackGainDb : null,
+      trackPeak: measured ? i.trackPeak : null,
+      albumGainDb: measured ? i.albumGainDb ?? album(s.albumId)?.gainDb : null,
+      albumPeak: measured ? (i.albumGainDb != null ? i.albumPeak : album(s.albumId)?.peak) : null,
+      mode: mode,
+    );
+  }
+  return out;
 }
 
 /// The key the native extractor tags tracks with (`SourceUri.keyOf`).

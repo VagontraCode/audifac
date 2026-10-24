@@ -5,6 +5,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../core/format.dart';
 import '../core/theme/app_colors.dart';
 import '../models/spoken.dart';
+import '../providers/playback_memory_provider.dart';
 import '../providers/player_providers.dart';
 import '../providers/spoken_providers.dart';
 import '../l10n/l10n.dart';
@@ -56,14 +57,16 @@ class _Chip extends StatelessWidget {
   }
 }
 
-/// Speed chip, shown for audiobooks & podcasts.
+/// Speed chip, shown for audiobooks & podcasts (and anything with a speed
+/// remembered for its album / artist).
 class SpeedChip extends ConsumerWidget {
   const SpeedChip({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!ref.watch(currentIsLongFormProvider)) return const SizedBox.shrink();
-    final speed = ref.watch(spokenSpeedProvider);
+    final remembered = ref.watch(currentPlaybackMemoryProvider).speed != null;
+    if (!ref.watch(currentIsLongFormProvider) && !remembered) return const SizedBox.shrink();
+    final speed = ref.watch(effectiveSpeedProvider);
     return _Chip(
       icon: HugeIcons.strokeRoundedDashboardSpeed01,
       label: speedLabel(speed),
@@ -82,9 +85,26 @@ class SpeedSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final speed = ref.watch(spokenSpeedProvider);
-    final notifier = ref.read(spokenSpeedProvider.notifier);
+    final speed = ref.watch(effectiveSpeedProvider);
+    final song = ref.watch(currentSongProvider);
+    final memories = ref.watch(playbackMemoryProvider);
+    final memory = ref.read(playbackMemoryProvider.notifier);
+    final album = song == null ? null : memories.album(song.albumId);
+    final artist = song == null ? null : memories.artist(song.artist);
     final theme = Theme.of(context);
+
+    // Where a change goes: the album's remembered speed, the artist's, or
+    // the spoken-word speed.
+    void set(double s) {
+      if (song != null && album?.speed != null) {
+        memory.setAlbum(song.albumId, album!.copyWith(speed: () => s));
+      } else if (song != null && artist?.speed != null) {
+        memory.setArtist(song.artist, artist!.copyWith(speed: () => s));
+      } else {
+        ref.read(spokenSpeedProvider.notifier).set(s);
+      }
+    }
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
@@ -104,15 +124,35 @@ class SpeedSheet extends ConsumerWidget {
               context.l10n.speedHint,
               style: theme.textTheme.bodySmall?.copyWith(color: context.palette.inkMuted),
             ),
-            Slider(value: speed, min: 0.5, max: 3, divisions: 50, label: speedLabel(speed), onChanged: notifier.set),
+            Slider(value: speed, min: 0.5, max: 3, divisions: 50, label: speedLabel(speed), onChanged: set),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
                 for (final s in SpokenSpeedNotifier.choices)
-                  ChoiceChip(label: Text(speedLabel(s)), selected: speed == s, onSelected: (_) => notifier.set(s)),
+                  ChoiceChip(label: Text(speedLabel(s)), selected: speed == s, onSelected: (_) => set(s)),
               ],
             ),
+            if (song != null) ...[
+              const SizedBox(height: 16),
+              Text(context.l10n.rememberFor, style: const TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  FilterChip(
+                    label: Text(context.l10n.thisAlbum),
+                    selected: album?.speed != null,
+                    onSelected: (on) => memory.setAlbum(song.albumId, album!.copyWith(speed: () => on ? speed : null)),
+                  ),
+                  FilterChip(
+                    label: Text(context.l10n.thisArtist),
+                    selected: artist?.speed != null,
+                    onSelected: (on) => memory.setArtist(song.artist, artist!.copyWith(speed: () => on ? speed : null)),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

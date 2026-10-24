@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../models/loudness.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/loudness_providers.dart';
+import '../../providers/playback_memory_provider.dart';
 import '../../providers/player_providers.dart';
 import '../../l10n/l10n.dart';
 import '../../l10n/labels.dart';
@@ -34,6 +35,8 @@ class VolumeMatchingSheet extends ConsumerWidget {
     final v = ref.watch(volumeMatchingProvider);
     final notifier = ref.read(volumeMatchingProvider.notifier);
     final known = ref.watch(loudnessProvider);
+    final memories = ref.watch(playbackMemoryProvider);
+    final memory = ref.read(playbackMemoryProvider.notifier);
     final songs = ref.watch(songsProvider);
     final scan = ref.watch(loudnessScanStatusProvider);
     final theme = Theme.of(context);
@@ -57,18 +60,21 @@ class VolumeMatchingSheet extends ConsumerWidget {
 
     final current = ref.watch(currentSongProvider);
     String? nowPlaying;
-    if (current != null && v.mode != VolumeMode.off) {
+    // A mode remembered for the album / artist playing wins.
+    final remembered = ref.watch(currentPlaybackMemoryProvider).volume;
+    final applied = remembered == null ? v : v.copyWith(mode: remembered);
+    if (current != null && applied.mode != VolumeMode.off) {
       final queue = ref.watch(playQueueProvider);
       final albumInOrder = isAlbumInOrder(queue.songs, shuffled: queue.shuffled);
       final gains = gainsFor([current], known: known, library: songs).values.firstOrNull;
-      final db = v.appliedDb(gains, albumInOrder: albumInOrder)!;
+      final db = applied.appliedDb(gains, albumInOrder: albumInOrder)!;
       final info = known[current.location];
       final from = switch (info?.source) {
         LoudnessSource.tags => context.l10n.fromTags,
         LoudnessSource.scan => context.l10n.measuredLufs(info!.lufs?.toStringAsFixed(1) ?? '?'),
         _ => context.l10n.notAnalysedYetShort,
       };
-      final which = v.mode == VolumeMode.smart ? (albumInOrder ? ' · ${context.l10n.reasonAlbum}' : ' · ${context.l10n.volumeTrack.toLowerCase()}') : '';
+      final which = applied.mode == VolumeMode.smart ? (albumInOrder ? ' · ${context.l10n.reasonAlbum}' : ' · ${context.l10n.volumeTrack.toLowerCase()}') : '';
       nowPlaying = '${current.title}: ${_db(db)} ($from$which)';
     }
 
@@ -119,10 +125,41 @@ class VolumeMatchingSheet extends ConsumerWidget {
                 const SizedBox(height: 10),
                 Text(context.l10n.nowLine(nowPlaying), style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
               ],
+              if (current != null) ...[
+                heading(context.l10n.rememberFor),
+                for (final (label, mode, save) in [
+                  (
+                    '${context.l10n.thisAlbum} · ${current.album}',
+                    memories.album(current.albumId).volume,
+                    (VolumeMode? m) => memory.setAlbum(current.albumId, memories.album(current.albumId).copyWith(volume: () => m)),
+                  ),
+                  (
+                    '${context.l10n.thisArtist} · ${current.artist}',
+                    memories.artist(current.artist).volume,
+                    (VolumeMode? m) => memory.setArtist(current.artist, memories.artist(current.artist).copyWith(volume: () => m)),
+                  ),
+                ])
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                      DropdownButton<VolumeMode?>(
+                        value: mode,
+                        underline: const SizedBox.shrink(),
+                        items: [
+                          DropdownMenuItem(value: null, child: Text(context.l10n.asSetAbove)),
+                          for (final m in VolumeMode.values) DropdownMenuItem(value: m, child: Text(context.l10n.volumeMode(m))),
+                        ],
+                        onChanged: save,
+                      ),
+                    ],
+                  ),
+              ],
               AnimatedSize(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
-                child: v.mode == VolumeMode.off
+                child: applied.mode == VolumeMode.off
                     ? const SizedBox(width: double.infinity)
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

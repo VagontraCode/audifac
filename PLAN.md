@@ -212,7 +212,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.15 ✅ | **Artwork viewer** — full-resolution cover, pinch to zoom | S | player |
 | 7.16 ✅ | **M3U / M3U8** — import and export playlists | M | SAF |
 | 7.17 ✅ | **CUE sheets** — one-file albums split into tracks in the library and played gaplessly | L | library + clipping |
-| 7.18 | **Per-album / artist memory** — volume matching mode and speed remembered | S | rules |
+| 7.18 ✅ | **Per-album / artist memory** — volume matching mode and speed remembered | S | rules |
 | 7.19 | **Waveform seek bar** — loudness envelope computed in the background, cached | M | scanner |
 | 7.20 | **Spectrogram + goniometer** — scrolling spectrogram and stereo-image scope next to the spectrum | M | visualizer tap |
 | 7.21 | **USB DAC hardware volume** — keep full digital resolution, volume in the DAC | M | needs Android 14+ and a DAC to verify |
@@ -240,6 +240,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.15 | Nokia: tap the player cover → embedded picture as stored (Buga 1024 × 1024 JPEG 167 KB, DIPITA 4000 × 4000 JPEG 1.7 MB), double-tap zooms ×3 where tapped, pinch up to ×10; unit-tested: format from magic bytes, size label | a PNG / WebP cover |
 | 7.16 | Nokia: imported a Windows-1252 `.m3u` → playlist "Test M3U Café", 4 of 6 found (PC path `C:…01 Kizz…mp3`, renamed file by `#EXTINF` artist – title, relative `FormatTest/sample.ape`, `file://` URI; a missing file and a stream skipped); Export as M3U → `Test M3U Café.m3u8` with `#EXTINF` + absolute paths; test playlist and files removed; unit-tested: parse, components, deepest-folder match, write → read | importing a big playlist from a PC library |
 | 7.17 | Nokia (Android 12): a 3-track sheet beside a FLAC (sheet says `.wav`) is hidden from apps until its folder is added in Folders (now said there) → "Cue Test Album" with Part One / Two / Three (0:25, 0:25, 0:30), Part Two plays its own clip and rolls into Part Three with no underrun, queue restored after a force-stop (sheets loaded before the restore), settings count files not tracks; test folder, grant and file removed; unit-tested: parse (75 frames/s, REM, data tracks), file matching by name / other extension / sheet name, clip bounds, stable ids, per-track tag-edit keys | listening for a click at a track change (muted test phone), a big real CUE rip |
+| 7.18 | Nokia: Volume matching → Remember for "This album · Buga" = Track while the app is Off → Signal path shows volume −8.3 dB at once, mid-song; kept after reopening; back to "As set above" clears it. Speed sheet gets "Remember for this album / artist" (album beats artist; music without a remembered speed stays 1×). Native: a file's remembered mode overrides the app's and applies at once (settings version); backups keep albums by title + artist; unit-tested (Dart + Kotlin) | a remembered speed on a real audiobook / podcast |
 
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".

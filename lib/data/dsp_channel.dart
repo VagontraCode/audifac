@@ -52,6 +52,7 @@ class DspChannel {
               'trackPeak': e.value.trackPeak,
               'albumGainDb': e.value.albumGainDb,
               'albumPeak': e.value.albumPeak,
+              'mode': e.value.mode,
             },
         },
         'replace': replace,
