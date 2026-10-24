@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
@@ -24,7 +25,7 @@ class AppDatabase {
     final path = p.join(await getDatabasesPath(), 'audifac.db');
     final db = await openDatabase(
       path,
-      version: 8,
+      version: 9,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: (db, _) async {
         final batch = db.batch()
@@ -62,6 +63,7 @@ class AppDatabase {
         _createLoudness(batch);
         _createPlayLog(batch);
         _createTagEdits(batch);
+        _createWaveforms(batch);
         await batch.commit(noResult: true);
       },
       onUpgrade: (db, from, _) async {
@@ -76,6 +78,7 @@ class AppDatabase {
         if (from < 6) _createLoudness(batch);
         if (from < 7) _createPlayLog(batch);
         if (from < 8) _createTagEdits(batch);
+        if (from < 9) _createWaveforms(batch);
         await batch.commit(noResult: true);
       },
     );
@@ -98,6 +101,17 @@ class AppDatabase {
           json TEXT NOT NULL,
           PRIMARY KEY (scope, key)
         )''');
+  }
+
+  /// v9: seek bar waveforms by [Song.key], for the file as it was (size, date).
+  static void _createWaveforms(Batch batch) {
+    batch.execute('''
+      CREATE TABLE waveforms (
+        key TEXT PRIMARY KEY,
+        size INTEGER NOT NULL,
+        modified INTEGER NOT NULL,
+        levels BLOB NOT NULL
+      )''');
   }
 
   /// v8: tags corrected in the app (JSON), keyed by location. Files are never written.
@@ -382,6 +396,25 @@ class AppDatabase {
           {'location': location, 'json': edit.encode()},
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
+
+  // --- Waveforms -----------------------------------------------------------------
+
+  /// [key]'s waveform if it was made from the file as it is now.
+  Future<Uint8List?> waveform(String key, {required int size, required int modified}) async {
+    final rows = await _db.query(
+      'waveforms',
+      columns: ['levels'],
+      where: 'key = ? AND size = ? AND modified = ?',
+      whereArgs: [key, size, modified],
+    );
+    return rows.isEmpty ? null : rows.first['levels'] as Uint8List;
+  }
+
+  Future<void> putWaveform(String key, {required int size, required int modified, required Uint8List levels}) => _db.insert(
+        'waveforms',
+        {'key': key, 'size': size, 'modified': modified, 'levels': levels},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
 
   // --- Equalizer ---------------------------------------------------------------
 

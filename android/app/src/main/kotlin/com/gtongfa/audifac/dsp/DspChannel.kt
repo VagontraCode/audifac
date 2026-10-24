@@ -16,6 +16,7 @@ import java.util.concurrent.Executors
  *
  * Methods: setConfig(map), setBypass(bool), outputDevice() -> map,
  * setVolumeMatching(map), setGains({gains: {uriKey: map}, replace: bool}),
+ * waveform({location, startMs, endMs?, durationMs}) -> bytes (see Waveform),
  * analyseLoudness({locations}) -> list of maps
  * setCrossfade({seconds, albums: {uriKey: albumId}})
  * Calls Dart: outputChanged(map)
@@ -35,6 +36,15 @@ class DspChannel(private val context: Context) : MethodChannel.MethodCallHandler
             Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND + Process.THREAD_PRIORITY_MORE_FAVORABLE)
             r.run()
         }, "AudifacLoudness")
+    }
+
+    // Waveforms on their own thread, so the playing song's doesn't wait for a
+    // library scan.
+    private val waveformExecutor = Executors.newSingleThreadExecutor { r ->
+        Thread({
+            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND + Process.THREAD_PRIORITY_MORE_FAVORABLE)
+            r.run()
+        }, "AudifacWaveform")
     }
 
     fun register(messenger: BinaryMessenger) {
@@ -119,6 +129,22 @@ class DspChannel(private val context: Context) : MethodChannel.MethodCallHandler
                 val albums = (call.argument<Map<String, Number>>("albums") ?: emptyMap()).mapValues { it.value.toLong() }
                 Crossfade.setAlbums(albums)
                 result.success(null)
+            }
+            "waveform" -> {
+                val location = call.argument<String>("location") ?: return result.error("bad_args", "Missing location", null)
+                val startMs = call.argument<Number>("startMs")?.toLong() ?: 0L
+                val endMs = call.argument<Number>("endMs")?.toLong()
+                val durationMs = call.argument<Number>("durationMs")?.toLong() ?: 0L
+                waveformExecutor.execute {
+                    val started = System.nanoTime()
+                    val levels = try {
+                        Waveform.of(context, location, startMs, endMs, durationMs)
+                    } catch (e: Exception) {
+                        null
+                    }
+                    Log.d("AudifacDsp", "waveform: ${levels?.size ?: "failed"} in ${(System.nanoTime() - started) / 1_000_000} ms")
+                    mainHandler.post { result.success(levels) }
+                }
             }
             "analyseLoudness" -> {
                 val locations = call.argument<List<String>>("locations") ?: emptyList()

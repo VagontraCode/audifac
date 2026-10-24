@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../models/eq.dart';
 import '../models/loudness.dart';
+import '../models/song.dart';
 
 /// Talks to the native DSP (`DspChannel.kt`): applies settings and reports the
 /// current audio output.
@@ -91,6 +92,23 @@ class DspChannel {
       return await _channel.invokeMethod<bool>('setBitPerfect', on) ?? false;
     } on MissingPluginException {
       return false;
+    }
+  }
+
+  /// [song]'s loudness over time for the seek bar (see `Waveform.kt`), or
+  /// null if it can't be decoded. Decodes the whole song: seconds of work.
+  Future<Uint8List?> waveform(Song song) async {
+    try {
+      return await _channel.invokeMethod<Uint8List>('waveform', {
+        'location': song.location,
+        'startMs': song.clipStart?.inMilliseconds ?? 0,
+        'endMs': song.clipEnd?.inMilliseconds,
+        'durationMs': song.duration.inMilliseconds,
+      });
+    } on PlatformException {
+      return null;
+    } on MissingPluginException {
+      return null;
     }
   }
 
