@@ -555,5 +555,12 @@
   "sortResolution": "Résolution",
   "sortBitrate": "Débit",
   "sortDynamicRange": "Plage dynamique",
-  "fakeLossless": "Faux sans perte ?"
+  "fakeLossless": "Faux sans perte ?",
+  "duplicatesTitle": "Doublons",
+  "duplicatesFound": "{count, plural, =0{Aucun titre en plusieurs fichiers} =1{1 titre en plusieurs fichiers} other{{count} titres en plusieurs fichiers}}",
+  "duplicatesHint": "Le même titre dans plusieurs fichiers (formats, copies). La meilleure version vient en premier : sans perte, puis résolution, débit et plage dynamique. Aucun fichier n’est supprimé.",
+  "duplicatesNone": "Aucun doublon",
+  "duplicatesNoneHint": "Chaque titre est dans un seul fichier.",
+  "bestVersion": "Meilleure version",
+  "copies": "{count} copies"
 }

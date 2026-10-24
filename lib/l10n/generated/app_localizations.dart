@@ -3433,6 +3433,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Fake lossless?'**
   String get fakeLossless;
+
+  /// No description provided for @duplicatesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicates'**
+  String get duplicatesTitle;
+
+  /// No description provided for @duplicatesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No song in several files} =1{1 song in several files} other{{count} songs in several files}}'**
+  String duplicatesFound(num count);
+
+  /// No description provided for @duplicatesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The same song in several files (formats, copies). The best version comes first: lossless, then resolution, bitrate and dynamic range. Files are never deleted.'**
+  String get duplicatesHint;
+
+  /// No description provided for @duplicatesNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No duplicates'**
+  String get duplicatesNone;
+
+  /// No description provided for @duplicatesNoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Every song is in a single file.'**
+  String get duplicatesNoneHint;
+
+  /// No description provided for @bestVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Best version'**
+  String get bestVersion;
+
+  /// No description provided for @copies.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} copies'**
+  String copies(Object count);
 }
 
 class _AppLocalizationsDelegate

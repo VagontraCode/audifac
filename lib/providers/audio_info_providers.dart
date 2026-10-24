@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/audio_info.dart';
 import '../models/app_settings.dart';
+import '../models/duplicates.dart';
 import '../models/song.dart';
 import '../models/song_source.dart';
 import 'library_providers.dart';
@@ -132,7 +133,8 @@ final filteredSongsProvider = Provider<List<Song>>((ref) {
     int key(Song s) {
       final i = info(s);
       return switch (sort) {
-        SongSort.resolution => (i.sampleRate ?? 0) * 64 + (i.bitDepth ?? 0),
+        // Lossless first: a 48 kHz MP3 isn't a higher resolution than a 16/44.1 FLAC.
+        SongSort.resolution => (i.quality.isLossless ? 1 << 40 : 0) + (i.sampleRate ?? 0) * 64 + (i.bitDepth ?? 0),
         SongSort.bitrate => i.kbpsOrNull ?? 0,
         _ => loudness[s.location]?.dr ?? -1,
       };
@@ -173,4 +175,12 @@ final filterCountsProvider = Provider<FilterCounts>((ref) {
   final loudness = ref.watch(loudnessProvider);
   final fake = songs.where((s) => (infos[s.location] ?? AudioInfo.guess(s)).quality.isLossless && (loudness[s.location]?.lossyCutoff ?? false)).length;
   return FilterCounts(quality: quality, codecs: codecs, categories: categories, lossyCutoff: fake);
+});
+
+/// Songs found in several files, best copy first.
+final duplicatesProvider = Provider<List<DuplicateGroup>>((ref) {
+  final songs = ref.watch(songsProvider);
+  final infos = ref.watch(audioInfoProvider);
+  final loudness = ref.watch(loudnessProvider);
+  return Duplicates.find(songs, (s) => infos[s.location] ?? AudioInfo.guess(s), (s) => loudness[s.location]);
 });

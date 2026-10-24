@@ -2067,4 +2067,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fakeLossless => 'Fake lossless?';
+
+  @override
+  String get duplicatesTitle => 'Duplicates';
+
+  @override
+  String duplicatesFound(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs in several files',
+      one: '1 song in several files',
+      zero: 'No song in several files',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get duplicatesHint =>
+      'The same song in several files (formats, copies). The best version comes first: lossless, then resolution, bitrate and dynamic range. Files are never deleted.';
+
+  @override
+  String get duplicatesNone => 'No duplicates';
+
+  @override
+  String get duplicatesNoneHint => 'Every song is in a single file.';
+
+  @override
+  String get bestVersion => 'Best version';
+
+  @override
+  String copies(Object count) {
+    return '$count copies';
+  }
 }

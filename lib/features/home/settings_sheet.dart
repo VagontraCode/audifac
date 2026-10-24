@@ -18,6 +18,7 @@ import '../../providers/user_data_providers.dart';
 import '../../providers/widget_provider.dart';
 import 'lastfm_sheet.dart';
 import 'folders_screen.dart';
+import '../library/duplicates_screen.dart';
 import 'volume_matching_sheet.dart';
 import '../../l10n/l10n.dart';
 
@@ -215,6 +216,14 @@ class SettingsSheet extends ConsumerWidget {
                 ),
                 trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
                 onTap: () => FoldersScreen.open(context),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: HugeIcon(icon: HugeIcons.strokeRoundedCopy01, color: palette.ink, size: 22),
+                title: Text(context.l10n.duplicatesTitle, style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(context.l10n.duplicatesFound(ref.watch(duplicatesProvider).length)),
+                trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
+                onTap: () => DuplicatesScreen.open(context),
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,

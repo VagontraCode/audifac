@@ -2103,4 +2103,37 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get fakeLossless => 'Faux sans perte ?';
+
+  @override
+  String get duplicatesTitle => 'Doublons';
+
+  @override
+  String duplicatesFound(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count titres en plusieurs fichiers',
+      one: '1 titre en plusieurs fichiers',
+      zero: 'Aucun titre en plusieurs fichiers',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get duplicatesHint =>
+      'Le même titre dans plusieurs fichiers (formats, copies). La meilleure version vient en premier : sans perte, puis résolution, débit et plage dynamique. Aucun fichier n’est supprimé.';
+
+  @override
+  String get duplicatesNone => 'Aucun doublon';
+
+  @override
+  String get duplicatesNoneHint => 'Chaque titre est dans un seul fichier.';
+
+  @override
+  String get bestVersion => 'Meilleure version';
+
+  @override
+  String copies(Object count) {
+    return '$count copies';
+  }
 }

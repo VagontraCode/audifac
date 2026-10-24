@@ -555,5 +555,12 @@
   "sortResolution": "Resolution",
   "sortBitrate": "Bitrate",
   "sortDynamicRange": "Dynamic range",
-  "fakeLossless": "Fake lossless?"
+  "fakeLossless": "Fake lossless?",
+  "duplicatesTitle": "Duplicates",
+  "duplicatesFound": "{count, plural, =0{No song in several files} =1{1 song in several files} other{{count} songs in several files}}",
+  "duplicatesHint": "The same song in several files (formats, copies). The best version comes first: lossless, then resolution, bitrate and dynamic range. Files are never deleted.",
+  "duplicatesNone": "No duplicates",
+  "duplicatesNoneHint": "Every song is in a single file.",
+  "bestVersion": "Best version",
+  "copies": "{count} copies"
 }

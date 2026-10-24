@@ -207,7 +207,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.10 ✅ | **Multichannel downmix** — 5.1 / 7.1 / quad files folded to stereo with proper coefficients | M | DSP |
 | 7.11 ✅ | **DR meter + transcode detection** — dynamic range (DR14-style) per track / album, and "fake lossless" detection (lossy-style frequency cutoff in a lossless file) during the loudness scan | M | song info, filters |
 | 7.12 ✅ | **Sort / filter by resolution** — bit depth, sample rate, bitrate, DR | S | Songs tab |
-| 7.13 | **Duplicates** — same song in several files / formats, best version suggested | M | library |
+| 7.13 ✅ | **Duplicates** — same song in several files / formats, best version suggested | M | library |
 | 7.14 | **Tag editor (in-app)** — edit title / artist / album / album artist / genre / year / track; stored as overrides in the DB, files untouched | M | DB migration |
 | 7.15 | **Artwork viewer** — full-resolution cover, pinch to zoom | S | player |
 | 7.16 | **M3U / M3U8** — import and export playlists | M | SAF |
@@ -234,7 +234,8 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.9 | Nokia: live download of 8 850 entries, "HD 600" → 5 measurements, oratory1990 imported as a device correction (10 bands, −6.3 dB, assigned to the speaker); unit-tested: index parsing, search, correction URL (checked against the live repository) | other targets than Harman (AutoEQ publishes one per measurement) |
 | 7.10 | Nokia: 8-channel WMA Pro decoded (48 kHz × 8) and played through the same stereo AudioTrack (mask 0x3), crossfading with the next song; unit-tested: ITU matrix, centre equal in both sides, LFE out, 5.1 file → stereo frames | listening to a real 5.1 mix |
 | 7.11 | Nokia: library analysed (2 tagged, 5 measured, 7 FFmpeg/DSD-only files can't be), MP3 256 → DR13, "up to 18.8 kHz" (was 22.1 before the noise-floor fix); unit-tested: DR of a steady tone / peaky music / too short, 16 kHz and quiet 19.5 kHz brick walls under noise, full band not flagged | a real fake-lossless FLAC (none on the test phones) |
-| 7.12 | Unit-tested: fake-lossless filter (lossless + brick wall only, MP3 and unanalysed files excluded, saved setting), audio-detail sorts; `flutter analyze` clean | on-device check (the Nokia went offline) |
+| 7.12 | Unit-tested: fake-lossless filter (lossless + brick wall only, MP3 and unanalysed files excluded, saved setting), audio-detail sorts; Nokia: sort menu shows Resolution / Bitrate / DR, Resolution puts lossless first (a 48 kHz MP3 used to beat 16/44.1 FLAC), no fake-lossless chip (none found) | — |
+| 7.13 | Nokia: Settings → Library → Duplicates finds the 2 songs in several files (Never Enough (Reprise): FLAC best over WavPack / TTA; Lucky Night: WMA Lossless / APE), "Never Enough" and "(Reprise)" kept apart; unit-tested: feat. credits / punctuation ignored, other lengths split, fake lossless ranked as lossy, MP3 cutoff doesn't count | real duplicate sets in a big library |
 
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".
