@@ -44,4 +44,38 @@ class VisualizerTest {
         Visualizer.enabled = false
         assertTrue(2.0.pow(11) == Visualizer.FFT_SIZE.toDouble())
     }
+
+    private fun snapshotOf(left: (Int) -> Double, right: (Int) -> Double): Visualizer.Snapshot {
+        val rate = 48_000
+        Visualizer.enabled = true
+        Visualizer.reset()
+        val n = 8192
+        val buf = FloatArray(n * 2) { i -> (if (i % 2 == 0) left(i / 2) else right(i / 2)).toFloat() }
+        Visualizer.feed(buf, n, 2, rate, 0)
+        Visualizer.playheadUs = n * 1_000_000L / rate
+        return Visualizer.snapshot()!!.also { Visualizer.enabled = false }
+    }
+
+    @Test
+    fun correlationTellsMonoWideAndOutOfPhase() {
+        val tone = { f: Int -> 0.5 * sin(2 * PI * 440 * f / 48_000) }
+        assertEquals(1f, snapshotOf(tone, tone).correlation, 0.01f)
+        assertEquals(-1f, snapshotOf(tone, { -tone(it) }).correlation, 0.01f)
+        val other = { f: Int -> 0.5 * sin(2 * PI * 1234 * f / 48_000) }
+        assertEquals(0f, snapshotOf(tone, other).correlation, 0.1f)
+        assertEquals(0f, snapshotOf({ 0.0 }, { 0.0 }).correlation, 0f)
+    }
+
+    @Test
+    fun spectrogramColumnAndScopePoints() {
+        val s = snapshotOf({ sin(2 * PI * 1000 * it / 48_000) }, { 0.0 })
+        assertEquals(Visualizer.FINE_BANDS, s.fine.size)
+        val band = (Visualizer.FINE_BANDS * log10(1000.0 / 30) / log10(20_000.0 / 30)).toInt()
+        // Mono mix of a full-scale left channel: −6 dB, minus up to ~3 dB of bin scalloping.
+        // (90 − 6) / 90 of 255 = 238; −9 dB = 230.
+        assertTrue((s.fine[band].toInt() and 0xFF) in 225..240)
+        assertTrue((s.fine[5].toInt() and 0xFF) < 100)
+        assertEquals(Visualizer.SCOPE_POINTS * 2, s.scope.size)
+        assertTrue("right is silent", (0 until Visualizer.SCOPE_POINTS).all { s.scope[2 * it + 1] == 0f })
+    }
 }

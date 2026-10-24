@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 
@@ -80,6 +81,9 @@ class DspChannel {
           peakR: d('peakR'),
           rmsL: d('rmsL'),
           rmsR: d('rmsR'),
+          fine: m['fine'] as Uint8List? ?? Uint8List(0),
+          scope: m['scope'] as Float32List? ?? Float32List(0),
+          correlation: (m['correlation'] as num?)?.toDouble() ?? 0,
         );
       });
 
@@ -153,11 +157,29 @@ class DspChannel {
 /// One visualizer frame: 32 log-spaced bands (30 Hz – 20 kHz) and per-channel
 /// peak / RMS, all in dBFS.
 class VisualizerFrame {
-  const VisualizerFrame({required this.bands, required this.peakL, required this.peakR, required this.rmsL, required this.rmsR});
+  const VisualizerFrame({
+    required this.bands,
+    required this.peakL,
+    required this.peakR,
+    required this.rmsL,
+    required this.rmsR,
+    required this.fine,
+    required this.scope,
+    required this.correlation,
+  });
 
   final List<double> bands;
   final double peakL;
   final double peakR;
   final double rmsL;
   final double rmsR;
+
+  /// Spectrogram column: 96 log-spaced bands, 0 = −90 dBFS … 255 = 0 dBFS.
+  final Uint8List fine;
+
+  /// Goniometer: (L, R) sample pairs, interleaved.
+  final Float32List scope;
+
+  /// Stereo correlation, −1 (out of phase) … +1 (mono).
+  final double correlation;
 }

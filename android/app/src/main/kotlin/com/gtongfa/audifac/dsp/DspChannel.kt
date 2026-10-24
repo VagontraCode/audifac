@@ -60,6 +60,7 @@ class DspChannel(private val context: Context) : MethodChannel.MethodCallHandler
                                 "bands" to s.bands.map { it.toDouble() },
                                 "peakL" to s.peakL.toDouble(), "peakR" to s.peakR.toDouble(),
                                 "rmsL" to s.rmsL.toDouble(), "rmsR" to s.rmsR.toDouble(),
+                                "fine" to s.fine, "scope" to s.scope, "correlation" to s.correlation.toDouble(),
                             ),
                         )
                     }

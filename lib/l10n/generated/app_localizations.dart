@@ -2054,6 +2054,36 @@ abstract class AppLocalizations {
   /// **'As set above'**
   String get asSetAbove;
 
+  /// No description provided for @spectrum.
+  ///
+  /// In en, this message translates to:
+  /// **'Spectrum'**
+  String get spectrum;
+
+  /// No description provided for @spectrogram.
+  ///
+  /// In en, this message translates to:
+  /// **'Spectrogram'**
+  String get spectrogram;
+
+  /// No description provided for @stereoImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Stereo'**
+  String get stereoImage;
+
+  /// No description provided for @correlation.
+  ///
+  /// In en, this message translates to:
+  /// **'Correlation'**
+  String get correlation;
+
+  /// No description provided for @correlationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'+1: mono · around 0: wide stereo · below 0: out of phase (thin bass on speakers, fades in mono). The scope stands upright for mono and leans towards the louder side.'**
+  String get correlationHint;
+
   /// No description provided for @chapters.
   ///
   /// In en, this message translates to:

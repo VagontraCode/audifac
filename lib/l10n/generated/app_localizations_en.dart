@@ -1270,6 +1270,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get asSetAbove => 'As set above';
 
   @override
+  String get spectrum => 'Spectrum';
+
+  @override
+  String get spectrogram => 'Spectrogram';
+
+  @override
+  String get stereoImage => 'Stereo';
+
+  @override
+  String get correlation => 'Correlation';
+
+  @override
+  String get correlationHint =>
+      '+1: mono · around 0: wide stereo · below 0: out of phase (thin bass on speakers, fades in mono). The scope stands upright for mono and leans towards the louder side.';
+
+  @override
   String get chapters => 'Chapters';
 
   @override

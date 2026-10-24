@@ -13,6 +13,7 @@ import '../models/eq.dart';
 import '../providers/audio_info_providers.dart';
 import '../providers/eq_providers.dart';
 import '../providers/player_providers.dart';
+import 'scopes.dart';
 import '../l10n/l10n.dart';
 import '../l10n/labels.dart';
 
@@ -22,11 +23,11 @@ class SignalSheet extends ConsumerStatefulWidget {
   const SignalSheet({super.key});
 
   static Future<void> show(BuildContext context) => showModalBottomSheet<void>(
-        context: context,
-        useRootNavigator: true,
-        isScrollControlled: true,
-        builder: (_) => const SignalSheet(),
-      );
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    builder: (_) => const SignalSheet(),
+  );
 
   @override
   ConsumerState<SignalSheet> createState() => _SignalSheetState();
@@ -49,6 +50,13 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
   var _shownLevels = [floor, floor, floor, floor];
   Duration _last = Duration.zero;
 
+  // Remembered while the app runs.
+  static var _visual = _Visual.spectrum;
+  final _spectro = SpectrogramBuffer();
+  final _trail = ScopeTrail();
+  var _correlation = 1.0;
+  var _targetCorrelation = 1.0;
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +64,10 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
     _sub = channel.visualizer.listen((f) {
       _target = f.bands;
       _levels = [f.peakL, f.peakR, f.rmsL, f.rmsR];
+      _targetCorrelation = f.correlation;
+      _trail.add(f.scope);
+      // (Decoding a column image costs: only while it's shown.)
+      if (_visual == _Visual.spectrogram) _spectro.add(f.fine, () {});
     });
     _loadPath();
     _pathTimer = Timer.periodic(const Duration(seconds: 1), (_) => _loadPath());
@@ -71,6 +83,7 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
     final dt = ((now - _last).inMicroseconds / 1e6).clamp(0.0, 0.1);
     _last = now;
     final fall = 40 * dt; // dB per frame
+    _correlation += (_targetCorrelation - _correlation) * math.min(1, dt * 8);
     for (var i = 0; i < _bands.length && i < _target.length; i++) {
       final t = math.max(floor, _target[i]);
       _bands[i] = t > _bands[i] ? t : math.max(t, _bands[i] - fall);
@@ -95,6 +108,7 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
   @override
   void dispose() {
     _ticker.dispose();
+    _spectro.dispose();
     _sub?.cancel();
     _pathTimer?.cancel();
     super.dispose();
@@ -122,26 +136,86 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
               Text(context.l10n.signal, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 16),
               SizedBox(
-                height: 150,
                 width: double.infinity,
-                child: CustomPaint(
-                  painter: _SpectrumPainter(
-                    bands: _bands,
-                    peaks: _peaks,
-                    floor: floor,
-                    color: palette.ink,
-                    peakColor: palette.hiRes,
-                    grid: palette.line,
+                child: SegmentedButton<_Visual>(
+                  showSelectedIcon: false,
+                  style: SegmentedButton.styleFrom(
+                    selectedBackgroundColor: palette.ink,
+                    selectedForegroundColor: palette.onInk,
+                    foregroundColor: palette.ink,
+                    side: BorderSide(color: palette.line),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  segments: [
+                    ButtonSegment(value: _Visual.spectrum, label: Text(context.l10n.spectrum)),
+                    ButtonSegment(value: _Visual.spectrogram, label: Text(context.l10n.spectrogram)),
+                    ButtonSegment(value: _Visual.stereo, label: Text(context.l10n.stereoImage)),
+                  ],
+                  selected: {_visual},
+                  onSelectionChanged: (s) => setState(() => _visual = s.first),
+                ),
+              ),
+              const SizedBox(height: 14),
+              if (_visual == _Visual.stereo)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox.square(
+                      dimension: 170,
+                      child: CustomPaint(
+                        painter: GoniometerPainter(frames: _trail.frames, color: palette.ink, grid: palette.line),
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(context.l10n.correlation, style: const TextStyle(fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 8),
+                          DefaultTextStyle.merge(
+                            style: muted,
+                            child: CorrelationMeter(
+                              value: _correlation,
+                              track: palette.line,
+                              label: _correlation.toStringAsFixed(2),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(context.l10n.correlationHint, style: muted),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              else ...[
+                SizedBox(
+                  height: 150,
+                  width: double.infinity,
+                  child: CustomPaint(
+                    painter: _visual == _Visual.spectrogram
+                        ? SpectrogramPainter(_spectro, background: Colors.black)
+                        : _SpectrumPainter(
+                            bands: _bands,
+                            peaks: _peaks,
+                            floor: floor,
+                            color: palette.ink,
+                            peakColor: palette.hiRes,
+                            grid: palette.line,
+                          ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [for (final f in ['30', '100', '500', '2k', '8k', '20k']) Text(f, style: muted)],
-                ),
-              ),
+                if (_visual == _Visual.spectrum)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        for (final f in ['30', '100', '500', '2k', '8k', '20k']) Text(f, style: muted),
+                      ],
+                    ),
+                  ),
+              ],
               const SizedBox(height: 18),
               _Meter(label: 'L', peak: _shownLevels[0], rms: _shownLevels[2], floor: floor),
               const SizedBox(height: 8),
@@ -187,12 +261,14 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
     String khz(int hz) => '${AudioInfo.formatSampleRate(hz)} kHz';
 
     final dspParts = [
-      if (eqOn) 'EQ: ${l10n.presetName(sound)}${device.id == BuiltInPresets.deviceNone.id ? '' : ' + ${l10n.presetName(device)}'}${linearPhase ? ' (${l10n.linearPhaseShort})' : ''}',
+      if (eqOn)
+        'EQ: ${l10n.presetName(sound)}${device.id == BuiltInPresets.deviceNone.id ? '' : ' + ${l10n.presetName(device)}'}${linearPhase ? ' (${l10n.linearPhaseShort})' : ''}',
       if (gain.abs() >= 0.05) l10n.volumeDb(formatDb(gain)),
       if (crossfade > 0) l10n.crossfadeSeconds(crossfade.round()),
       if (loudnessDb >= 0.1) l10n.loudnessBass(formatDb(loudnessDb)),
       if (convolution.isNotEmpty) l10n.convolutionWith(convolution),
-      if (compressor > 0) l10n.compressorIs([l10n.compressorLight, l10n.compressorMedium, l10n.compressorStrong][compressor - 1]),
+      if (compressor > 0)
+        l10n.compressorIs([l10n.compressorLight, l10n.compressorMedium, l10n.compressorStrong][compressor - 1]),
     ];
     final rates = [for (final r in (out?['deviceRates'] as List? ?? const [])) (r as num).toInt()];
 
@@ -210,7 +286,9 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
       ),
       _Step(
         title: l10n.decoded,
-        value: rate == 0 ? l10n.notThroughDsp : 'PCM ${bits ?? '?'}-bit · ${khz(rate)} · ${p?['channels']} ch${downmixed ? ' → ${l10n.stereo.toLowerCase()}' : ''}',
+        value: rate == 0
+            ? l10n.notThroughDsp
+            : 'PCM ${bits ?? '?'}-bit · ${khz(rate)} · ${p?['channels']} ch${downmixed ? ' → ${l10n.stereo.toLowerCase()}' : ''}',
       ),
       _Step(
         title: 'audifac DSP',
@@ -220,11 +298,7 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
         good: !processing,
       ),
       if (resampledTo > 0)
-        _Step(
-          title: l10n.hqResampler,
-          value: l10n.resampledByAudifac(khz(rate), khz(resampledTo)),
-          good: true,
-        ),
+        _Step(title: l10n.hqResampler, value: l10n.resampledByAudifac(khz(rate), khz(resampledTo)), good: true),
       if (levelFrames > 0)
         _Step(
           title: l10n.levels,
@@ -240,10 +314,7 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
           good: limitedPct < 0.01 && clipped == 0,
         ),
       if (outputRate > 0 && !bitPerfect)
-        _Step(
-          title: l10n.toAndroid,
-          value: '${output16 ? l10n.pcm16Dithered : l10n.float32} · ${khz(outputRate)}',
-        ),
+        _Step(title: l10n.toAndroid, value: '${output16 ? l10n.pcm16Dithered : l10n.float32} · ${khz(outputRate)}'),
       _Step(
         title: l10n.androidMixer,
         value: bitPerfect
@@ -251,8 +322,8 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
             : mixer == null || reaching == 0
             ? '—'
             : mixer == reaching
-                ? l10n.noResampling(khz(mixer))
-                : l10n.resampled(khz(reaching), khz(mixer)),
+            ? l10n.noResampling(khz(mixer))
+            : l10n.resampled(khz(reaching), khz(mixer)),
         good: bitPerfect || (mixer != null && mixer == reaching),
       ),
       _Step(
@@ -289,7 +360,11 @@ class _Step extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 4),
-                Container(width: 10, height: 10, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                ),
                 if (!last) Expanded(child: Container(width: 2, color: palette.line)),
               ],
             ),
@@ -301,7 +376,10 @@ class _Step extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: theme.textTheme.labelMedium?.copyWith(color: palette.inkMuted, fontWeight: FontWeight.w700)),
+                  Text(
+                    title,
+                    style: theme.textTheme.labelMedium?.copyWith(color: palette.inkMuted, fontWeight: FontWeight.w700),
+                  ),
                   Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
                 ],
               ),
@@ -327,14 +405,19 @@ class _Meter extends StatelessWidget {
     double frac(double db) => ((db - floor) / -floor).clamp(0.0, 1.0);
     return Row(
       children: [
-        SizedBox(width: 16, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800))),
+        SizedBox(
+          width: 16,
+          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
+        ),
         Expanded(
           child: SizedBox(
             height: 10,
             child: LayoutBuilder(
               builder: (context, c) => Stack(
                 children: [
-                  Container(decoration: BoxDecoration(color: palette.line, borderRadius: BorderRadius.circular(5))),
+                  Container(
+                    decoration: BoxDecoration(color: palette.line, borderRadius: BorderRadius.circular(5)),
+                  ),
                   Container(
                     width: c.maxWidth * frac(rms),
                     decoration: BoxDecoration(
@@ -400,10 +483,7 @@ class _SpectrumPainter extends CustomPainter {
     for (var i = 0; i < n; i++) {
       final x = i * slot + (slot - w) / 2;
       final h = size.height * ((bands[i] - floor) / -floor).clamp(0.0, 1.0);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH(x, size.height - h, w, h), const Radius.circular(2)),
-        bar,
-      );
+      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x, size.height - h, w, h), const Radius.circular(2)), bar);
       final py = size.height * (1 - ((peaks[i] - floor) / -floor).clamp(0.0, 1.0));
       canvas.drawRect(Rect.fromLTWH(x, math.min(py, size.height - 2), w, 2), peak);
     }
@@ -412,3 +492,5 @@ class _SpectrumPainter extends CustomPainter {
   @override
   bool shouldRepaint(_SpectrumPainter old) => true;
 }
+
+enum _Visual { spectrum, spectrogram, stereo }

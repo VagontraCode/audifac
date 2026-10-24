@@ -18,6 +18,10 @@ object Visualizer {
     const val FFT_SIZE = 2048
     const val BANDS = 32
 
+    /** Spectrogram rows (log-spaced, 30 Hz … 20 kHz) and goniometer points per frame. */
+    const val FINE_BANDS = 96
+    const val SCOPE_POINTS = 256
+
     /** Only collect while someone is watching. */
     @Volatile
     var enabled = false
@@ -64,7 +68,20 @@ object Visualizer {
     private val im = DoubleArray(FFT_SIZE)
 
     /** Band levels in dBFS (−90…0), and peak / RMS per channel in dBFS. */
-    class Snapshot(val bands: FloatArray, val peakL: Float, val peakR: Float, val rmsL: Float, val rmsR: Float, val rate: Int)
+    class Snapshot(
+        val bands: FloatArray,
+        val peakL: Float,
+        val peakR: Float,
+        val rmsL: Float,
+        val rmsR: Float,
+        val rate: Int,
+        /** Spectrogram column: [FINE_BANDS] levels, 0 = −90 dBFS … 255 = 0 dBFS. */
+        val fine: ByteArray,
+        /** Goniometer: [SCOPE_POINTS] (L, R) pairs, interleaved. */
+        val scope: FloatArray,
+        /** Stereo correlation, −1 (out of phase) … +1 (mono); 0 for silence. */
+        val correlation: Float,
+    )
 
     fun snapshot(): Snapshot? {
         val l = DoubleArray(FFT_SIZE)
@@ -112,7 +129,32 @@ object Visualizer {
             val amp = 2 * sqrt(peak) / windowSum
             bands[b] = db(amp)
         }
-        return Snapshot(bands, db(pl), db(pr), db(sqrt(sl / FFT_SIZE) * sqrt(2.0)), db(sqrt(srr / FFT_SIZE) * sqrt(2.0)), sr)
+        // Spectrogram column: finer bands, as bytes.
+        val fine = ByteArray(FINE_BANDS)
+        for (b in 0 until FINE_BANDS) {
+            val f0 = lo * (hi / lo).pow(b.toDouble() / FINE_BANDS)
+            val f1 = lo * (hi / lo).pow((b + 1).toDouble() / FINE_BANDS)
+            val k0 = max(1, (f0 / sr * FFT_SIZE).toInt())
+            val k1 = max(k0 + 1, (f1 / sr * FFT_SIZE).toInt())
+            var peak = 0.0
+            for (k in k0 until minOf(k1, FFT_SIZE / 2)) peak = max(peak, re[k] * re[k] + im[k] * im[k])
+            val db = db(2 * sqrt(peak) / windowSum)
+            fine[b] = (((db + 90f) / 90f).coerceIn(0f, 1f) * 255).toInt().toByte()
+        }
+        // Goniometer: every n-th (L, R) pair of the window; correlation of all.
+        val scope = FloatArray(SCOPE_POINTS * 2)
+        val step = FFT_SIZE / SCOPE_POINTS
+        for (p in 0 until SCOPE_POINTS) {
+            scope[2 * p] = l[p * step].toFloat()
+            scope[2 * p + 1] = r[p * step].toFloat()
+        }
+        var lr = 0.0
+        for (i in 0 until FFT_SIZE) lr += l[i] * r[i]
+        val correlation = if (sl > 1e-9 && srr > 1e-9) (lr / sqrt(sl * srr)).toFloat().coerceIn(-1f, 1f) else 0f
+        return Snapshot(
+            bands, db(pl), db(pr), db(sqrt(sl / FFT_SIZE) * sqrt(2.0)), db(sqrt(srr / FFT_SIZE) * sqrt(2.0)), sr,
+            fine, scope, correlation,
+        )
     }
 
     private fun db(v: Double): Float = if (v <= 1e-5) -100f else (20 * log10(v)).toFloat().coerceIn(-100f, 6f)
