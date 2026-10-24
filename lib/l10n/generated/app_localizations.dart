@@ -3409,6 +3409,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'sharp cut: probably converted from an MP3 / AAC'**
   String get likelyFromLossy;
+
+  /// No description provided for @sortResolution.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution'**
+  String get sortResolution;
+
+  /// No description provided for @sortBitrate.
+  ///
+  /// In en, this message translates to:
+  /// **'Bitrate'**
+  String get sortBitrate;
+
+  /// No description provided for @sortDynamicRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Dynamic range'**
+  String get sortDynamicRange;
+
+  /// No description provided for @fakeLossless.
+  ///
+  /// In en, this message translates to:
+  /// **'Fake lossless?'**
+  String get fakeLossless;
 }
 
 class _AppLocalizationsDelegate

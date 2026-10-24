@@ -64,6 +64,15 @@ class SongFilterBar extends ConsumerWidget {
             selected: filter.quality == q,
             onTap: () => set(filter.copyWith(quality: () => filter.quality == q ? null : q)),
           ),
+      // Lossless files cut like an MP3 / AAC (found by the loudness scan).
+      if (counts.lossyCutoff > 0 || filter.lossyCutoff)
+        _Chip(
+          label: context.l10n.fakeLossless,
+          count: counts.lossyCutoff,
+          icon: HugeIcons.strokeRoundedAlert02,
+          selected: filter.lossyCutoff,
+          onTap: () => set(filter.copyWith(lossyCutoff: !filter.lossyCutoff)),
+        ),
     ];
 
     final codecChips = <Widget>[

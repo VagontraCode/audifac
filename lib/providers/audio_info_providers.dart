@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show mergeSort;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/audio_info.dart';
+import '../models/app_settings.dart';
 import '../models/song.dart';
 import '../models/song_source.dart';
 import 'library_providers.dart';
+import 'loudness_providers.dart';
 import 'user_data_providers.dart';
 
 class AnalysisStatus {
@@ -116,20 +119,40 @@ final songAudioInfoProvider = Provider.family<AudioInfo, Song>((ref, song) {
 final filteredSongsProvider = Provider<List<Song>>((ref) {
   final songs = ref.watch(sortedSongsProvider);
   final filter = ref.watch(settingsProvider.select((s) => s.songFilter));
-  if (filter.isEmpty) return songs;
+  final sort = ref.watch(settingsProvider.select((s) => s.songSort));
+  if (filter.isEmpty && !sort.byAudio) return songs;
   final infos = ref.watch(audioInfoProvider);
-  return songs
-      .where((s) => filter.matches(infos[s.location] ?? AudioInfo.guess(s), SongSource.of(s)))
-      .toList(growable: false);
+  final loudness = ref.watch(loudnessProvider);
+  AudioInfo info(Song s) => infos[s.location] ?? AudioInfo.guess(s);
+  final out = filter.isEmpty
+      ? [...songs]
+      : songs.where((s) => filter.matches(info(s), SongSource.of(s), loudness[s.location])).toList();
+  if (sort.byAudio) {
+    // Highest first; unknown last; the title order (from sortedSongs) breaks ties.
+    int key(Song s) {
+      final i = info(s);
+      return switch (sort) {
+        SongSort.resolution => (i.sampleRate ?? 0) * 64 + (i.bitDepth ?? 0),
+        SongSort.bitrate => i.kbpsOrNull ?? 0,
+        _ => loudness[s.location]?.dr ?? -1,
+      };
+    }
+    final keys = {for (final s in out) s.location: key(s)};
+    mergeSort(out, compare: (a, b) => keys[b.location]!.compareTo(keys[a.location]!));
+  }
+  return out;
 });
 
 /// How many visible songs each filter chip would match.
 class FilterCounts {
-  const FilterCounts({required this.quality, required this.codecs, required this.categories});
+  const FilterCounts({required this.quality, required this.codecs, required this.categories, this.lossyCutoff = 0});
 
   final Map<AudioQuality, int> quality;
   final Map<String, int> codecs;
   final Map<SourceCategory, int> categories;
+
+  /// Lossless files cut like a lossy one.
+  final int lossyCutoff;
 }
 
 final filterCountsProvider = Provider<FilterCounts>((ref) {
@@ -147,5 +170,7 @@ final filterCountsProvider = Provider<FilterCounts>((ref) {
     final c = SongSource.of(s).category;
     categories[c] = (categories[c] ?? 0) + 1;
   }
-  return FilterCounts(quality: quality, codecs: codecs, categories: categories);
+  final loudness = ref.watch(loudnessProvider);
+  final fake = songs.where((s) => (infos[s.location] ?? AudioInfo.guess(s)).quality.isLossless && (loudness[s.location]?.lossyCutoff ?? false)).length;
+  return FilterCounts(quality: quality, codecs: codecs, categories: categories, lossyCutoff: fake);
 });

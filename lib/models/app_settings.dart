@@ -3,13 +3,20 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import 'audio_info.dart';
+import 'loudness.dart';
 import 'song_source.dart';
 
 enum SongSort {
   title('Title'),
   artist('Artist'),
   album('Album'),
-  dateAdded('Recently added');
+  dateAdded('Recently added'),
+  resolution('Resolution'),
+  bitrate('Bitrate'),
+  dynamicRange('Dynamic range');
+
+  /// Sorts that need each file's audio details (done with the filters).
+  bool get byAudio => this == resolution || this == bitrate || this == dynamicRange;
 
   const SongSort(this.label);
   final String label;
@@ -18,16 +25,20 @@ enum SongSort {
 /// Songs tab filters. Codecs and categories are OR-ed within their group;
 /// the groups are AND-ed together.
 class SongFilter {
-  const SongFilter({this.quality, this.codecs = const {}, this.categories = const {}});
+  const SongFilter({this.quality, this.codecs = const {}, this.categories = const {}, this.lossyCutoff = false});
 
   /// Null = any quality. [AudioQuality.lossless] also matches Hi-Res.
   final AudioQuality? quality;
   final Set<String> codecs;
   final Set<SourceCategory> categories;
 
-  bool get isEmpty => quality == null && codecs.isEmpty && categories.isEmpty;
+  /// Only lossless files cut like a lossy one ("fake lossless").
+  final bool lossyCutoff;
 
-  bool matches(AudioInfo info, SongSource source) {
+  bool get isEmpty => quality == null && codecs.isEmpty && categories.isEmpty && !lossyCutoff;
+
+  bool matches(AudioInfo info, SongSource source, [LoudnessInfo? loudness]) {
+    if (lossyCutoff && !(info.quality.isLossless && (loudness?.lossyCutoff ?? false))) return false;
     if (quality != null) {
       final q = info.quality;
       final ok = switch (quality!) {
@@ -45,17 +56,20 @@ class SongFilter {
     AudioQuality? Function()? quality,
     Set<String>? codecs,
     Set<SourceCategory>? categories,
+    bool? lossyCutoff,
   }) =>
       SongFilter(
         quality: quality == null ? this.quality : quality(),
         codecs: codecs ?? this.codecs,
         categories: categories ?? this.categories,
+        lossyCutoff: lossyCutoff ?? this.lossyCutoff,
       );
 
   String encode() => jsonEncode({
         'quality': quality?.name,
         'codecs': codecs.toList()..sort(),
         'categories': [for (final c in categories) c.name]..sort(),
+        'lossyCutoff': lossyCutoff,
       });
 
   static SongFilter decode(String? raw) {
@@ -69,6 +83,7 @@ class SongFilter {
           for (final name in (m['categories'] as List? ?? const []).cast<String>())
             ...SourceCategory.values.where((c) => c.name == name),
         },
+        lossyCutoff: m['lossyCutoff'] == true,
       );
     } catch (_) {
       return const SongFilter();

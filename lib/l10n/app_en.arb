@@ -551,5 +551,9 @@
   "dynamicRange": "Dynamic range",
   "frequencyContent": "Frequency content",
   "upToKhz": "up to {khz} kHz",
-  "likelyFromLossy": "sharp cut: probably converted from an MP3 / AAC"
+  "likelyFromLossy": "sharp cut: probably converted from an MP3 / AAC",
+  "sortResolution": "Resolution",
+  "sortBitrate": "Bitrate",
+  "sortDynamicRange": "Dynamic range",
+  "fakeLossless": "Fake lossless?"
 }

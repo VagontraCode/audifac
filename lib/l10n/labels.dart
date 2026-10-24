@@ -15,6 +15,9 @@ extension Labels on AppLocalizations {
         SongSort.artist => sortArtist,
         SongSort.album => sortAlbum,
         SongSort.dateAdded => sortRecentlyAdded,
+        SongSort.resolution => sortResolution,
+        SongSort.bitrate => sortBitrate,
+        SongSort.dynamicRange => sortDynamicRange,
       };
 
   String quality(AudioQuality q) => switch (q) {

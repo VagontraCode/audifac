@@ -2091,4 +2091,16 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get likelyFromLossy =>
       'coupure nette : probablement converti d\'un MP3 / AAC';
+
+  @override
+  String get sortResolution => 'Résolution';
+
+  @override
+  String get sortBitrate => 'Débit';
+
+  @override
+  String get sortDynamicRange => 'Plage dynamique';
+
+  @override
+  String get fakeLossless => 'Faux sans perte ?';
 }

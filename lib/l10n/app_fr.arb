@@ -551,5 +551,9 @@
   "dynamicRange": "Plage dynamique",
   "frequencyContent": "Contenu fréquentiel",
   "upToKhz": "jusqu'à {khz} kHz",
-  "likelyFromLossy": "coupure nette : probablement converti d'un MP3 / AAC"
+  "likelyFromLossy": "coupure nette : probablement converti d'un MP3 / AAC",
+  "sortResolution": "Résolution",
+  "sortBitrate": "Débit",
+  "sortDynamicRange": "Plage dynamique",
+  "fakeLossless": "Faux sans perte ?"
 }

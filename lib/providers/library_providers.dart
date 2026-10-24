@@ -270,6 +270,9 @@ final sortedSongsProvider = Provider<List<Song>>((ref) {
         final c = text(a.album, b.album);
         return c != 0 ? c : a.trackNumber.compareTo(b.trackNumber);
       });
+    case SongSort.resolution || SongSort.bitrate || SongSort.dynamicRange:
+      // Sorted with the audio details (filteredSongsProvider); titles break ties.
+      sorted.sort((a, b) => text(a.title, b.title));
     case SongSort.dateAdded:
       sorted.sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
   }

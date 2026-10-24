@@ -2055,4 +2055,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get likelyFromLossy =>
       'sharp cut: probably converted from an MP3 / AAC';
+
+  @override
+  String get sortResolution => 'Resolution';
+
+  @override
+  String get sortBitrate => 'Bitrate';
+
+  @override
+  String get sortDynamicRange => 'Dynamic range';
+
+  @override
+  String get fakeLossless => 'Fake lossless?';
 }
