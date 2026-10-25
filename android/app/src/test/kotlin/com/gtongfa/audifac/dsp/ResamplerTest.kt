@@ -90,7 +90,8 @@ class ResamplerTest {
     fun frameCountIsExact() {
         for ((a, b) in listOf(44_100 to 48_000, 48_000 to 44_100, 96_000 to 48_000, 22_050 to 48_000)) {
             val out = run(Resampler(a, b, 2), sine(440.0, a, 12_345))
-            val expected = Math.ceilDiv(12_345L * b, a.toLong())
+            // Rounded up (Math.ceilDiv needs Java 18; CI runs 17).
+            val expected = (12_345L * b + a - 1) / a
             assertEquals("$a → $b", expected, (out.size / 2).toLong())
         }
     }
