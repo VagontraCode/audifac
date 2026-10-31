@@ -1369,6 +1369,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noAlternatives => 'Every analysed song is already in this soirée.';
 
   @override
+  String get soireeCrossfadeTitle => 'Blend the songs?';
+
+  @override
+  String soireeCrossfadeBody(Object seconds) {
+    return 'A soirée flows better when each song fades into the next. Turn on a $seconds s crossfade? (Settings → Sound.)';
+  }
+
+  @override
+  String get keepItOff => 'Keep it off';
+
+  @override
+  String turnOnCrossfade(Object seconds) {
+    return 'Turn on $seconds s';
+  }
+
+  @override
   String get soireeNotYet => 'Not analysed yet: it\'s on its way.';
 
   @override

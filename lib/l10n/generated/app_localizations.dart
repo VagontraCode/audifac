@@ -2222,6 +2222,30 @@ abstract class AppLocalizations {
   /// **'Every analysed song is already in this soirée.'**
   String get noAlternatives;
 
+  /// No description provided for @soireeCrossfadeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Blend the songs?'**
+  String get soireeCrossfadeTitle;
+
+  /// No description provided for @soireeCrossfadeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A soirée flows better when each song fades into the next. Turn on a {seconds} s crossfade? (Settings → Sound.)'**
+  String soireeCrossfadeBody(Object seconds);
+
+  /// No description provided for @keepItOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep it off'**
+  String get keepItOff;
+
+  /// No description provided for @turnOnCrossfade.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on {seconds} s'**
+  String turnOnCrossfade(Object seconds);
+
   /// No description provided for @soireeNotYet.
   ///
   /// In en, this message translates to:
