@@ -21,6 +21,7 @@ import '../collection/collection_screen.dart';
 import '../collection/playlist_screen.dart';
 import '../collection/smart_playlist_screen.dart';
 import '../favorites/favorites_screen.dart';
+import '../soiree/soiree_screen.dart';
 import 'folder_screen.dart';
 import 'library_gate.dart';
 import 'song_filter_bar.dart';
@@ -464,6 +465,19 @@ class PlaylistsTab extends ConsumerWidget {
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
           onTap: create,
+        ),
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 4,
+          ),
+          leading: iconTile(HugeIcons.strokeRoundedParty),
+          title: Text(
+            context.l10n.planSoiree,
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          subtitle: Text(context.l10n.planSoireeHint),
+          onTap: () => SoireeScreen.open(context),
         ),
         ListTile(
           contentPadding: const EdgeInsets.symmetric(

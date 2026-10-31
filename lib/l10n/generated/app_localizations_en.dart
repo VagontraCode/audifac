@@ -1276,6 +1276,99 @@ class AppLocalizationsEn extends AppLocalizations {
   String get soireeSection => 'Soirée';
 
   @override
+  String get soireeTitle => 'Soirée';
+
+  @override
+  String get planSoiree => 'Plan a soirée';
+
+  @override
+  String get planSoireeHint =>
+      'A mix from your songs that ends on the dance floor';
+
+  @override
+  String get shapeHouseParty => 'House party';
+
+  @override
+  String get shapeDinnerToDance => 'Dinner → dance';
+
+  @override
+  String get shapeStraightToFloor => 'Straight to the floor';
+
+  @override
+  String get shapeWithCoolDown => 'With a cool-down';
+
+  @override
+  String get shapeWindDown => 'Wind down';
+
+  @override
+  String hoursShort(Object hours) {
+    return '$hours h';
+  }
+
+  @override
+  String get curveHint =>
+      'The line is the evening, from calm (bottom) to everybody dancing (top); the dots are the songs. Drag the big points to reshape it.';
+
+  @override
+  String get songsFrom => 'Songs from';
+
+  @override
+  String get wholeLibrary => 'Whole library';
+
+  @override
+  String get regenerate => 'Another mix';
+
+  @override
+  String get addSong => 'Add a song';
+
+  @override
+  String get saveAsPlaylist => 'Save as a playlist';
+
+  @override
+  String get swap => 'Swap';
+
+  @override
+  String get lock => 'Keep here';
+
+  @override
+  String get unlock => 'Unlock';
+
+  @override
+  String insteadOf(Object title) {
+    return 'Instead of $title';
+  }
+
+  @override
+  String levelOf(Object level) {
+    return 'level $level';
+  }
+
+  @override
+  String get playSoiree => 'Play';
+
+  @override
+  String soireeSummary(Object count, Object duration) {
+    return '$count songs · $duration';
+  }
+
+  @override
+  String soireeAnalysingBanner(Object done, Object total) {
+    return '$done / $total songs analysed. The mix gets better as the analysis goes on.';
+  }
+
+  @override
+  String get soireeNothingYet =>
+      'No song analysed yet: the analysis has started, the mix appears as songs are measured.';
+
+  @override
+  String soireeTooShort(Object duration) {
+    return 'Only $duration of analysed songs here: choose a shorter evening, more songs (another playlist or the whole library), or wait for the analysis.';
+  }
+
+  @override
+  String get noAlternatives => 'Every analysed song is already in this soirée.';
+
+  @override
   String get soireeNotYet => 'Not analysed yet: it\'s on its way.';
 
   @override

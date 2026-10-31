@@ -2066,6 +2066,162 @@ abstract class AppLocalizations {
   /// **'Soirée'**
   String get soireeSection;
 
+  /// No description provided for @soireeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Soirée'**
+  String get soireeTitle;
+
+  /// No description provided for @planSoiree.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan a soirée'**
+  String get planSoiree;
+
+  /// No description provided for @planSoireeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A mix from your songs that ends on the dance floor'**
+  String get planSoireeHint;
+
+  /// No description provided for @shapeHouseParty.
+  ///
+  /// In en, this message translates to:
+  /// **'House party'**
+  String get shapeHouseParty;
+
+  /// No description provided for @shapeDinnerToDance.
+  ///
+  /// In en, this message translates to:
+  /// **'Dinner → dance'**
+  String get shapeDinnerToDance;
+
+  /// No description provided for @shapeStraightToFloor.
+  ///
+  /// In en, this message translates to:
+  /// **'Straight to the floor'**
+  String get shapeStraightToFloor;
+
+  /// No description provided for @shapeWithCoolDown.
+  ///
+  /// In en, this message translates to:
+  /// **'With a cool-down'**
+  String get shapeWithCoolDown;
+
+  /// No description provided for @shapeWindDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Wind down'**
+  String get shapeWindDown;
+
+  /// No description provided for @hoursShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h'**
+  String hoursShort(Object hours);
+
+  /// No description provided for @curveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The line is the evening, from calm (bottom) to everybody dancing (top); the dots are the songs. Drag the big points to reshape it.'**
+  String get curveHint;
+
+  /// No description provided for @songsFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs from'**
+  String get songsFrom;
+
+  /// No description provided for @wholeLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole library'**
+  String get wholeLibrary;
+
+  /// No description provided for @regenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Another mix'**
+  String get regenerate;
+
+  /// No description provided for @addSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a song'**
+  String get addSong;
+
+  /// No description provided for @saveAsPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as a playlist'**
+  String get saveAsPlaylist;
+
+  /// No description provided for @swap.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap'**
+  String get swap;
+
+  /// No description provided for @lock.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep here'**
+  String get lock;
+
+  /// No description provided for @unlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get unlock;
+
+  /// No description provided for @insteadOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Instead of {title}'**
+  String insteadOf(Object title);
+
+  /// No description provided for @levelOf.
+  ///
+  /// In en, this message translates to:
+  /// **'level {level}'**
+  String levelOf(Object level);
+
+  /// No description provided for @playSoiree.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get playSoiree;
+
+  /// No description provided for @soireeSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} songs · {duration}'**
+  String soireeSummary(Object count, Object duration);
+
+  /// No description provided for @soireeAnalysingBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} / {total} songs analysed. The mix gets better as the analysis goes on.'**
+  String soireeAnalysingBanner(Object done, Object total);
+
+  /// No description provided for @soireeNothingYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No song analysed yet: the analysis has started, the mix appears as songs are measured.'**
+  String get soireeNothingYet;
+
+  /// No description provided for @soireeTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Only {duration} of analysed songs here: choose a shorter evening, more songs (another playlist or the whole library), or wait for the analysis.'**
+  String soireeTooShort(Object duration);
+
+  /// No description provided for @noAlternatives.
+  ///
+  /// In en, this message translates to:
+  /// **'Every analysed song is already in this soirée.'**
+  String get noAlternatives;
+
   /// No description provided for @soireeNotYet.
   ///
   /// In en, this message translates to:

@@ -1306,6 +1306,100 @@ class AppLocalizationsFr extends AppLocalizations {
   String get soireeSection => 'Soirée';
 
   @override
+  String get soireeTitle => 'Soirée';
+
+  @override
+  String get planSoiree => 'Préparer une soirée';
+
+  @override
+  String get planSoireeHint =>
+      'Un mix de vos titres qui finit sur la piste de danse';
+
+  @override
+  String get shapeHouseParty => 'Soirée maison';
+
+  @override
+  String get shapeDinnerToDance => 'Dîner → danse';
+
+  @override
+  String get shapeStraightToFloor => 'Direct sur la piste';
+
+  @override
+  String get shapeWithCoolDown => 'Avec retour au calme';
+
+  @override
+  String get shapeWindDown => 'Fin de soirée';
+
+  @override
+  String hoursShort(Object hours) {
+    return '$hours h';
+  }
+
+  @override
+  String get curveHint =>
+      'La ligne, c\'est la soirée, du calme (en bas) à tout le monde qui danse (en haut) ; les points sont les titres. Glissez les gros points pour la modeler.';
+
+  @override
+  String get songsFrom => 'Titres de';
+
+  @override
+  String get wholeLibrary => 'Toute la bibliothèque';
+
+  @override
+  String get regenerate => 'Un autre mix';
+
+  @override
+  String get addSong => 'Ajouter un titre';
+
+  @override
+  String get saveAsPlaylist => 'Enregistrer en playlist';
+
+  @override
+  String get swap => 'Remplacer';
+
+  @override
+  String get lock => 'Garder ici';
+
+  @override
+  String get unlock => 'Libérer';
+
+  @override
+  String insteadOf(Object title) {
+    return 'À la place de $title';
+  }
+
+  @override
+  String levelOf(Object level) {
+    return 'niveau $level';
+  }
+
+  @override
+  String get playSoiree => 'Lancer';
+
+  @override
+  String soireeSummary(Object count, Object duration) {
+    return '$count titres · $duration';
+  }
+
+  @override
+  String soireeAnalysingBanner(Object done, Object total) {
+    return '$done / $total titres analysés. Le mix s\'améliore au fil de l\'analyse.';
+  }
+
+  @override
+  String get soireeNothingYet =>
+      'Aucun titre analysé : l\'analyse a démarré, le mix apparaît au fur et à mesure.';
+
+  @override
+  String soireeTooShort(Object duration) {
+    return 'Seulement $duration de titres analysés ici : choisissez une soirée plus courte, plus de titres (une autre playlist ou toute la bibliothèque), ou attendez l\'analyse.';
+  }
+
+  @override
+  String get noAlternatives =>
+      'Tous les titres analysés sont déjà dans cette soirée.';
+
+  @override
   String get soireeNotYet => 'Pas encore analysé : ça arrive.';
 
   @override
