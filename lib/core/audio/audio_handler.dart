@@ -141,6 +141,19 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
     queue.add([...items]..removeAt(index));
   }
 
+  /// Replaces everything after the current track with [songs] (a soirée
+  /// reshaped live). The current track plays on untouched.
+  Future<void> replaceUpcoming(List<Song> songs) async {
+    final items = queue.value;
+    final current = _player.currentIndex;
+    if (current == null || items.isEmpty) return playSongs(songs);
+    if (current + 1 < items.length) await _player.removeAudioSourceRange(current + 1, items.length);
+    final kept = items.sublist(0, current + 1);
+    final added = songs.map(_toMediaItem).toList();
+    await _player.addAudioSources([for (final item in added) _source(item)]);
+    queue.add([...kept, ...added]);
+  }
+
   /// Moves a queue item; [to] is the index after removal (as given by
   /// `ReorderableListView.onReorderItem`).
   Future<void> moveInQueue(int from, int to) async {

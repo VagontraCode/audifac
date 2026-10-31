@@ -137,4 +137,16 @@ void main() {
     final plan = small.build(SoireeSettings(length: const Duration(hours: 1), curve: SoireeShape.houseParty.curve));
     expect(plan, hasLength(6)); // ran out of songs: no repeats
   });
+
+  test('live: rebuilding from the middle keeps what played and never repeats it', () {
+    final plan = builder.build(twoHours);
+    final played = plan.take(10).toList();
+    final hotter = twoHours.curve.reshaped(0.33, 15);
+    final again = builder.build(SoireeSettings(length: twoHours.length, curve: hotter), keep: played);
+    expect(again.take(10).map((s) => s.song.id), played.map((s) => s.song.id));
+    expect(again.map((s) => s.song.id).toSet().length, again.length);
+    double mean(Iterable<SoireeSlot> s) => s.map((x) => x.level).reduce((a, b) => a + b) / s.length;
+    final calmer = builder.build(SoireeSettings(length: twoHours.length, curve: twoHours.curve.reshaped(0.33, -25)), keep: played);
+    expect(mean(again.skip(10)), greaterThan(mean(calmer.skip(10))));
+  });
 }

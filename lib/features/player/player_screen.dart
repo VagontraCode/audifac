@@ -15,6 +15,7 @@ import '../../providers/player_providers.dart';
 import '../../providers/user_data_providers.dart';
 import '../../widgets/artwork.dart';
 import '../../widgets/artwork_viewer.dart';
+import '../soiree/soiree_live.dart';
 import '../../widgets/seek_bar.dart';
 import '../../widgets/lyrics_sheet.dart';
 import '../../widgets/cast_sheet.dart';
@@ -236,6 +237,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
                                 SleepChip(),
                                 SpeedChip(),
                                 ChapterChip(),
+                                SoireeLiveChip(),
                               ],
                             ),
                             const Spacer(),

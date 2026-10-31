@@ -1385,6 +1385,47 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get readTheRoom => 'Read the room';
+
+  @override
+  String soireeNow(Object count, Object index, Object level) {
+    return 'Song $index of $count · level $level';
+  }
+
+  @override
+  String get moreEnergy => 'More energy';
+
+  @override
+  String get moreEnergyHint => 'The floor is ready: the next songs go higher';
+
+  @override
+  String get moreEnergyDone => 'The next songs bring more energy';
+
+  @override
+  String get keepItHere => 'Keep it here';
+
+  @override
+  String get keepItHereHint => 'Stay at this level for the rest of the night';
+
+  @override
+  String get keepItHereDone => 'The next songs stay at this level';
+
+  @override
+  String get calmItDown => 'Calm it down';
+
+  @override
+  String get calmItDownHint => 'A breather: the next songs are calmer';
+
+  @override
+  String get calmItDownDone => 'The next songs are calmer';
+
+  @override
+  String get endSoiree => 'End the soirée';
+
+  @override
+  String get endSoireeHint => 'The queue stays; the soirée controls go away';
+
+  @override
   String get soireeNotYet => 'Not analysed yet: it\'s on its way.';
 
   @override

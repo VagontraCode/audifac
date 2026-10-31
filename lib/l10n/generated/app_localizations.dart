@@ -2246,6 +2246,84 @@ abstract class AppLocalizations {
   /// **'Turn on {seconds} s'**
   String turnOnCrossfade(Object seconds);
 
+  /// No description provided for @readTheRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the room'**
+  String get readTheRoom;
+
+  /// No description provided for @soireeNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Song {index} of {count} · level {level}'**
+  String soireeNow(Object count, Object index, Object level);
+
+  /// No description provided for @moreEnergy.
+  ///
+  /// In en, this message translates to:
+  /// **'More energy'**
+  String get moreEnergy;
+
+  /// No description provided for @moreEnergyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The floor is ready: the next songs go higher'**
+  String get moreEnergyHint;
+
+  /// No description provided for @moreEnergyDone.
+  ///
+  /// In en, this message translates to:
+  /// **'The next songs bring more energy'**
+  String get moreEnergyDone;
+
+  /// No description provided for @keepItHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep it here'**
+  String get keepItHere;
+
+  /// No description provided for @keepItHereHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay at this level for the rest of the night'**
+  String get keepItHereHint;
+
+  /// No description provided for @keepItHereDone.
+  ///
+  /// In en, this message translates to:
+  /// **'The next songs stay at this level'**
+  String get keepItHereDone;
+
+  /// No description provided for @calmItDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Calm it down'**
+  String get calmItDown;
+
+  /// No description provided for @calmItDownHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A breather: the next songs are calmer'**
+  String get calmItDownHint;
+
+  /// No description provided for @calmItDownDone.
+  ///
+  /// In en, this message translates to:
+  /// **'The next songs are calmer'**
+  String get calmItDownDone;
+
+  /// No description provided for @endSoiree.
+  ///
+  /// In en, this message translates to:
+  /// **'End the soirée'**
+  String get endSoiree;
+
+  /// No description provided for @endSoireeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The queue stays; the soirée controls go away'**
+  String get endSoireeHint;
+
   /// No description provided for @soireeNotYet.
   ///
   /// In en, this message translates to:
