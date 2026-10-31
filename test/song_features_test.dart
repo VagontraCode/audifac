@@ -41,4 +41,24 @@ void main() {
     expect(SongFeatures.decode(f.encode()).failed, isTrue);
     expect(f.describes(_song()), isTrue); // not retried until the file changes
   });
+
+  test('corrections: tempo replaced, danceability and energy nudged within 0–100', () {
+    final f = SongFeatures.fromNative({'bpm': 56.0, 'danceability': 90, 'energy': 60, 'excerptEnergy': [50, 60, 70]}, _song());
+    final o = const FeatureOverride().copyWith(bpm: () => 112, nudge: 30);
+    final a = f.adjusted(o);
+    expect((a.bpm, a.danceability, a.energy), (112.0, 100, 75));
+    expect(a.excerptEnergy, [65, 75, 85]);
+    expect(f.adjusted(const FeatureOverride()), same(f));
+    expect(const FeatureOverride().copyWith(nudge: 500).nudge, 60);
+    final all = FeatureOverride.decodeAll(FeatureOverride.encodeAll({'a': o, 'empty': const FeatureOverride()}));
+    expect(all.keys, ['a']);
+    expect((all['a']!.bpm, all['a']!.nudge), (112.0, 30));
+  });
+
+  test('tap tempo uses the taps since the last pause', () {
+    expect(tapTempo([0, 500, 1000]), isNull);
+    expect(tapTempo([0, 500, 1000, 1500]), 120.0);
+    // A pause of 3 s starts over.
+    expect(tapTempo([0, 400, 800, 3800, 4345, 4890, 5435]), closeTo(110.1, 0.1));
+  });
 }

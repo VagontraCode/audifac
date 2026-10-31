@@ -2,6 +2,7 @@ import 'package:audifac/models/audio_info.dart';
 import 'package:audifac/models/play_stats.dart';
 import 'package:audifac/models/smart_playlist.dart';
 import 'package:audifac/models/song.dart';
+import 'package:audifac/models/song_features.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 final _now = DateTime(2026, 10, 18);
@@ -97,5 +98,20 @@ void main() {
     final junk = SmartPlaylist.decodeAll('[{"id":"a","name":"b","rules":[{"field":"mood","op":"is"}]}]').single;
     expect(junk.rules, isEmpty);
     expect(SmartPlaylist.decodeAll('nope'), isEmpty);
+  });
+
+  test('soirée fields: tempo, danceability; unanalysed songs never match', () {
+    SongFeatures f(double bpm, int dance) =>
+        SongFeatures(bpm: bpm, confidence: 1, groove: 0, bassPunch: 0, energy: 50, danceability: dance, sizeBytes: 0, modifiedMs: 0);
+    final features = {2: f(108, 88), 4: f(126, 70), 1: f(80, 20)};
+    final soiree = SmartContext(info: (s) => infos[s.id]!, stats: const {}, favorites: const {}, now: _now, features: (s) => features[s.id]);
+    final list = SmartPlaylist(
+      id: 'p',
+      name: 'Party',
+      rules: const [SmartRule(SmartField.bpm, SmartOp.atLeast, '100'), SmartRule(SmartField.danceability, SmartOp.atLeast, '80')],
+      sort: SmartSort.title,
+    );
+    expect(list.songsFrom(songs, soiree).map((s) => s.id), [2]);
+    expect(SmartRule.forField(SmartField.bpm).value, '100');
   });
 }

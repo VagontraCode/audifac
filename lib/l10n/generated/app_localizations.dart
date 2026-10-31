@@ -2060,6 +2060,96 @@ abstract class AppLocalizations {
   /// **'Analyse songs for soirées'**
   String get soireeAnalysis;
 
+  /// No description provided for @soireeSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Soirée'**
+  String get soireeSection;
+
+  /// No description provided for @soireeNotYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not analysed yet: it\'s on its way.'**
+  String get soireeNotYet;
+
+  /// No description provided for @soireeAnalysisOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on \"Analyse songs for soirées\" in Settings → Library.'**
+  String get soireeAnalysisOff;
+
+  /// No description provided for @soireeCantAnalyse.
+  ///
+  /// In en, this message translates to:
+  /// **'This format can\'t be analysed.'**
+  String get soireeCantAnalyse;
+
+  /// No description provided for @tempo.
+  ///
+  /// In en, this message translates to:
+  /// **'Tempo'**
+  String get tempo;
+
+  /// No description provided for @danceability.
+  ///
+  /// In en, this message translates to:
+  /// **'Danceability'**
+  String get danceability;
+
+  /// No description provided for @energy.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get energy;
+
+  /// No description provided for @groove.
+  ///
+  /// In en, this message translates to:
+  /// **'Groove'**
+  String get groove;
+
+  /// No description provided for @setByYou.
+  ///
+  /// In en, this message translates to:
+  /// **'set by you'**
+  String get setByYou;
+
+  /// No description provided for @tapTempo.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap tempo'**
+  String get tapTempo;
+
+  /// No description provided for @tapTempoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap along with the beat while the song plays. ×½ and ×2 fix a tempo read at half or double speed.'**
+  String get tapTempoHint;
+
+  /// No description provided for @tap.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap'**
+  String get tap;
+
+  /// No description provided for @lessDanceable.
+  ///
+  /// In en, this message translates to:
+  /// **'Less danceable'**
+  String get lessDanceable;
+
+  /// No description provided for @moreDanceable.
+  ///
+  /// In en, this message translates to:
+  /// **'More danceable'**
+  String get moreDanceable;
+
+  /// No description provided for @resetMeasured.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to measured'**
+  String get resetMeasured;
+
   /// No description provided for @soireeAnalysisHint.
   ///
   /// In en, this message translates to:

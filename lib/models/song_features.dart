@@ -108,3 +108,81 @@ class SongFeatures {
 
   static SongFeatures decode(String s) => SongFeatures.fromJson(jsonDecode(s) as Map<String, dynamic>);
 }
+
+/// The owner's corrections to a song's analysis, and what soirées taught.
+class FeatureOverride {
+  const FeatureOverride({this.bpm, this.nudge = 0, this.learned = 0});
+
+  /// Tempo set by tap-tempo (fixes half / double-time readings).
+  final double? bpm;
+
+  /// "More / less danceable": added to danceability (and half to energy).
+  final int nudge;
+
+  /// From soirées: played through at the peak (+), skipped (−).
+  final int learned;
+
+  bool get isEmpty => bpm == null && nudge == 0 && learned == 0;
+
+  FeatureOverride copyWith({double? Function()? bpm, int? nudge, int? learned}) => FeatureOverride(
+        bpm: bpm == null ? this.bpm : bpm(),
+        nudge: (nudge ?? this.nudge).clamp(-60, 60),
+        learned: (learned ?? this.learned).clamp(-40, 40),
+      );
+
+  Map<String, Object?> toJson() => {'bpm': ?bpm, if (nudge != 0) 'nudge': nudge, if (learned != 0) 'learned': learned};
+
+  factory FeatureOverride.fromJson(Map<String, dynamic> j) => FeatureOverride(
+        bpm: (j['bpm'] as num?)?.toDouble(),
+        nudge: (j['nudge'] as num?)?.toInt() ?? 0,
+        learned: (j['learned'] as num?)?.toInt() ?? 0,
+      );
+
+  static Map<String, FeatureOverride> decodeAll(String? s) {
+    if (s == null) return const {};
+    try {
+      final j = jsonDecode(s) as Map<String, dynamic>;
+      return {for (final e in j.entries) e.key: FeatureOverride.fromJson((e.value as Map).cast<String, dynamic>())};
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  static String encodeAll(Map<String, FeatureOverride> all) =>
+      jsonEncode({for (final e in all.entries) if (!e.value.isEmpty) e.key: e.value.toJson()});
+}
+
+extension SongFeaturesOverride on SongFeatures {
+  /// With [o] applied: the owner's tempo, danceability (and energy) nudged.
+  SongFeatures adjusted(FeatureOverride? o) {
+    if (o == null || o.isEmpty) return this;
+    final delta = o.nudge + o.learned;
+    return SongFeatures(
+      bpm: o.bpm ?? bpm,
+      confidence: o.bpm != null ? 1 : confidence,
+      groove: groove,
+      bassPunch: bassPunch,
+      energy: (energy + delta ~/ 2).clamp(0, 100),
+      danceability: (danceability + delta).clamp(0, 100),
+      excerptEnergy: [for (final e in excerptEnergy) (e + delta ~/ 2).clamp(0, 100)],
+      sizeBytes: sizeBytes,
+      modifiedMs: modifiedMs,
+      version: version,
+      failed: failed,
+    );
+  }
+}
+
+/// Tap tempo: BPM from tap times (ms), using the taps since the last pause
+/// of more than 2 s; null with fewer than 4 taps.
+double? tapTempo(List<int> tapsMs) {
+  var start = tapsMs.length - 1;
+  while (start > 0 && tapsMs[start] - tapsMs[start - 1] <= 2000) {
+    start--;
+  }
+  final taps = tapsMs.sublist(start);
+  if (taps.length < 4) return null;
+  final recent = taps.length > 9 ? taps.sublist(taps.length - 9) : taps;
+  final interval = (recent.last - recent.first) / (recent.length - 1);
+  return interval <= 0 ? null : (60000 / interval * 10).roundToDouble() / 10;
+}

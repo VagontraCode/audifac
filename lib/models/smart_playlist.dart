@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'audio_info.dart';
 import 'play_stats.dart';
 import 'song.dart';
+import 'song_features.dart';
 import 'song_source.dart';
 
 enum SmartKind { text, choice, number, days, flag }
@@ -21,6 +22,9 @@ enum SmartField {
   year('Year', SmartKind.number),
   duration('Length (minutes)', SmartKind.number),
   plays('Play count', SmartKind.number),
+  bpm('Tempo (BPM)', SmartKind.number),
+  energy('Energy', SmartKind.number),
+  danceability('Danceability', SmartKind.number),
   added('Added', SmartKind.days),
   lastPlayed('Last played', SmartKind.days),
   favorite('Favorite', SmartKind.flag);
@@ -80,7 +84,12 @@ class SmartRule {
   /// A sensible starting rule for [field].
   factory SmartRule.forField(SmartField field) => switch (field.kind) {
         SmartKind.choice => SmartRule(field, SmartOp.equals, field == SmartField.quality ? AudioQuality.lossless.name : ''),
-        SmartKind.number => SmartRule(field, SmartOp.atLeast, field == SmartField.year ? '2000' : '1'),
+        SmartKind.number => SmartRule(field, SmartOp.atLeast, switch (field) {
+            SmartField.year => '2000',
+            SmartField.bpm => '100',
+            SmartField.energy || SmartField.danceability => '60',
+            _ => '1',
+          }),
         SmartKind.days => SmartRule(field, SmartOp.within, '30'),
         SmartKind.flag => SmartRule(field, SmartOp.yes),
         SmartKind.text => SmartRule(field, SmartOp.contains),
@@ -124,12 +133,23 @@ enum SmartSort {
 
 /// What a rule can know about a song besides its tags.
 class SmartContext {
-  const SmartContext({required this.info, required this.stats, required this.favorites, required this.now});
+  const SmartContext({
+    required this.info,
+    required this.stats,
+    required this.favorites,
+    required this.now,
+    this.features = _noFeatures,
+  });
+
+  static SongFeatures? _noFeatures(Song _) => null;
 
   final AudioInfo Function(Song song) info;
   final Map<int, SongStats> stats;
   final Set<int> favorites;
   final DateTime now;
+
+  /// Soirée analysis (tempo, energy, danceability), if known.
+  final SongFeatures? Function(Song song) features;
 }
 
 class SmartPlaylist {
@@ -228,6 +248,10 @@ class SmartPlaylist {
           SmartField.year => int.tryParse((ctx.info(s).year ?? '').padRight(4).substring(0, 4).trim()),
           SmartField.duration => s.duration.inSeconds / 60,
           SmartField.plays => ctx.stats[s.id]?.plays ?? 0,
+          // Not analysed yet: no value, so the rule doesn't match.
+          SmartField.bpm => ctx.features(s)?.bpm,
+          SmartField.energy => ctx.features(s)?.energy,
+          SmartField.danceability => ctx.features(s)?.danceability,
           _ => null,
         };
     DateTime? date() => switch (r.field) {

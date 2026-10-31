@@ -118,3 +118,31 @@ final soireeAnalysisControllerProvider = Provider<void>((ref) {
 
 /// Whether the library analysis is on (Settings switch).
 final rhythmEnabledProvider = Provider<bool>((ref) => ref.read(songFeaturesProvider.notifier).enabled);
+
+/// The owner's corrections (tap tempo, more / less danceable) and what
+/// soirées learned, by [Song.key].
+final featureOverridesProvider = NotifierProvider<FeatureOverridesNotifier, Map<String, FeatureOverride>>(FeatureOverridesNotifier.new);
+
+class FeatureOverridesNotifier extends Notifier<Map<String, FeatureOverride>> {
+  static const key = 'feature_overrides';
+
+  @override
+  Map<String, FeatureOverride> build() => FeatureOverride.decodeAll(ref.read(bootstrapProvider).values[key]);
+
+  void update(Song song, FeatureOverride Function(FeatureOverride) change) {
+    final next = change(state[song.key] ?? const FeatureOverride());
+    state = next.isEmpty ? ({...state}..remove(song.key)) : {...state, song.key: next};
+    ref.read(databaseProvider).setValue(key, FeatureOverride.encodeAll(state));
+  }
+}
+
+/// Analysis with the owner's corrections, by [Song.key]; songs that couldn't
+/// be analysed are left out.
+final soireeFeaturesProvider = Provider<Map<String, SongFeatures>>((ref) {
+  final measured = ref.watch(songFeaturesProvider);
+  final overrides = ref.watch(featureOverridesProvider);
+  return {
+    for (final e in measured.entries)
+      if (!e.value.failed) e.key: e.value.adjusted(overrides[e.key]),
+  };
+});

@@ -5,6 +5,7 @@ import '../models/smart_playlist.dart';
 import '../models/song.dart';
 import 'audio_info_providers.dart';
 import 'library_providers.dart';
+import 'soiree_providers.dart';
 import 'stats_providers.dart';
 import 'user_data_providers.dart';
 
@@ -48,6 +49,7 @@ class SmartPlaylistsNotifier extends Notifier<List<SmartPlaylist>> {
 final smartContextProvider = Provider<SmartContext>((ref) {
   final infos = ref.watch(audioInfoProvider);
   final edits = ref.watch(tagEditsProvider);
+  final features = ref.watch(soireeFeaturesProvider);
   return SmartContext(
     info: (s) {
       final info = infos[s.location] ?? AudioInfo.guess(s);
@@ -56,6 +58,7 @@ final smartContextProvider = Provider<SmartContext>((ref) {
     stats: ref.watch(songStatsProvider),
     favorites: ref.watch(favoritesProvider).toSet(),
     now: DateTime.now(),
+    features: (s) => features[s.key],
   );
 });
 

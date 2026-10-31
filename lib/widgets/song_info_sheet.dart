@@ -14,6 +14,7 @@ import '../providers/loudness_providers.dart';
 import '../providers/stats_providers.dart';
 import 'artwork.dart';
 import 'song_labels.dart';
+import 'soiree_info.dart';
 import '../l10n/l10n.dart';
 import '../l10n/labels.dart';
 
@@ -205,6 +206,7 @@ class _SongInfoSheetState extends ConsumerState<SongInfoSheet> {
                     ),
                   ),
             ],
+            SoireeInfoSection(song: song),
             if (song.path != null) ...[
               const SizedBox(height: 16),
               Align(

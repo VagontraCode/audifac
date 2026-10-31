@@ -1303,6 +1303,53 @@ class AppLocalizationsFr extends AppLocalizations {
   String get soireeAnalysis => 'Analyser les titres pour les soirées';
 
   @override
+  String get soireeSection => 'Soirée';
+
+  @override
+  String get soireeNotYet => 'Pas encore analysé : ça arrive.';
+
+  @override
+  String get soireeAnalysisOff =>
+      'Activez « Analyser les titres pour les soirées » dans Réglages → Bibliothèque.';
+
+  @override
+  String get soireeCantAnalyse => 'Ce format ne peut pas être analysé.';
+
+  @override
+  String get tempo => 'Tempo';
+
+  @override
+  String get danceability => 'Dansant';
+
+  @override
+  String get energy => 'Énergie';
+
+  @override
+  String get groove => 'Groove';
+
+  @override
+  String get setByYou => 'réglé par vous';
+
+  @override
+  String get tapTempo => 'Taper le tempo';
+
+  @override
+  String get tapTempoHint =>
+      'Tapez en rythme pendant que le titre joue. ×½ et ×2 corrigent un tempo lu à moitié ou au double.';
+
+  @override
+  String get tap => 'Taper';
+
+  @override
+  String get lessDanceable => 'Moins dansant';
+
+  @override
+  String get moreDanceable => 'Plus dansant';
+
+  @override
+  String get resetMeasured => 'Revenir à la mesure';
+
+  @override
   String get soireeAnalysisHint =>
       'Tempo, groove et énergie de chaque titre, mesurés sur le téléphone, pour le créateur de soirée';
 
