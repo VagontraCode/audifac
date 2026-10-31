@@ -246,6 +246,37 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.23 | Built before 7.21 / 7.22 (those need a DAC). New `ContainerTags`: Matroska / WebM tags (track vs album levels, found through the SeekHead when they sit after the audio, segment title as fallback) and Ogg Opus / Vorbis comments (packets across pages, other streams skipped, up to 16 MB for cover art); DFF's own DIIN title / artist under its ID3. Used when Android's index or reader has no artist / title. Unit-tested on built files (5 tests); Nokia library unchanged | real .mka / .opus / .dff files (none on the test phones) |
 | 7.21 / 7.22 | **Paused, not built.** Both change what reaches a USB DAC (its own volume control; raw DSD packed as DoP instead of today's DSD → PCM) and can only be checked with a DAC on Android 14+. The test phones have no DAC (the Nokia is Android 12), so building them blind could break bit-perfect / DSD playback that works now. To do together with a DAC plugged in | a USB DAC (DoP-capable for 7.22) on an Android 14+ phone |
 
+### Phase 8 — Party builder ("Soirée"): analyse the library, build an evening that ends on the dance floor (planned, not started)
+Goal: pick an evening length and a shape (calm welcome → warming up → everybody dancing → optional cool-down); audifac chooses songs **from the phone** that fit each moment, in an order that flows, and the owner adjusts the list before (and while) it plays. Everything runs **on the phone, offline**: no streaming service, no upload, music files never modified.
+
+**What "makes people dance" is measured as** (per song, 0–100 unless noted):
+- **Tempo (BPM)** and how sure we are of it: onset strength (spectral flux) → autocorrelation between 60 and 200 BPM, half / double-time check. Dance music mostly sits at 95–130 BPM (afrobeats / amapiano ~100–115, house ~120–128), but a clear slower groove (e.g. 90 BPM with a strong beat) still counts.
+- **Groove (pulse clarity)**: how strong and regular the beat is — height of the autocorrelation peak at the tempo, steadiness across the song. The single best predictor of "danceable".
+- **Bass punch**: energy and beat-locked hits in 40–120 Hz (kick + bass line).
+- **Energy**: loudness (already measured, LUFS), onset density (how busy), brightness (high-frequency share).
+- **Danceability** = groove + tempo in the dance range + bass punch + regularity. **Energy** drives the evening's curve; danceability decides what is allowed at the peak.
+- **Your own taste** on top: favourites, play counts, songs you usually skip (from the play log) — a song everyone knows fills the floor faster.
+
+| # | Step | Size | Notes |
+|---|---|---|---|
+| 8.1 | **Rhythm analyser (native)** — `RhythmAnalyser.kt` on `PcmDecoder`: mono, decimated to ~11 kHz, spectral-flux onsets, tempo + confidence, groove, bass punch, onset density, brightness; per-song energy curve (intro / outro levels for later transitions) | L | unit-tested on generated click / drum patterns at known tempos (±1 BPM) and on silence / free-time noise (low confidence) |
+| 8.2 | **Fast enough for a whole library** — analyse 3 excerpts (≈25 % / 50 % / 75 % of the song, 30 s each) instead of the whole file; background queue at low priority, prefers charging; resumable; cached by file size + date (DB table `song_features`, versioned) | M | the full-song waveform took 41 s for one MP3 on the Nokia: excerpts should be ~5× faster; measure on the Nokia and the Samsung |
+| 8.3 | **Scores + corrections** — Energy / Danceability / BPM on the song info sheet; the owner can fix a song (tap-tempo for BPM, "more / less danceable" nudge) — stored as overrides like tag edits; filters and smart-playlist fields BPM, Energy, Danceability | M | wrong BPM detection (half / double) is the classic error: tap-tempo fixes it in 4 taps |
+| 8.4 | **Evening builder (model)** — inputs: length (e.g. 3 h) or song count; shape = energy curve with editable points (presets: *House party*, *Dinner → dance*, *Straight to the floor*, *Wind-down*); pool = whole library or chosen playlists / genres / folders / artists, exclusions, "must play" songs, no artist twice within N songs, minimum quality. Algorithm: walk the curve slot by slot; for each slot pick the song closest to the target energy (peak slots also need high danceability) with a smooth transition from the previous one (BPM close or half / double, energy step not too big), favourites bonus, skip-rate penalty; beam search to avoid painting itself into a corner; seed so "Regenerate" gives another mix | L | pure Dart, fully unit-tested (curve following, no repeats, transitions within limits, locked songs kept) |
+| 8.5 | **Builder screen** — the curve on top (drag points, presets), the list under it: each song with BPM / energy / dance chips and where it sits on the curve; drag to reorder, **swap** (5 alternatives that fit that moment), **lock**, remove, add a song (it slots where it fits); unlocked songs re-fill automatically after a change; total length; save as a normal playlist or keep it as an editable "Soirée" | L | Library → Playlists → "Plan a soirée" |
+| 8.6 | **Play it** — suggests crossfade (e.g. 6 s) and turns "keep albums together" off for this queue; transitions use the songs' intro / outro energy so a calm outro doesn't kill the floor | M | uses the existing crossfade; no beat-matching in this phase |
+| 8.7 | **Read the room (live)** — while a soirée plays: **"More energy"** / **"Calm it down"** / **"Keep it here"** reshape the rest of the queue from now on; the songs already played stay; the curve view shows where the evening is | M | the queue is rebuilt after the current song, never cut mid-song |
+| 8.8 | **Learn from the evening** — songs skipped during a soirée count against their danceability for next time; songs played to the end at the peak count for it | S | optional, off-switch in settings |
+
+**Owner's choices (2026-10-31):**
+- Analysis from **3 excerpts per song** (8.2), not whole songs.
+- Music at the soirées: **Afrobeats / Amapiano** (≈100–115 BPM) and **Coupé-décalé / Ndombolo / Makossa** (≈120–140 BPM). These two ranges count as full dance tempo. Ndombolo's fast guitar sebene must not be read as double tempo, so the half / double-time check prefers 100–140 BPM.
+- **Live "More energy / Calm it down" (8.7) is in the first version.**
+
+**Order:** 8.1 → 8.2 → 8.3 (check the numbers on real songs before building on them) → 8.4 → 8.5 → 8.6 → 8.7 → 8.8. One commit per step on a branch `soiree`, tested on the Nokia with the volume at 0 like Phase 7.
+
+**Limits to say upfront:** the scores come from the sound, not from knowing the song — a famous slow song that everybody sings along to will score low until it's nudged (8.3) or learned (8.8). No key detection / harmonic mixing and no beat-matched DJ transitions in this phase (possible Phase 9).
+
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".
 2. Deny, then "Allow access" → after "Don't ask again", "Open settings" → enable → come back: library loads.
