@@ -8,6 +8,7 @@ import '../../l10n/l10n.dart';
 import '../../providers/audio_info_providers.dart';
 import '../../providers/eq_providers.dart';
 import '../../providers/loudness_providers.dart';
+import '../../providers/soiree_providers.dart';
 import '../../providers/stats_providers.dart';
 import '../../providers/widget_provider.dart';
 import '../../providers/browse_provider.dart';
@@ -97,6 +98,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     ref.listen(volumeSyncProvider, (_, _) {});
     // Crossfade and album-aware shuffle.
     ref.listen(playbackOptionsSyncProvider, (_, _) {});
+    // Soirée analysis of new songs (once switched on).
+    ref.listen(soireeAnalysisControllerProvider, (_, _) {});
     // Home-screen widget.
     ref.listen(homeWidgetSyncProvider, (_, _) {});
     // Android Auto / media browsers.

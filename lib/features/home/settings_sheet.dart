@@ -14,6 +14,7 @@ import '../equalizer/equalizer_screen.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/lastfm_provider.dart';
 import '../../providers/loudness_providers.dart';
+import '../../providers/soiree_providers.dart';
 import '../../providers/user_data_providers.dart';
 import '../../providers/widget_provider.dart';
 import 'lastfm_sheet.dart';
@@ -225,6 +226,29 @@ class SettingsSheet extends ConsumerWidget {
                 subtitle: Text(context.l10n.duplicatesFound(ref.watch(duplicatesProvider).length)),
                 trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
                 onTap: () => DuplicatesScreen.open(context),
+              ),
+              Consumer(
+                builder: (context, ref, _) {
+                  final on = ref.watch(rhythmEnabledProvider);
+                  final status = ref.watch(rhythmStatusProvider);
+                  final known = ref.watch(songFeaturesProvider.select((m) => m.values.where((f) => !f.failed).length));
+                  final left = status.remaining;
+                  return SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    activeThumbColor: palette.onInk,
+                    activeTrackColor: palette.ink,
+                    title: Text(context.l10n.soireeAnalysis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text(
+                      !on
+                          ? context.l10n.soireeAnalysisHint
+                          : status.running
+                              ? context.l10n.soireeAnalysing(status.done, left == null ? '…' : '${(left.inSeconds / 60).ceil()}', status.total)
+                              : context.l10n.soireeAnalysed(known),
+                    ),
+                    value: on,
+                    onChanged: (v) => ref.read(songFeaturesProvider.notifier).setEnabled(v),
+                  );
+                },
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,

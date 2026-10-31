@@ -116,6 +116,24 @@ class DspChannel {
     }
   }
 
+  /// Soirée analysis of [songs] (`RhythmAnalyser.kt`): one map per song, null
+  /// when it couldn't be analysed. Seconds per song.
+  Future<List<Map<dynamic, dynamic>?>> analyseRhythm(List<Song> songs) async {
+    try {
+      final raw = await _channel.invokeListMethod<dynamic>('analyseRhythm', {
+        'items': [
+          for (final s in songs)
+            {'location': s.location, 'startMs': s.clipStart?.inMilliseconds ?? 0, 'durationMs': s.duration.inMilliseconds},
+        ],
+      });
+      return [for (final m in raw ?? const []) m as Map<dynamic, dynamic>?];
+    } on PlatformException {
+      return List.filled(songs.length, null);
+    } on MissingPluginException {
+      return List.filled(songs.length, null);
+    }
+  }
+
   /// Fold surround to stereo before the DSP (Downmix.kt).
   Future<void> setDownmix(bool on) => _invoke('setDownmix', on);
 

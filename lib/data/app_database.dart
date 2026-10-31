@@ -10,6 +10,7 @@ import '../models/eq_rules.dart';
 import '../models/loudness.dart';
 import '../models/play_stats.dart';
 import '../models/playlist.dart';
+import '../models/song_features.dart';
 import '../models/tag_edit.dart';
 
 /// Everything the app stores itself: favorites, playlists, play history and
@@ -25,7 +26,7 @@ class AppDatabase {
     final path = p.join(await getDatabasesPath(), 'audifac.db');
     final db = await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: (db, _) async {
         final batch = db.batch()
@@ -64,6 +65,7 @@ class AppDatabase {
         _createPlayLog(batch);
         _createTagEdits(batch);
         _createWaveforms(batch);
+        _createSongFeatures(batch);
         await batch.commit(noResult: true);
       },
       onUpgrade: (db, from, _) async {
@@ -79,6 +81,7 @@ class AppDatabase {
         if (from < 7) _createPlayLog(batch);
         if (from < 8) _createTagEdits(batch);
         if (from < 9) _createWaveforms(batch);
+        if (from < 10) _createSongFeatures(batch);
         await batch.commit(noResult: true);
       },
     );
@@ -101,6 +104,15 @@ class AppDatabase {
           json TEXT NOT NULL,
           PRIMARY KEY (scope, key)
         )''');
+  }
+
+  /// v10: soirée analysis (tempo, groove, energy…) by [Song.key], as JSON.
+  static void _createSongFeatures(Batch batch) {
+    batch.execute('''
+      CREATE TABLE song_features (
+        key TEXT PRIMARY KEY,
+        json TEXT NOT NULL
+      )''');
   }
 
   /// v9: seek bar waveforms by [Song.key], for the file as it was (size, date).
@@ -416,6 +428,24 @@ class AppDatabase {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
 
+  // --- Soirée analysis -------------------------------------------------------------
+
+  Future<Map<String, SongFeatures>> songFeatures() async {
+    final rows = await _db.query('song_features');
+    return {
+      for (final r in rows)
+        if (_tryJson(r['json'] as String) case final j?) r['key'] as String: SongFeatures.fromJson(j),
+    };
+  }
+
+  Future<void> putSongFeatures(Map<String, SongFeatures> entries) {
+    final batch = _db.batch();
+    entries.forEach((key, f) {
+      batch.insert('song_features', {'key': key, 'json': f.encode()}, conflictAlgorithm: ConflictAlgorithm.replace);
+    });
+    return batch.commit(noResult: true);
+  }
+
   // --- Equalizer ---------------------------------------------------------------
 
   Future<List<EqPreset>> eqPresets() async {
@@ -516,10 +546,14 @@ class Bootstrap {
     this.loudness = const {},
     this.playLog = const [],
     this.tagEdits = const {},
+    this.songFeatures = const {},
   });
 
   /// Tags corrected in the app, by file location.
   final Map<String, TagEdit> tagEdits;
+
+  /// Soirée analysis, by [Song.key].
+  final Map<String, SongFeatures> songFeatures;
 
   /// Every listen, oldest first.
   final List<PlayEvent> playLog;
@@ -562,6 +596,7 @@ class Bootstrap {
       loudness: loudness,
       playLog: playLog,
       tagEdits: await db.tagEdits(),
+      songFeatures: await db.songFeatures(),
     );
   }
 }

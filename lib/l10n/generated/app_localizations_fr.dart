@@ -1300,6 +1300,30 @@ class AppLocalizationsFr extends AppLocalizations {
   String get asSetAbove => 'Comme ci-dessus';
 
   @override
+  String get soireeAnalysis => 'Analyser les titres pour les soirées';
+
+  @override
+  String get soireeAnalysisHint =>
+      'Tempo, groove et énergie de chaque titre, mesurés sur le téléphone, pour le créateur de soirée';
+
+  @override
+  String soireeAnalysing(Object done, Object minutes, Object total) {
+    return 'Analyse $done / $total · environ $minutes min restantes';
+  }
+
+  @override
+  String soireeAnalysed(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count titres analysés',
+      one: '1 titre analysé',
+      zero: 'Aucun titre analysé',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get spectrum => 'Spectre';
 
   @override

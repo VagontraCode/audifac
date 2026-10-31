@@ -17,6 +17,7 @@ import java.util.concurrent.Executors
  * Methods: setConfig(map), setBypass(bool), outputDevice() -> map,
  * setVolumeMatching(map), setGains({gains: {uriKey: map}, replace: bool}),
  * waveform({location, startMs, endMs?, durationMs}) -> bytes (see Waveform),
+ * analyseRhythm({items: [{location, startMs, durationMs}]}) -> list of maps / null (RhythmAnalyser),
  * analyseLoudness({locations}) -> list of maps
  * setCrossfade({seconds, albums: {uriKey: albumId}})
  * Calls Dart: outputChanged(map)
@@ -45,6 +46,14 @@ class DspChannel(private val context: Context) : MethodChannel.MethodCallHandler
             Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND + Process.THREAD_PRIORITY_MORE_FAVORABLE)
             r.run()
         }, "AudifacWaveform")
+    }
+
+    // Soirée analysis: its own thread, behind nothing else.
+    private val rhythmExecutor = Executors.newSingleThreadExecutor { r ->
+        Thread({
+            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND + Process.THREAD_PRIORITY_MORE_FAVORABLE)
+            r.run()
+        }, "AudifacRhythm")
     }
 
     fun register(messenger: BinaryMessenger) {
@@ -145,6 +154,29 @@ class DspChannel(private val context: Context) : MethodChannel.MethodCallHandler
                     }
                     Log.d("AudifacDsp", "waveform: ${levels?.size ?: "failed"} in ${(System.nanoTime() - started) / 1_000_000} ms")
                     mainHandler.post { result.success(levels) }
+                }
+            }
+            "analyseRhythm" -> {
+                @Suppress("UNCHECKED_CAST")
+                val items = call.argument<List<Map<String, Any?>>>("items") ?: emptyList()
+                rhythmExecutor.execute {
+                    val out = items.map { item ->
+                        val location = item["location"] as? String ?: return@map null
+                        val started = System.nanoTime()
+                        try {
+                            RhythmAnalyser.of(
+                                context,
+                                location,
+                                (item["startMs"] as? Number)?.toLong() ?: 0L,
+                                (item["durationMs"] as? Number)?.toLong() ?: 0L,
+                            )?.also { r ->
+                                Log.d("AudifacDsp", "rhythm: ${location.substringAfterLast('/')} bpm=${r.bpm} conf=${"%.2f".format(r.confidence)} groove=${r.groove} bass=${r.bassPunch} energy=${r.energy} dance=${r.danceability} in ${(System.nanoTime() - started) / 1_000_000} ms")
+                            }?.toMap()
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                    mainHandler.post { result.success(out) }
                 }
             }
             "analyseLoudness" -> {

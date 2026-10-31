@@ -2054,6 +2054,30 @@ abstract class AppLocalizations {
   /// **'As set above'**
   String get asSetAbove;
 
+  /// No description provided for @soireeAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyse songs for soirées'**
+  String get soireeAnalysis;
+
+  /// No description provided for @soireeAnalysisHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tempo, groove and energy of every song, measured on the phone, for the soirée builder'**
+  String get soireeAnalysisHint;
+
+  /// No description provided for @soireeAnalysing.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysing {done} / {total} · about {minutes} min left'**
+  String soireeAnalysing(Object done, Object minutes, Object total);
+
+  /// No description provided for @soireeAnalysed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No song analysed yet} =1{1 song analysed} other{{count} songs analysed}}'**
+  String soireeAnalysed(num count);
+
   /// No description provided for @spectrum.
   ///
   /// In en, this message translates to:
