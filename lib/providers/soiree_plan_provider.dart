@@ -269,3 +269,35 @@ List<SoireeSlot> _build((List<SoireeCandidate>, SoireeSettings, Map<int, Song>) 
 
 List<SoireeSlot> _buildFrom((List<SoireeCandidate>, SoireeSettings, List<SoireeSlot>) a) =>
     SoireeBuilder(a.$1).build(a.$2, keep: a.$3);
+
+/// Learn from soirées (Settings switch, on by default).
+final soireeLearnProvider = NotifierProvider<SoireeLearnNotifier, bool>(SoireeLearnNotifier.new);
+
+class SoireeLearnNotifier extends Notifier<bool> {
+  static const key = 'soiree_learn';
+
+  @override
+  bool build() => ref.read(bootstrapProvider).values[key] != '0';
+
+  void set(bool on) {
+    state = on;
+    ref.read(databaseProvider).setValue(key, on ? '1' : '0');
+  }
+}
+
+/// While a soirée plays, each finished listen nudges what the song is worth
+/// on a dance floor (see [soireeLesson]). Watched by the app shell.
+final soireeLearningProvider = Provider<void>((ref) {
+  ref.listen(playLogProvider, (previous, next) {
+    if (previous == null || next.length <= previous.length || next.length - previous.length > 3) return;
+    if (!ref.read(soireeLearnProvider)) return;
+    final s = ref.read(soireeProvider);
+    if (!s.live) return;
+    for (final e in next.sublist(previous.length)) {
+      final slot = s.plan.where((x) => x.song.id == e.songId).firstOrNull;
+      if (slot == null) continue;
+      final delta = soireeLesson(listenedMs: e.listenedMs, duration: slot.song.duration, target: slot.target);
+      if (delta != 0) ref.read(featureOverridesProvider.notifier).update(slot.song, (o) => o.copyWith(learned: o.learned + delta));
+    }
+  });
+});

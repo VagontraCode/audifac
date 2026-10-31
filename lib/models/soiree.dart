@@ -335,3 +335,14 @@ class _Path {
 
 /// 0…1 from favourites and plays.
 double tasteOf({required bool favorite, required int plays}) => math.min(1, (favorite ? 0.6 : 0) + 0.4 * math.min(1, plays / 10));
+
+/// What one listen during a soirée teaches about a song's danceability:
+/// skipped early → less (−8), played through at the peak → more (+4).
+int soireeLesson({required int listenedMs, required Duration duration, required double target}) {
+  final total = duration.inMilliseconds;
+  if (total <= 0) return 0;
+  final skipped = listenedMs < total * 0.4 && listenedMs < total - 30000;
+  if (skipped) return -8;
+  if (listenedMs >= total * 0.9 && target >= 70) return 4;
+  return 0;
+}

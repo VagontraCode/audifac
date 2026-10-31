@@ -149,4 +149,13 @@ void main() {
     final calmer = builder.build(SoireeSettings(length: twoHours.length, curve: twoHours.curve.reshaped(0.33, -25)), keep: played);
     expect(mean(again.skip(10)), greaterThan(mean(calmer.skip(10))));
   });
+
+  test('lessons: skipped early is less danceable, played through at the peak more', () {
+    const four = Duration(minutes: 4);
+    expect(soireeLesson(listenedMs: 20000, duration: four, target: 80), -8);
+    expect(soireeLesson(listenedMs: 230000, duration: four, target: 80), 4);
+    expect(soireeLesson(listenedMs: 230000, duration: four, target: 40), 0); // calm part: no lesson
+    expect(soireeLesson(listenedMs: 150000, duration: four, target: 80), 0); // most of it: neutral
+    expect(soireeLesson(listenedMs: 20000, duration: const Duration(seconds: 45), target: 80), 0); // short song, last 30 s
+  });
 }

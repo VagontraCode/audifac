@@ -2324,6 +2324,24 @@ abstract class AppLocalizations {
   /// **'The queue stays; the soirée controls go away'**
   String get endSoireeHint;
 
+  /// No description provided for @soireeLearn.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn from soirées'**
+  String get soireeLearn;
+
+  /// No description provided for @learnedAtSoirees.
+  ///
+  /// In en, this message translates to:
+  /// **'learned at soirées'**
+  String get learnedAtSoirees;
+
+  /// No description provided for @soireeLearnHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs skipped during a soirée count as less danceable, songs played through at the peak as more'**
+  String get soireeLearnHint;
+
   /// No description provided for @soireeNotYet.
   ///
   /// In en, this message translates to:

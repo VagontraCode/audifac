@@ -14,6 +14,7 @@ import '../equalizer/equalizer_screen.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/lastfm_provider.dart';
 import '../../providers/loudness_providers.dart';
+import '../../providers/soiree_plan_provider.dart';
 import '../../providers/soiree_providers.dart';
 import '../../providers/user_data_providers.dart';
 import '../../providers/widget_provider.dart';
@@ -249,6 +250,15 @@ class SettingsSheet extends ConsumerWidget {
                     onChanged: (v) => ref.read(songFeaturesProvider.notifier).setEnabled(v),
                   );
                 },
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                activeThumbColor: palette.onInk,
+                activeTrackColor: palette.ink,
+                title: Text(context.l10n.soireeLearn, style: const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(context.l10n.soireeLearnHint),
+                value: ref.watch(soireeLearnProvider),
+                onChanged: ref.read(soireeLearnProvider.notifier).set,
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,

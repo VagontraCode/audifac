@@ -1460,6 +1460,16 @@ class AppLocalizationsFr extends AppLocalizations {
       'La file reste ; les contrôles de soirée disparaissent';
 
   @override
+  String get soireeLearn => 'Apprendre des soirées';
+
+  @override
+  String get learnedAtSoirees => 'appris en soirée';
+
+  @override
+  String get soireeLearnHint =>
+      'Les titres passés pendant une soirée comptent comme moins dansants, ceux joués jusqu\'au bout au sommet comme plus dansants';
+
+  @override
   String get soireeNotYet => 'Pas encore analysé : ça arrive.';
 
   @override

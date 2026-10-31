@@ -266,7 +266,7 @@ Goal: pick an evening length and a shape (calm welcome → warming up → everyb
 | 8.5 ✅ | **Builder screen** — the curve on top (drag points, presets), the list under it: each song with BPM / energy / dance chips and where it sits on the curve; drag to reorder, **swap** (5 alternatives that fit that moment), **lock**, remove, add a song (it slots where it fits); unlocked songs re-fill automatically after a change; total length; save as a normal playlist or keep it as an editable "Soirée" | L | Library → Playlists → "Plan a soirée" |
 | 8.6 ✅ | **Play it** — suggests crossfade (e.g. 6 s) and turns "keep albums together" off for this queue; transitions use the songs' intro / outro energy so a calm outro doesn't kill the floor | M | uses the existing crossfade; no beat-matching in this phase |
 | 8.7 ✅ | **Read the room (live)** — while a soirée plays: **"More energy"** / **"Calm it down"** / **"Keep it here"** reshape the rest of the queue from now on; the songs already played stay; the curve view shows where the evening is | M | the queue is rebuilt after the current song, never cut mid-song |
-| 8.8 | **Learn from the evening** — songs skipped during a soirée count against their danceability for next time; songs played to the end at the peak count for it | S | optional, off-switch in settings |
+| 8.8 ✅ | **Learn from the evening** — songs skipped during a soirée count against their danceability for next time; songs played to the end at the peak count for it | S | optional, off-switch in settings |
 
 **Owner's choices (2026-10-31):**
 - Analysis from **3 excerpts per song** (8.2), not whole songs.
@@ -276,6 +276,19 @@ Goal: pick an evening length and a shape (calm welcome → warming up → everyb
 **Order:** 8.1 → 8.2 → 8.3 (check the numbers on real songs before building on them) → 8.4 → 8.5 → 8.6 → 8.7 → 8.8. One commit per step on a branch `soiree`, tested on the Nokia with the volume at 0 like Phase 7.
 
 **Limits to say upfront:** the scores come from the sound, not from knowing the song — a famous slow song that everybody sings along to will score low until it's nudged (8.3) or learned (8.8). No key detection / harmonic mixing and no beat-matched DJ transitions in this phase (possible Phase 9).
+
+**Phase 8 status** (branch `soiree`, tested on the Nokia with the volume at 0)
+
+| Step | Checked | Not checked yet |
+|---|---|---|
+| 8.1 | Unit tests on generated drums: four-on-the-floor 128 → 128.9, kicks + eighth hats 105 → 104.8, ndombolo-like sebene 135 → 136.1 (not doubled), half-time groove 110 → 110.5; noise → groove 27; silence → nothing. A 2:3 mistake (69.9 for 105) was fixed with a 4-beat comb and 2:3 / 3:4 candidates | real songs with known tempos beyond the few on the test phone |
+| 8.2 | Nokia: Settings → Library → "Analyse songs for soirées"; 7 songs in ~1–2 min (≈ 12 s per song for 3 × 30 s), the 7 FFmpeg-only test files (WMA / APE / WavPack / TTA) can't be decoded by Android and are marked as such; cached (DB v10) | a large library on the Samsung (time per song) |
+| 8.3 | Nokia: Buga → 117 BPM (it is ≈ 117–118), danceability 81, energy 60, groove 64; "More danceable" → 96 · set by you; "Back to measured"; tap-tempo dialog; smart-playlist fields Tempo / Energy / Danceability (unit-tested) | DIPITA reads 162 BPM, possibly double time: to check by ear and fix with tap tempo |
+| 8.4 | Unit tests on an 80-song library: fills the evening once, calm third < 40 and last third > 70, curve error < 15, artist gap, smoother tempos than chance, locks, must-play, seeds, swaps; 2 000 songs / 4 h built in 0.43 s on the PC (runs in a background isolate) | — |
+| 8.5 | Nokia: Library → Playlists → "Plan a soirée": length / shape chips, curve drag (vertical drag wins over the list's scroll), rebuild follows the curve, swap / lock / remove / reorder / add / save; notes when there aren't enough analysed songs or no alternative | a full evening from a real library |
+| 8.6 | Nokia: Play → queue in planned order; crossfade offer when it's off (the Nokia already had 12 s) | the crossfade offer on a phone with crossfade off |
+| 8.7 | Nokia: Soirée chip in the player → "Read the room"; "Calm it down" rebuilt the curve 15 lower from the next song, current song kept playing; unit test: rebuilding from the middle keeps what played, never repeats, "more" ends higher than "calm" | with a big library the reordering is visible; the 7-song library mostly keeps the same order |
+| 8.8 | Nokia: Buga skipped after 4 s during the soirée → danceability 81 → 73 "learned at soirées"; "Back to measured" clears it; switch in Settings; unit-tested lessons | a real evening |
 
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".

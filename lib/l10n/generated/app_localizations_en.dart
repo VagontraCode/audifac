@@ -1426,6 +1426,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get endSoireeHint => 'The queue stays; the soirée controls go away';
 
   @override
+  String get soireeLearn => 'Learn from soirées';
+
+  @override
+  String get learnedAtSoirees => 'learned at soirées';
+
+  @override
+  String get soireeLearnHint =>
+      'Songs skipped during a soirée count as less danceable, songs played through at the peak as more';
+
+  @override
   String get soireeNotYet => 'Not analysed yet: it\'s on its way.';
 
   @override

@@ -55,7 +55,11 @@ class SoireeInfoSection extends ConsumerWidget {
           )
         else ...[
           row(l10n.tempo, '${f.bpm.round()} BPM${o.bpm != null ? ' · ${l10n.setByYou}' : ''}'),
-          row(l10n.danceability, '${f.danceability} / 100${o.nudge != 0 ? ' · ${l10n.setByYou}' : ''}'),
+          row(l10n.danceability, [
+            '${f.danceability} / 100',
+            if (o.nudge != 0) l10n.setByYou,
+            if (o.learned != 0) l10n.learnedAtSoirees,
+          ].join(' · ')),
           row(l10n.energy, '${f.energy} / 100'),
           row(l10n.groove, '${f.groove} / 100'),
           const SizedBox(height: 6),
@@ -78,9 +82,9 @@ class SoireeInfoSection extends ConsumerWidget {
                 onPressed: () => notifier.update(song, (x) => x.copyWith(nudge: x.nudge + 15)),
                 child: Text(l10n.moreDanceable),
               ),
-              if (o.bpm != null || o.nudge != 0)
+              if (!o.isEmpty)
                 TextButton(
-                  onPressed: () => notifier.update(song, (x) => x.copyWith(bpm: () => null, nudge: 0)),
+                  onPressed: () => notifier.update(song, (x) => x.copyWith(bpm: () => null, nudge: 0, learned: 0)),
                   child: Text(l10n.resetMeasured),
                 ),
             ],
