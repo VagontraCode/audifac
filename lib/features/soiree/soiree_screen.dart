@@ -39,25 +39,41 @@ class _SoireeScreenState extends ConsumerState<SoireeScreen> {
     if (ref.read(soireeProvider).plan.isEmpty) {
       Future.microtask(() => ref.read(soireeProvider.notifier).rebuild());
     }
-    // While the analysis is still going and the plan doesn't fill the
-    // evening yet, newly analysed songs join it (every few seconds at most).
-    _features = ref.listenManual(soireeFeaturesProvider, (_, _) {
+    // While the analysis is still going, newly analysed songs join the plan:
+    // at once while it doesn't fill the evening, then each time ~10 % more
+    // of the library is known, and when the analysis ends — unless the
+    // owner has locked songs (their work is kept).
+    _builtWith = ref.read(soireeFeaturesProvider).length;
+    void refill() {
       final s = ref.read(soireeProvider);
-      if (s.building || s.live || s.total >= s.length * 0.9) return;
+      final known = ref.read(soireeFeaturesProvider).length;
+      final running = ref.read(rhythmStatusProvider).running;
+      if (s.building || s.live || s.plan.any((x) => x.locked) || known == _builtWith) return;
+      final short = s.total < s.length * 0.9;
+      final grown = known >= _builtWith * 1.1 + 5;
+      if (!short && !grown && running) return;
       _refill?.cancel();
       _refill = Timer(const Duration(seconds: 4), () {
-        if (mounted) ref.read(soireeProvider.notifier).rebuild();
+        if (!mounted) return;
+        _builtWith = ref.read(soireeFeaturesProvider).length;
+        ref.read(soireeProvider.notifier).rebuild();
       });
-    });
+    }
+
+    _features = ref.listenManual(soireeFeaturesProvider, (_, _) => refill());
+    _status = ref.listenManual(rhythmStatusProvider, (_, _) => refill());
   }
 
   ProviderSubscription<Map<String, SongFeatures>>? _features;
+  ProviderSubscription<RhythmStatus>? _status;
   Timer? _refill;
+  var _builtWith = 0;
 
   @override
   void dispose() {
     _refill?.cancel();
     _features?.close();
+    _status?.close();
     super.dispose();
   }
 
