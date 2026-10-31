@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/song.dart';
 import '../models/song_features.dart';
+import '../models/song_source.dart';
 import 'eq_providers.dart';
 import 'library_providers.dart';
 import 'stats_providers.dart';
@@ -66,8 +67,17 @@ class SongFeaturesNotifier extends Notifier<Map<String, SongFeatures>> {
 
   bool isKnown(Song s) => state[s.key]?.describes(s) ?? false;
 
-  /// Songs worth analysing: music longer than 45 s.
-  static bool worthIt(Song s) => s.duration >= const Duration(seconds: 45) && !s.isRecording;
+  /// Songs worth analysing for a soirée: music between 45 s and 10 min, not
+  /// voice notes, recordings, podcasts or audiobooks (they would end up as
+  /// the evening's "calm" songs).
+  static bool worthIt(Song s) {
+    if (s.duration < const Duration(seconds: 45) || s.duration > const Duration(minutes: 10)) return false;
+    if (s.isRecording || s.isPodcast) return false;
+    return switch (SongSource.of(s).category) {
+      SourceCategory.whatsapp || SourceCategory.recordings || SourceCategory.podcasts || SourceCategory.audiobooks => false,
+      _ => true,
+    };
+  }
 
   Future<void> analyseLibrary() async {
     if (!enabled) return;

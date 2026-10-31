@@ -186,3 +186,6 @@ double? tapTempo(List<int> tapsMs) {
   final interval = (recent.last - recent.first) / (recent.length - 1);
   return interval <= 0 ? null : (60000 / interval * 10).roundToDouble() / 10;
 }
+
+/// No beat at all (speech, ambient): kept out of soirées.
+bool noBeat(SongFeatures f) => f.groove < 20 && f.bassPunch < 35;

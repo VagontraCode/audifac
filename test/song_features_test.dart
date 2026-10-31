@@ -1,5 +1,6 @@
 import 'package:audifac/models/song.dart';
 import 'package:audifac/models/song_features.dart';
+import 'package:audifac/providers/soiree_providers.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Song _song({int size = 1000, int modified = 5}) => Song(
@@ -60,5 +61,28 @@ void main() {
     expect(tapTempo([0, 500, 1000, 1500]), 120.0);
     // A pause of 3 s starts over.
     expect(tapTempo([0, 400, 800, 3800, 4345, 4890, 5435]), closeTo(110.1, 0.1));
+  });
+
+  test('soirées skip voice notes, recordings, long talks and beatless tracks', () {
+    Song at(String path, {int minutes = 3}) => Song(
+          id: 2,
+          uri: 'content://media/external/audio/media/2',
+          path: path,
+          title: 't',
+          artist: 'a',
+          artistId: 1,
+          album: 'b',
+          albumId: 1,
+          duration: Duration(minutes: minutes),
+          dateAdded: DateTime(2024),
+        );
+    expect(SongFeaturesNotifier.worthIt(at('/storage/emulated/0/Music/song.mp3')), isTrue);
+    expect(SongFeaturesNotifier.worthIt(at('/storage/emulated/0/Music/talk.mp3', minutes: 12)), isFalse);
+    expect(SongFeaturesNotifier.worthIt(at('/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Audio/a.mp3')), isFalse);
+    SongFeatures f(int groove, int bass) =>
+        SongFeatures(bpm: 100, confidence: 0, groove: groove, bassPunch: bass, energy: 30, danceability: 30, sizeBytes: 0, modifiedMs: 0);
+    expect(noBeat(f(10, 20)), isTrue);
+    expect(noBeat(f(10, 60)), isFalse); // a bass line is a beat
+    expect(noBeat(f(45, 20)), isFalse);
   });
 }

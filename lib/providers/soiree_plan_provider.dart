@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/soiree.dart';
 import '../models/song.dart';
+import '../models/song_features.dart';
 import 'library_providers.dart';
 import 'soiree_providers.dart';
 import 'stats_providers.dart';
@@ -138,7 +139,7 @@ class SoireeNotifier extends Notifier<SoireeState> {
         : ref.read(playlistsProvider).where((p) => p.id == st.playlistId).firstOrNull?.songIds.toSet();
     return [
       for (final song in ref.read(songsProvider))
-        if (features[song.key] case final f?)
+        if (features[song.key] case final f? when SongFeaturesNotifier.worthIt(song) && !noBeat(f))
           if (!st.excluded.contains(song.id) && (playlist == null || playlist.contains(song.id)))
             SoireeCandidate(
               song: song,

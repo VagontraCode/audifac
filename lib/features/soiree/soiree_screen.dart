@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -7,6 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../l10n/l10n.dart';
 import '../../models/soiree.dart';
 import '../../models/song.dart';
+import '../../models/song_features.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/soiree_plan_provider.dart';
 import '../../providers/soiree_providers.dart';
@@ -36,6 +39,26 @@ class _SoireeScreenState extends ConsumerState<SoireeScreen> {
     if (ref.read(soireeProvider).plan.isEmpty) {
       Future.microtask(() => ref.read(soireeProvider.notifier).rebuild());
     }
+    // While the analysis is still going and the plan doesn't fill the
+    // evening yet, newly analysed songs join it (every few seconds at most).
+    _features = ref.listenManual(soireeFeaturesProvider, (_, _) {
+      final s = ref.read(soireeProvider);
+      if (s.building || s.live || s.total >= s.length * 0.9) return;
+      _refill?.cancel();
+      _refill = Timer(const Duration(seconds: 4), () {
+        if (mounted) ref.read(soireeProvider.notifier).rebuild();
+      });
+    });
+  }
+
+  ProviderSubscription<Map<String, SongFeatures>>? _features;
+  Timer? _refill;
+
+  @override
+  void dispose() {
+    _refill?.cancel();
+    _features?.close();
+    super.dispose();
   }
 
   static String shapeName(AppLocalizations l10n, SoireeShape s) => switch (s) {
