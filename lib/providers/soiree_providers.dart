@@ -44,6 +44,8 @@ class SongFeaturesNotifier extends Notifier<Map<String, SongFeatures>> {
 
   bool _running = false;
   bool _again = false;
+  bool _reorder = false;
+  Set<String> _first = const {};
 
   @override
   Map<String, SongFeatures> build() {
@@ -64,6 +66,16 @@ class SongFeaturesNotifier extends Notifier<Map<String, SongFeatures>> {
 
   /// Turns the library analysis on (the soirée builder opening) and starts it.
   Future<void> enable() => _enabled ? analyseLibrary() : setEnabled(true);
+
+  /// Songs (by [Song.key]) to analyse before the rest: the soirée's sources.
+  void prioritise(Set<String> keys) {
+    _first = keys;
+    if (_running) {
+      _reorder = true;
+    } else {
+      unawaited(analyseLibrary());
+    }
+  }
 
   bool isKnown(Song s) => state[s.key]?.describes(s) ?? false;
 
@@ -92,11 +104,11 @@ class SongFeaturesNotifier extends Notifier<Map<String, SongFeatures>> {
         _again = false;
         final stats = ref.read(songStatsProvider);
         final favorites = ref.read(favoritesProvider).toSet();
-        int weight(Song s) => (favorites.contains(s.id) ? 1000 : 0) + (stats[s.id]?.plays ?? 0);
+        int weight(Song s) => (_first.contains(s.key) ? 1000000 : 0) + (favorites.contains(s.id) ? 1000 : 0) + (stats[s.id]?.plays ?? 0);
         final todo = ref.read(songsProvider).where((s) => worthIt(s) && !isKnown(s)).toList()
           ..sort((a, b) => weight(b).compareTo(weight(a)));
         var spent = 0;
-        for (var i = 0; i < todo.length && _enabled; i += _batch) {
+        for (var i = 0; i < todo.length && _enabled && !_reorder; i += _batch) {
           status.set(RhythmStatus(
             done: i,
             total: todo.length,
@@ -112,6 +124,11 @@ class SongFeaturesNotifier extends Notifier<Map<String, SongFeatures>> {
           };
           state = {...state, ...results};
           await ref.read(databaseProvider).putSongFeatures(results);
+        }
+        if (_reorder) {
+          // The sources changed: their songs go first.
+          _reorder = false;
+          _again = true;
         }
       } while (_again);
     } finally {

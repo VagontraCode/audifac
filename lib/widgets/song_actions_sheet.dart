@@ -9,7 +9,7 @@ import '../features/collection/collection_screen.dart';
 import '../features/equalizer/quick_eq_sheet.dart';
 import '../models/song.dart';
 import '../providers/library_providers.dart';
-import '../providers/player_providers.dart';
+import '../providers/queue_actions.dart';
 import '../providers/user_data_providers.dart';
 import 'artwork.dart';
 import 'playlist_dialogs.dart';
@@ -64,7 +64,6 @@ class SongActionsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final handler = ref.read(audioHandlerProvider);
     final isFavorite = ref.watch(isFavoriteProvider(song.id));
     final messenger = ScaffoldMessenger.of(context);
     final palette = context.palette;
@@ -87,18 +86,20 @@ class SongActionsSheet extends ConsumerWidget {
         icon: HugeIcons.strokeRoundedTextIndentMore,
         label: context.l10n.playNext,
         onSelected: () {
+          final message = context.l10n.playingNext(song.title);
+          enqueueSongs(ref, [song], next: true);
           close();
-          handler.playNext([song]);
-          toast(context.l10n.playingNext(song.title));
+          toast(message);
         },
       ),
       SongMenuAction(
         icon: HugeIcons.strokeRoundedQueue01,
         label: context.l10n.addToQueue,
-        onSelected: () {
+        onSelected: () async {
+          final l10n = context.l10n;
+          final done = enqueueSongs(ref, [song], next: false);
           close();
-          handler.addToQueue([song]);
-          toast(context.l10n.addedToQueue);
+          toast(await done == Enqueued.soireeSpread ? l10n.spreadInSoiree(1) : l10n.addedToQueue);
         },
       ),
       SongMenuAction(

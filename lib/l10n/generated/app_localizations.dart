@@ -3997,6 +3997,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Saved {name}'**
   String savedAs(Object name);
+
+  /// No description provided for @addedSongsToQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 song added to the queue} other{{count} songs added to the queue}}'**
+  String addedSongsToQueue(num count);
+
+  /// No description provided for @playingSongsNext.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 song plays next} other{{count} songs play next}}'**
+  String playingSongsNext(num count);
+
+  /// No description provided for @spreadInSoiree.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added to the soirée where it fits} other{{count} songs spread through the soirée}}'**
+  String spreadInSoiree(num count);
+
+  /// No description provided for @addAnAlbum.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an album'**
+  String get addAnAlbum;
+
+  /// No description provided for @searchAlbums.
+  ///
+  /// In en, this message translates to:
+  /// **'Search albums'**
+  String get searchAlbums;
+
+  /// No description provided for @useThisFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this folder'**
+  String get useThisFolder;
+
+  /// No description provided for @chooseSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs for the soirée'**
+  String get chooseSources;
+
+  /// No description provided for @chooseSourcesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Mix favourites, playlists and folders (with their subfolders). Nothing ticked: the whole library.'**
+  String get chooseSourcesHint;
+
+  /// No description provided for @planSoireeHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan a soirée with these songs'**
+  String get planSoireeHere;
+
+  /// No description provided for @leaveOutReligious.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave out religious music'**
+  String get leaveOutReligious;
+
+  /// No description provided for @religiousOffHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Gospel, worship, louange…'**
+  String get religiousOffHint;
+
+  /// No description provided for @religiousLeftOut.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No religious song found} =1{1 song left out · Check} other{{count} songs left out · Check}}'**
+  String religiousLeftOut(num count);
+
+  /// No description provided for @religiousTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Religious music'**
+  String get religiousTitle;
+
+  /// No description provided for @religiousHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Found from genre tags and words like Jésus, Seigneur, Nzambe or Alléluia. Untick a song to keep it in soirées.'**
+  String get religiousHint;
+
+  /// No description provided for @reasonGenreIs.
+  ///
+  /// In en, this message translates to:
+  /// **'Genre: {genre}'**
+  String reasonGenreIs(Object genre);
+
+  /// No description provided for @reasonWordIs.
+  ///
+  /// In en, this message translates to:
+  /// **'Says “{word}”'**
+  String reasonWordIs(Object word);
+
+  /// No description provided for @reasonArtistMost.
+  ///
+  /// In en, this message translates to:
+  /// **'Most songs by {artist} are religious'**
+  String reasonArtistMost(Object artist);
+
+  /// No description provided for @reasonAlbumMost.
+  ///
+  /// In en, this message translates to:
+  /// **'Most of {album} is religious'**
+  String reasonAlbumMost(Object album);
+
+  /// No description provided for @reasonMarkedByYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked by you'**
+  String get reasonMarkedByYou;
+
+  /// No description provided for @markReligious.
+  ///
+  /// In en, this message translates to:
+  /// **'Religious: leave out'**
+  String get markReligious;
 }
 
 class _AppLocalizationsDelegate

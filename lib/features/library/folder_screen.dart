@@ -5,10 +5,14 @@ import '../../l10n/l10n.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../models/folder_tree.dart';
+import '../../models/soiree.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/player_providers.dart';
+import '../../widgets/collection_actions.dart';
 import '../../widgets/entrance.dart';
+import '../../widgets/song_actions_sheet.dart';
 import '../../widgets/song_tile.dart';
+import '../soiree/soiree_sources.dart';
 
 /// Library → Folders: storage volumes (or, with one volume, its folders).
 class FoldersTab extends ConsumerWidget {
@@ -31,13 +35,13 @@ class FoldersTab extends ConsumerWidget {
   }
 }
 
-class FolderTile extends StatelessWidget {
+class FolderTile extends ConsumerWidget {
   const FolderTile({super.key, required this.entry});
 
   final FolderEntry entry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.palette;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
@@ -54,6 +58,7 @@ class FolderTile extends StatelessWidget {
       ].join(' · ')),
       trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
       onTap: () => FolderScreen.open(context, entry.path, entry.name),
+      onLongPress: () => FolderScreen.showActions(context, ref, entry.path, entry.name),
     );
   }
 }
@@ -67,6 +72,21 @@ class FolderScreen extends ConsumerWidget {
 
   static Future<void> open(BuildContext context, String path, String title) => Navigator.of(context)
       .push(MaterialPageRoute<void>(builder: (_) => FolderScreen(path: path, title: title)));
+
+  /// Play next / Add to queue / Add to playlist / Plan a soirée for
+  /// everything below [path].
+  static Future<void> showActions(BuildContext context, WidgetRef ref, String path, String title) => CollectionActionsSheet.show(
+        context,
+        title: title,
+        songs: ref.read(folderTreeProvider).allUnder(path),
+        extraActions: [
+          SongMenuAction(
+            icon: HugeIcons.strokeRoundedParty,
+            label: context.l10n.planSoireeHere,
+            onSelected: () => planSoireeFrom(context, ref, SoireeSources.folder(path)),
+          ),
+        ],
+      );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -95,6 +115,11 @@ class FolderScreen extends ConsumerWidget {
                     ),
                     Expanded(
                       child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.headlineMedium),
+                    ),
+                    IconButton(
+                      tooltip: context.l10n.more,
+                      onPressed: () => showActions(context, ref, path, title),
+                      icon: HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical, color: palette.ink, size: 24),
                     ),
                   ],
                 ),

@@ -2413,4 +2413,107 @@ class AppLocalizationsEn extends AppLocalizations {
   String savedAs(Object name) {
     return 'Saved $name';
   }
+
+  @override
+  String addedSongsToQueue(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs added to the queue',
+      one: '1 song added to the queue',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String playingSongsNext(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs play next',
+      one: '1 song plays next',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String spreadInSoiree(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs spread through the soirée',
+      one: 'Added to the soirée where it fits',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get addAnAlbum => 'Add an album';
+
+  @override
+  String get searchAlbums => 'Search albums';
+
+  @override
+  String get useThisFolder => 'Use this folder';
+
+  @override
+  String get chooseSources => 'Songs for the soirée';
+
+  @override
+  String get chooseSourcesHint =>
+      'Mix favourites, playlists and folders (with their subfolders). Nothing ticked: the whole library.';
+
+  @override
+  String get planSoireeHere => 'Plan a soirée with these songs';
+
+  @override
+  String get leaveOutReligious => 'Leave out religious music';
+
+  @override
+  String get religiousOffHint => 'Gospel, worship, louange…';
+
+  @override
+  String religiousLeftOut(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs left out · Check',
+      one: '1 song left out · Check',
+      zero: 'No religious song found',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get religiousTitle => 'Religious music';
+
+  @override
+  String get religiousHint =>
+      'Found from genre tags and words like Jésus, Seigneur, Nzambe or Alléluia. Untick a song to keep it in soirées.';
+
+  @override
+  String reasonGenreIs(Object genre) {
+    return 'Genre: $genre';
+  }
+
+  @override
+  String reasonWordIs(Object word) {
+    return 'Says “$word”';
+  }
+
+  @override
+  String reasonArtistMost(Object artist) {
+    return 'Most songs by $artist are religious';
+  }
+
+  @override
+  String reasonAlbumMost(Object album) {
+    return 'Most of $album is religious';
+  }
+
+  @override
+  String get reasonMarkedByYou => 'Marked by you';
+
+  @override
+  String get markReligious => 'Religious: leave out';
 }

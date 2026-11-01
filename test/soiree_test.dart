@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:audifac/models/soiree.dart';
 import 'package:audifac/models/song.dart';
 import 'package:audifac/models/song_features.dart';
+import 'package:audifac/providers/soiree_plan_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Song _song(int id, String artist) => Song(
@@ -157,5 +158,64 @@ void main() {
     expect(soireeLesson(listenedMs: 230000, duration: four, target: 40), 0); // calm part: no lesson
     expect(soireeLesson(listenedMs: 150000, duration: four, target: 80), 0); // most of it: neutral
     expect(soireeLesson(listenedMs: 20000, duration: const Duration(seconds: 45), target: 80), 0); // short song, last 30 s
+  });
+
+  test('live: an added song takes the upcoming slot whose moment fits it, never a kept one', () {
+    final plan = builder.build(twoHours);
+    final wild = pool.last.song; // the most danceable
+    final at = builder.replaceFor(plan, wild, from: 5)!;
+    expect(at, greaterThanOrEqualTo(5));
+    final best = [for (var i = 5; i < plan.length; i++) (plan[i].target - builder.levelOf(wild)).abs()].reduce(math.min);
+    expect((plan[at].target - builder.levelOf(wild)).abs(), best);
+    // Locked and must-play slots are kept.
+    final locked = [for (final (i, s) in plan.indexed) i == at ? s.copyWith(locked: true) : s];
+    expect(builder.replaceFor(locked, wild, from: 5), isNot(at));
+    expect(builder.replaceFor(plan, wild, from: 5, keep: {plan[at].song.id}), isNot(at));
+    // Nothing left to replace.
+    expect(builder.replaceFor(plan, wild, from: plan.length), isNull);
+  });
+
+  test("live: an album's songs are spread, not side by side", () {
+    final plan = builder.build(twoHours);
+    final song = pool.last.song;
+    final first = builder.replaceFor(plan, song, from: 0)!;
+    final placed = [...plan]..[first] = SoireeSlot(song: song, target: plan[first].target, level: builder.levelOf(song));
+    final next = builder.replaceFor(placed, pool[pool.length - 2].song, from: 0, keep: {song.id}, avoid: {song.id});
+    expect((next! - first).abs(), greaterThan(1));
+  });
+
+  test('sources: favourites, playlists and folders with their subfolders', () {
+    Song at(int id, String folder) => Song(
+          id: id,
+          uri: 'content://x/$id',
+          path: '$folder/$id.mp3',
+          title: 'S$id',
+          artist: 'A',
+          artistId: 0,
+          album: 'B',
+          albumId: 0,
+          duration: const Duration(minutes: 3),
+          dateAdded: DateTime(2024),
+        );
+    final party = at(1, '/storage/emulated/0/Music/Party');
+    final deeper = at(2, '/storage/emulated/0/Music/Party/2024');
+    final lookalike = at(3, '/storage/emulated/0/Music/Party Old');
+    final other = at(4, '/storage/emulated/0/Download');
+    final folder = {SoireeSources.folder('/storage/emulated/0/Music/Party')};
+    expect([party, deeper, lookalike, other].where((s) => SoireeSources.contains(folder, s)), [party, deeper]);
+    expect(SoireeSources.contains(const {}, other), isTrue); // whole library
+    final mixed = {...folder, SoireeSources.favorites, SoireeSources.playlist(7)};
+    expect(SoireeSources.contains(mixed, other, favorites: {4}), isTrue);
+    expect(SoireeSources.contains(mixed, lookalike, playlistSongs: {3}), isTrue);
+    expect(SoireeSources.contains(mixed, other), isFalse);
+    expect(SoireeSources.playlistIdOf(SoireeSources.playlist(7)), 7);
+    expect(SoireeSources.folderOf(SoireeSources.folder('/a/b')), '/a/b');
+  });
+
+  test('a soirée saved by 0.5.0 keeps its playlist as its source', () {
+    final s = SoireeState.decode('{"lengthMin":120,"playlistId":7,"plan":[]}', const {});
+    expect(s.sources, {SoireeSources.playlist(7)});
+    final again = SoireeState.decode(s.copyWith(sources: {SoireeSources.favorites, SoireeSources.folder('/x')}).encode(), const {});
+    expect(again.sources, {SoireeSources.favorites, SoireeSources.folder('/x')});
   });
 }

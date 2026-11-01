@@ -8,13 +8,16 @@ import '../../core/audio/queue_logic.dart';
 import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/m3u.dart';
+import '../../models/soiree.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/player_providers.dart';
 import '../../providers/user_data_providers.dart';
+import '../../widgets/collection_actions.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/playlist_dialogs.dart';
 import '../../widgets/song_actions_sheet.dart';
 import '../../widgets/song_tile.dart';
+import '../soiree/soiree_sources.dart';
 import 'collection_screen.dart';
 
 /// A user playlist: play / shuffle, drag to reorder, swipe to remove,
@@ -108,11 +111,17 @@ class PlaylistScreen extends ConsumerWidget {
                 tooltip: context.l10n.playlistOptions,
                 icon: HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical, color: palette.ink, size: 24),
                 onSelected: (value) => switch (value) {
+                  'next' => enqueueWithToast(context, ref, songs, next: true),
+                  'queue' => enqueueWithToast(context, ref, songs, next: false),
+                  'soiree' => planSoireeFrom(context, ref, SoireeSources.playlist(playlist.id)),
                   'rename' => rename(),
                   'export' => exportM3u(),
                   _ => delete(),
                 },
                 itemBuilder: (_) => [
+                  PopupMenuItem(value: 'next', enabled: songs.isNotEmpty, child: Text(context.l10n.playNext)),
+                  PopupMenuItem(value: 'queue', enabled: songs.isNotEmpty, child: Text(context.l10n.addToQueue)),
+                  PopupMenuItem(value: 'soiree', enabled: songs.isNotEmpty, child: Text(context.l10n.planSoireeHere)),
                   PopupMenuItem(value: 'rename', child: Text(context.l10n.rename)),
                   PopupMenuItem(value: 'export', child: Text(context.l10n.exportM3u)),
                   PopupMenuItem(value: 'delete', child: Text(context.l10n.delete)),

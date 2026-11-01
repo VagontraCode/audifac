@@ -290,6 +290,29 @@ Goal: pick an evening length and a shape (calm welcome → warming up → everyb
 | 8.7 | Nokia: Soirée chip in the player → "Read the room"; "Calm it down" rebuilt the curve 15 lower from the next song, current song kept playing; unit test: rebuilding from the middle keeps what played, never repeats, "more" ends higher than "calm" | with a big library the reordering is visible; the 7-song library mostly keeps the same order |
 | 8.8 | Nokia: Buga skipped after 4 s during the soirée → danceability 81 → 73 "learned at soirées"; "Back to measured" clears it; switch in Settings; unit-tested lessons | a real evening |
 
+### Phase 9 — Soirée settings & whole albums in the queue
+Goal: leave religious music out of soirées, build a soirée from folders (not only the library or one playlist), and add whole albums / artists / folders / playlists to what's already playing.
+
+| Step | What | Notes |
+|---|---|---|
+| 9.1 | **Whole collections → queue**: album / artist / folder / playlist get *Play next*, *Add to queue*, *Add to playlist…* (album page ⋮, long-press an album in the grid, folder page ⋮, playlist ⋮); the queue sheet gets **"+ Add an album"** | the queue already takes lists; mostly UI |
+| 9.2 | **Queued songs join a live soirée**: while a soirée plays, *Add to queue* spreads the songs through the rest of the evening where they fit the curve (each takes the place of an auto-picked song with the closest moment; never a locked or must-play one), *Play next* puts them right after the current song; they become must-play, so "More energy / Calm it down" keeps them | before: reading the room wiped anything queued by hand, and the Soirée chip disappeared on a song outside the plan |
+| 9.3 | **"Leave out religious music"** (one switch in the Soirée screen, off by default): genre tag (Gospel, Christian, Worship, Praise, Louange, Adoration, Religious, Spiritual, Hymn…), words in title / album / artist (Jésus, Yesu, Seigneur, Nzambe, Mungu, Yahweh, Alléluia, Psaume, Louange…), and whole artists / albums when most of their songs match; **"Check the N songs"** list to keep any song back in; *Religious: leave out* on a soirée song for what the words miss | the sound can't tell; word lists unit-tested; Afrobeats words like "Oluwa" / "God" are not on the list (too many party songs) |
+| 9.4 | **Songs from several sources**: whole library, or any mix of Favourites, playlists and folders (with their subfolders); **"Plan a soirée"** from a folder's or a playlist's menu; the analysis does the chosen sources' songs first; *Add a song* also offers songs not analysed yet | the old single playlist choice is read as a source |
+
+**Phase 9 status** (not yet on a phone)
+
+| Step | Checked | Not checked yet |
+|---|---|---|
+| 9.1 | builds, analyzer clean | Nokia: album ⋮ / long-press, artist long-press, folder ⋮ / long-press, playlist ⋮, queue "+ Add an album" |
+| 9.2 | unit tests: an added song takes the best-fitting upcoming slot, never a locked / must-play one; an album's songs aren't put side by side | a live soirée: add an album, then "More energy" — the album's songs must still be there |
+| 9.3 | unit tests: genre tags, words (accents / hyphens folded), phrases, party songs with "Oluwa / God / Dieu merci" kept, artist / album spreading, marked songs, saved filter | a real library: how many songs are caught, how many need ticking back |
+| 9.4 | unit tests: folder with subfolders (not "Party Old" for "Party"), favourites, playlists, mixed; a 0.5.0 soirée keeps its playlist | "Plan a soirée with these songs" from a folder with unanalysed songs (they go first) |
+
+Known limit: during a live soirée, removing or reordering songs in the queue sheet isn't copied into the plan, so the next "More energy / Calm it down" puts them back.
+
+Owner's choices (2026-11-01): albums go to the **queue** (not into the saved playlist); the filter is **religious music only**; an album added during a live soirée is **spread** where it fits, not played as a block. Part D ideas (saved soirées, start time, clock-based live mode, duplicates, tempo blocks, …) are not in this phase.
+
 ### Device test checklist
 1. Permission prompt → allow → library appears (Home, Library tabs). Copy a song into some random folder (e.g. `Documents/x`) → it appears after pull-to-refresh. Add WhatsApp's voice-notes folder via Settings → Folders → Add a folder and enable "Show recordings".
 2. Deny, then "Allow access" → after "Don't ask again", "Open settings" → enable → come back: library loads.

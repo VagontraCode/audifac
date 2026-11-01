@@ -2454,4 +2454,107 @@ class AppLocalizationsFr extends AppLocalizations {
   String savedAs(Object name) {
     return '$name enregistré';
   }
+
+  @override
+  String addedSongsToQueue(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count titres ajoutés à la file',
+      one: '1 titre ajouté à la file',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String playingSongsNext(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count titres seront lus ensuite',
+      one: '1 titre sera lu ensuite',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String spreadInSoiree(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count titres répartis dans la soirée',
+      one: 'Ajouté à la soirée, là où il va',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get addAnAlbum => 'Ajouter un album';
+
+  @override
+  String get searchAlbums => 'Chercher un album';
+
+  @override
+  String get useThisFolder => 'Utiliser ce dossier';
+
+  @override
+  String get chooseSources => 'Titres de la soirée';
+
+  @override
+  String get chooseSourcesHint =>
+      'Mélangez favoris, playlists et dossiers (avec leurs sous-dossiers). Rien de coché : toute la bibliothèque.';
+
+  @override
+  String get planSoireeHere => 'Préparer une soirée avec ces titres';
+
+  @override
+  String get leaveOutReligious => 'Sans musique religieuse';
+
+  @override
+  String get religiousOffHint => 'Gospel, worship, louange…';
+
+  @override
+  String religiousLeftOut(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count titres écartés · Vérifier',
+      one: '1 titre écarté · Vérifier',
+      zero: 'Aucun titre religieux trouvé',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get religiousTitle => 'Musique religieuse';
+
+  @override
+  String get religiousHint =>
+      'Trouvée d\'après le genre et des mots comme Jésus, Seigneur, Nzambe ou Alléluia. Décochez un titre pour le garder dans les soirées.';
+
+  @override
+  String reasonGenreIs(Object genre) {
+    return 'Genre : $genre';
+  }
+
+  @override
+  String reasonWordIs(Object word) {
+    return 'Contient « $word »';
+  }
+
+  @override
+  String reasonArtistMost(Object artist) {
+    return 'La plupart des titres de $artist sont religieux';
+  }
+
+  @override
+  String reasonAlbumMost(Object album) {
+    return 'La plupart de $album est religieux';
+  }
+
+  @override
+  String get reasonMarkedByYou => 'Marqué par vous';
+
+  @override
+  String get markReligious => 'Religieux : écarter';
 }

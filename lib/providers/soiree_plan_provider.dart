@@ -7,6 +7,8 @@ import '../models/soiree.dart';
 import '../models/song.dart';
 import '../models/song_features.dart';
 import 'library_providers.dart';
+import 'player_providers.dart';
+import 'religious_provider.dart';
 import 'soiree_providers.dart';
 import 'stats_providers.dart';
 import 'user_data_providers.dart';
@@ -17,7 +19,7 @@ class SoireeState {
     this.length = const Duration(hours: 3),
     this.shape = SoireeShape.houseParty,
     EnergyCurve? curve,
-    this.playlistId,
+    this.sources = const {},
     this.seed = 0,
     this.mustPlay = const {},
     this.excluded = const {},
@@ -33,8 +35,8 @@ class SoireeState {
   final EnergyCurve? _curve;
   EnergyCurve get curve => _curve ?? (shape ?? SoireeShape.houseParty).curve;
 
-  /// Songs from this playlist only (null: the whole library).
-  final int? playlistId;
+  /// Where the songs come from ([SoireeSources]; none: the whole library).
+  final Set<String> sources;
   final int seed;
   final Set<int> mustPlay;
 
@@ -54,7 +56,7 @@ class SoireeState {
     Duration? length,
     SoireeShape? Function()? shape,
     EnergyCurve? curve,
-    int? Function()? playlistId,
+    Set<String>? sources,
     int? seed,
     Set<int>? mustPlay,
     Set<int>? excluded,
@@ -66,7 +68,7 @@ class SoireeState {
         length: length ?? this.length,
         shape: shape == null ? this.shape : shape(),
         curve: curve ?? (shape != null ? null : _curve),
-        playlistId: playlistId == null ? this.playlistId : playlistId(),
+        sources: sources ?? this.sources,
         seed: seed ?? this.seed,
         mustPlay: mustPlay ?? this.mustPlay,
         excluded: excluded ?? this.excluded,
@@ -79,7 +81,7 @@ class SoireeState {
         'lengthMin': length.inMinutes,
         'shape': shape?.name,
         if (_curve != null) 'curve': _curve.encode(),
-        'playlistId': playlistId,
+        'sources': sources.toList(),
         'seed': seed,
         'mustPlay': mustPlay.toList(),
         'excluded': excluded.toList(),
@@ -97,7 +99,11 @@ class SoireeState {
         length: Duration(minutes: (j['lengthMin'] as num?)?.toInt() ?? 180),
         shape: SoireeShape.values.asNameMap()[j['shape']],
         curve: j['curve'] is String ? EnergyCurve.decode(j['curve'] as String) : null,
-        playlistId: (j['playlistId'] as num?)?.toInt(),
+        sources: {
+          for (final x in (j['sources'] as List? ?? const [])) x as String,
+          // Saved by 0.5.0: one playlist at most.
+          if ((j['playlistId'] as num?)?.toInt() case final id?) SoireeSources.playlist(id),
+        },
         seed: (j['seed'] as num?)?.toInt() ?? 0,
         mustPlay: ints('mustPlay').toSet(),
         excluded: ints('excluded').toSet(),
@@ -128,25 +134,46 @@ class SoireeNotifier extends Notifier<SoireeState> {
     return saved.copyWith(plan: builder().retarget(saved.plan, saved.settings));
   }
 
-  /// Songs the soirée can use: analysed, in the chosen playlist, not removed.
+  /// Songs in the soirée's sources (all of them for the whole library).
+  List<Song> sourceSongs(Set<String> sources) {
+    final songs = ref.read(songsProvider);
+    if (sources.isEmpty) return songs;
+    final favorites = ref.read(favoritesProvider).toSet();
+    final playlistSongs = {
+      for (final p in ref.read(playlistsProvider))
+        if (sources.contains(SoireeSources.playlist(p.id))) ...p.songIds,
+    };
+    return [
+      for (final s in songs)
+        if (SoireeSources.contains(sources, s, favorites: favorites, playlistSongs: playlistSongs)) s,
+    ];
+  }
+
+  /// Songs the soirée can use: analysed, from its sources, not removed, not
+  /// religious when that's left out — and the must-plays whatever they are
+  /// (added by the owner).
   List<SoireeCandidate> pool([SoireeState? s]) {
     final st = s ?? stateOrNull ?? const SoireeState();
     final features = ref.read(soireeFeaturesProvider);
     final stats = ref.read(songStatsProvider);
     final favorites = ref.read(favoritesProvider).toSet();
-    final playlist = st.playlistId == null
-        ? null
-        : ref.read(playlistsProvider).where((p) => p.id == st.playlistId).firstOrNull?.songIds.toSet();
-    return [
-      for (final song in ref.read(songsProvider))
+    final religious = ref.read(religiousLeftOutProvider);
+    SoireeCandidate candidate(Song song, SongFeatures f) => SoireeCandidate(
+          song: song,
+          features: f,
+          taste: tasteOf(favorite: favorites.contains(song.id), plays: stats[song.id]?.plays ?? 0),
+        );
+    final out = [
+      for (final song in sourceSongs(st.sources))
         if (features[song.key] case final f? when SongFeaturesNotifier.worthIt(song) && !noBeat(f))
-          if (!st.excluded.contains(song.id) && (playlist == null || playlist.contains(song.id)))
-            SoireeCandidate(
-              song: song,
-              features: f,
-              taste: tasteOf(favorite: favorites.contains(song.id), plays: stats[song.id]?.plays ?? 0),
-            ),
+          if (!st.mustPlay.contains(song.id) && !st.excluded.contains(song.id) && !religious.contains(song.key))
+            candidate(song, f),
     ];
+    final songs = ref.read(songsByIdProvider);
+    for (final id in st.mustPlay) {
+      if (songs[id] case final song?) out.add(candidate(song, features[song.key] ?? SoireeBuilder.unknown));
+    }
+    return out;
   }
 
   SoireeBuilder builder([SoireeState? s]) => SoireeBuilder(pool(s));
@@ -184,9 +211,33 @@ class SoireeNotifier extends Notifier<SoireeState> {
     if (done) rebuild();
   }
 
-  void setPlaylist(int? id) {
-    state = state.copyWith(playlistId: () => id);
+  /// Songs from [sources] only (none: the whole library). Their songs are
+  /// analysed first.
+  void setSources(Set<String> sources) {
+    state = state.copyWith(sources: sources);
+    ref.read(songFeaturesProvider.notifier).prioritise({for (final s in sourceSongs(sources)) s.key});
     rebuild();
+  }
+
+  /// A new soirée from [sources] (a folder's or a playlist's menu): the
+  /// owner's locks, additions and removals start over; one playing stops
+  /// being live (its music plays on).
+  void startFrom(Set<String> sources) {
+    state = state.copyWith(plan: const [], mustPlay: const {}, excluded: const {}, live: false);
+    setSources(sources);
+  }
+
+  /// "Leave out religious music" switched.
+  void setReligious(bool on) {
+    ref.read(religiousFilterProvider.notifier).setOn(on);
+    rebuild();
+  }
+
+  /// [index] is religious: out of soirées from now on, the best fit takes
+  /// its place.
+  void markReligious(int index) {
+    ref.read(religiousFilterProvider.notifier).setLeftOut(state.plan[index].song, true);
+    remove(index);
   }
 
   void toggleLock(int index) {
@@ -243,6 +294,52 @@ class SoireeNotifier extends Notifier<SoireeState> {
 
   List<SoireeCandidate> alternatives(int index) => builder().alternatives(state.plan, index, state.settings);
 
+  /// Live: [songs] join the soirée from slot [from] on — right there in
+  /// their order ([next]), or spread: each takes the upcoming slot whose
+  /// moment fits it best (that auto-picked song drops out), or is slotted in
+  /// where it fits once none is left. They become must-plays, so reading the
+  /// room keeps them. Songs already played stay out; already planned ones
+  /// stay where they are (or move up for [next]). Returns the plan from
+  /// [from] on.
+  List<SoireeSlot> addLive(int from, List<Song> songs, {required bool next}) {
+    final st = state;
+    final played = {for (final s in st.plan.take(from)) s.song.id};
+    final adding = [
+      for (final s in {for (final s in songs) s.id: s}.values)
+        if (!played.contains(s.id)) s,
+    ];
+    final ids = {for (final s in adding) s.id};
+    final upd = st.copyWith(mustPlay: {...st.mustPlay, ...ids}, excluded: {...st.excluded}..removeAll(ids));
+    final b = builder(upd);
+    var plan = [...st.plan];
+    if (next) {
+      plan = [
+        ...plan.take(from),
+        for (final s in adding) SoireeSlot(song: s, target: 0, level: 0),
+        ...plan.skip(from).where((s) => !ids.contains(s.song.id)),
+      ];
+    } else {
+      final planned = {for (final s in plan) s.song.id};
+      final added = <int>{};
+      for (final song in adding) {
+        if (planned.contains(song.id)) continue;
+        final at = b.replaceFor(plan, song, from: from, keep: upd.mustPlay, avoid: added);
+        final slot = SoireeSlot(song: song, target: 0, level: 0);
+        if (at == null) {
+          plan.insert(b.placeFor(plan, song, from: from), slot);
+        } else {
+          plan[at] = slot;
+        }
+        added.add(song.id);
+        // The next song's choice needs this one's moment.
+        plan = b.retarget(plan, upd.settings);
+      }
+    }
+    state = upd.copyWith(plan: b.retarget(plan, upd.settings));
+    _save();
+    return state.plan.skip(from).toList();
+  }
+
   void setLive(bool live) {
     state = state.copyWith(live: live);
     _save();
@@ -270,6 +367,17 @@ List<SoireeSlot> _build((List<SoireeCandidate>, SoireeSettings, Map<int, Song>) 
 
 List<SoireeSlot> _buildFrom((List<SoireeCandidate>, SoireeSettings, List<SoireeSlot>) a) =>
     SoireeBuilder(a.$1).build(a.$2, keep: a.$3);
+
+/// Where the soirée is: the index of the song playing in the plan, or null
+/// when what plays isn't the soirée.
+final soireeNowProvider = Provider<int?>((ref) {
+  final s = ref.watch(soireeProvider);
+  if (!s.live) return null;
+  final id = ref.watch(currentSongIdProvider);
+  if (id == null) return null;
+  final i = s.plan.indexWhere((slot) => slot.song.id == id);
+  return i < 0 ? null : i;
+});
 
 /// Learn from soirées (Settings switch, on by default).
 final soireeLearnProvider = NotifierProvider<SoireeLearnNotifier, bool>(SoireeLearnNotifier.new);

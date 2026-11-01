@@ -7,17 +7,6 @@ import '../../l10n/l10n.dart';
 import '../../providers/player_providers.dart';
 import '../../providers/soiree_plan_provider.dart';
 
-/// Where the soirée is: the index of the song playing in the plan, or null
-/// when what plays isn't the soirée.
-final soireeNowProvider = Provider<int?>((ref) {
-  final s = ref.watch(soireeProvider);
-  if (!s.live) return null;
-  final id = ref.watch(currentSongIdProvider);
-  if (id == null) return null;
-  final i = s.plan.indexWhere((slot) => slot.song.id == id);
-  return i < 0 ? null : i;
-});
-
 /// Player chip while a soirée plays: tap to read the room.
 class SoireeLiveChip extends ConsumerWidget {
   const SoireeLiveChip({super.key});

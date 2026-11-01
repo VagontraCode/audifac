@@ -64,6 +64,31 @@ enum SoireeShape {
       };
 }
 
+/// Where a soirée's songs come from, as saved: Favourites, playlists and
+/// folders (with their subfolders), mixed. None: the whole library.
+abstract final class SoireeSources {
+  static const favorites = 'favorites';
+  static String playlist(int id) => 'playlist:$id';
+  static String folder(String path) => 'folder:$path';
+
+  static int? playlistIdOf(String source) => source.startsWith('playlist:') ? int.tryParse(source.substring(9)) : null;
+  static String? folderOf(String source) => source.startsWith('folder:') ? source.substring(7) : null;
+
+  /// Whether [song] is in one of [sources]: a favourite, in one of the
+  /// playlists (their songs: [playlistSongs]) or below one of the folders.
+  static bool contains(Set<String> sources, Song song, {Set<int> favorites = const {}, Set<int> playlistSongs = const {}}) {
+    if (sources.isEmpty) return true;
+    if (sources.contains(SoireeSources.favorites) && favorites.contains(song.id)) return true;
+    if (playlistSongs.contains(song.id)) return true;
+    final folder = song.folder;
+    if (folder == null) return false;
+    for (final s in sources) {
+      if (folderOf(s) case final f? when folder == f || folder.startsWith('$f/')) return true;
+    }
+    return false;
+  }
+}
+
 /// A song the builder may use.
 class SoireeCandidate {
   const SoireeCandidate({required this.song, required this.features, this.taste = 0});
@@ -173,7 +198,7 @@ class SoireeBuilder {
     // Beam search over (sequence, elapsed, cost).
     var beam = [
       _Path(
-        [for (final s in keep) _byId[s.song.id] ?? SoireeCandidate(song: s.song, features: _blank)],
+        [for (final s in keep) _byId[s.song.id] ?? SoireeCandidate(song: s.song, features: unknown)],
         keep.fold(0, (sum, s) => sum + s.song.duration.inMilliseconds),
         0,
       ),
@@ -196,7 +221,7 @@ class SoireeBuilder {
         };
         List<SoireeCandidate> options;
         if (forced != null) {
-          options = [_byId[forced.id] ?? SoireeCandidate(song: forced, features: _blank)];
+          options = [_byId[forced.id] ?? SoireeCandidate(song: forced, features: unknown)];
         } else {
           options = [
             for (final c in pool)
@@ -254,13 +279,37 @@ class SoireeBuilder {
     return [for (final (c, _) in scored.take(count)) c];
   }
 
-  /// Where an added [song] fits best in [plan] (an index to insert at).
-  int placeFor(List<SoireeSlot> plan, Song song) {
+  /// Where an added [song] fits best in [plan] (an index to insert at, from
+  /// [from] on).
+  int placeFor(List<SoireeSlot> plan, Song song, {int from = 0}) {
     final level = levelOf(song);
     var best = plan.length;
     var bestCost = double.infinity;
-    for (var i = 0; i < plan.length; i++) {
+    for (var i = from; i < plan.length; i++) {
       final k = (plan[i].target - level).abs();
+      if (k < bestCost) {
+        bestCost = k;
+        best = i;
+      }
+    }
+    return best;
+  }
+
+  /// The upcoming slot (from [from] on) that [song] should take: the one
+  /// whose moment fits it best, never a locked or [keep] song, and not next
+  /// to one in [avoid] when there's a choice (an album added live gets
+  /// spread). Null when every upcoming slot is kept.
+  int? replaceFor(List<SoireeSlot> plan, Song song, {required int from, Set<int> keep = const {}, Set<int> avoid = const {}}) {
+    final level = levelOf(song);
+    int? best;
+    var bestCost = double.infinity;
+    for (var i = from; i < plan.length; i++) {
+      final slot = plan[i];
+      if (slot.locked || keep.contains(slot.song.id)) continue;
+      var k = (slot.target - level).abs();
+      final besideAvoided =
+          (i > 0 && avoid.contains(plan[i - 1].song.id)) || (i + 1 < plan.length && avoid.contains(plan[i + 1].song.id));
+      if (besideAvoided) k += 100;
       if (k < bestCost) {
         bestCost = k;
         best = i;
@@ -272,7 +321,7 @@ class SoireeBuilder {
   /// Rebuilds the slots' targets / levels after the owner reorders or adds.
   List<SoireeSlot> retarget(List<SoireeSlot> plan, SoireeSettings settings) {
     final lengthMs = math.max(1, settings.length.inMilliseconds);
-    final songs = [for (final s in plan) _byId[s.song.id] ?? SoireeCandidate(song: s.song, features: _blank)];
+    final songs = [for (final s in plan) _byId[s.song.id] ?? SoireeCandidate(song: s.song, features: unknown)];
     final lockedIndexes = {for (final (i, s) in plan.indexed) if (s.locked) i};
     return _slots(songs, settings, lengthMs, lockedIndexes: lockedIndexes);
   }
@@ -313,7 +362,8 @@ class SoireeBuilder {
 
   static String _artistKey(Song s) => s.artist.trim().toLowerCase();
 
-  static const _blank = SongFeatures(
+  /// Features for a song not analysed (yet): middle of everything.
+  static const unknown = SongFeatures(
     bpm: 0,
     confidence: 0,
     groove: 50,

@@ -12,6 +12,7 @@ import '../../providers/player_providers.dart';
 import '../../providers/smart_playlist_providers.dart';
 import '../../providers/user_data_providers.dart';
 import '../../widgets/artwork.dart';
+import '../../widgets/collection_actions.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/entrance.dart';
 import '../../widgets/pill_button.dart';
@@ -355,6 +356,7 @@ class _ArtistsTab extends ConsumerWidget {
             index: index,
             child: InkWell(
               onTap: () => CollectionScreen.openArtist(context, artist),
+              onLongPress: () => CollectionActionsSheet.show(context, title: artist.name, songs: artist.songs),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,

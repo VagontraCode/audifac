@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -11,12 +12,14 @@ import '../../models/soiree.dart';
 import '../../models/song.dart';
 import '../../models/song_features.dart';
 import '../../providers/library_providers.dart';
+import '../../providers/religious_provider.dart';
 import '../../providers/soiree_plan_provider.dart';
 import '../../providers/soiree_providers.dart';
 import '../../providers/user_data_providers.dart';
 import '../../widgets/artwork.dart';
 import '../../widgets/playlist_dialogs.dart';
 import 'soiree_play.dart';
+import 'soiree_sources.dart';
 
 /// Library → Playlists → Plan a soirée: an evening from the phone's songs,
 /// shaped by a curve, that the owner adjusts before (and while) it plays.
@@ -34,7 +37,12 @@ class _SoireeScreenState extends ConsumerState<SoireeScreen> {
   @override
   void initState() {
     super.initState();
-    // The analysis starts with the first soirée and keeps the library current.
+    // The analysis starts with the first soirée and keeps the library
+    // current; the soirée's sources go first.
+    final sources = ref.read(soireeProvider).sources;
+    if (sources.isNotEmpty) {
+      ref.read(songFeaturesProvider.notifier).prioritise({for (final s in ref.read(soireeProvider.notifier).sourceSongs(sources)) s.key});
+    }
     ref.read(songFeaturesProvider.notifier).enable();
     if (ref.read(soireeProvider).plan.isEmpty) {
       Future.microtask(() => ref.read(soireeProvider.notifier).rebuild());
@@ -131,11 +139,11 @@ class _SoireeScreenState extends ConsumerState<SoireeScreen> {
 
   Future<void> _addSong() async {
     final s = ref.read(soireeProvider);
-    final features = ref.read(soireeFeaturesProvider);
     final inPlan = {for (final slot in s.plan) slot.song.id};
+    // Analysed or not: an added song is a must-play either way.
     final songs = [
       for (final song in ref.read(songsProvider))
-        if (features.containsKey(song.key) && !inPlan.contains(song.id)) song,
+        if (SongFeaturesNotifier.worthIt(song) && !inPlan.contains(song.id)) song,
     ]..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
     final picked = await showModalBottomSheet<Song>(
       context: context,
@@ -161,6 +169,8 @@ class _SoireeScreenState extends ConsumerState<SoireeScreen> {
     final status = ref.watch(rhythmStatusProvider);
     final features = ref.watch(soireeFeaturesProvider);
     final playlists = ref.watch(playlistsProvider);
+    final religious = ref.watch(religiousFilterProvider);
+    final leftOut = ref.watch(religiousLeftOutProvider);
     final muted = theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted);
 
     Widget chips<T>(List<T> values, T? selected, String Function(T) label, void Function(T) onTap) => SizedBox(
@@ -201,26 +211,27 @@ class _SoireeScreenState extends ConsumerState<SoireeScreen> {
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
           child: Text(l10n.curveHint, style: muted),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 12, 4),
-          child: Row(
-            children: [
-              Text(l10n.songsFrom, style: const TextStyle(fontWeight: FontWeight.w700)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButton<int?>(
-                  isExpanded: true,
-                  value: playlists.any((p) => p.id == s.playlistId) ? s.playlistId : null,
-                  underline: const SizedBox.shrink(),
-                  items: [
-                    DropdownMenuItem(value: null, child: Text(l10n.wholeLibrary)),
-                    for (final p in playlists) DropdownMenuItem(value: p.id, child: Text(p.name, overflow: TextOverflow.ellipsis)),
-                  ],
-                  onChanged: notifier.setPlaylist,
-                ),
-              ),
-            ],
-          ),
+        const SizedBox(height: 4),
+        ListTile(
+          contentPadding: const EdgeInsets.only(left: 20, right: 16),
+          title: Text(l10n.songsFrom, style: const TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text(sourcesLabel(l10n, s.sources, playlists), maxLines: 1, overflow: TextOverflow.ellipsis),
+          trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
+          onTap: () async {
+            final picked = await SoireeSourcesSheet.pick(context, s.sources);
+            if (picked != null && !setEquals(picked, ref.read(soireeProvider).sources)) notifier.setSources(picked);
+          },
+        ),
+        ListTile(
+          contentPadding: const EdgeInsets.only(left: 20, right: 8),
+          title: Text(l10n.leaveOutReligious, style: const TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text(religious.on ? l10n.religiousLeftOut(leftOut.length) : l10n.religiousOffHint),
+          trailing: Switch(value: religious.on, onChanged: notifier.setReligious),
+          onTap: religious.on
+              ? () async {
+                  if (await ReligiousCheckSheet.show(context, ref)) notifier.rebuild();
+                }
+              : () => notifier.setReligious(true),
         ),
         if (!s.building && s.plan.isNotEmpty && s.total < s.length * 0.9)
           Padding(
@@ -286,10 +297,15 @@ class _SoireeScreenState extends ConsumerState<SoireeScreen> {
                   ),
                 ),
                 PopupMenuButton<String>(
-                  onSelected: (v) => v == 'swap' ? _swap(i) : notifier.remove(i),
+                  onSelected: (v) => switch (v) {
+                    'swap' => _swap(i),
+                    'religious' => notifier.markReligious(i),
+                    _ => notifier.remove(i),
+                  },
                   itemBuilder: (_) => [
                     PopupMenuItem(value: 'swap', child: Text(l10n.swap)),
                     PopupMenuItem(value: 'remove', child: Text(l10n.remove)),
+                    if (religious.on) PopupMenuItem(value: 'religious', child: Text(l10n.markReligious)),
                   ],
                 ),
                 ReorderableDragStartListener(

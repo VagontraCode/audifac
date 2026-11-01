@@ -10,6 +10,7 @@ import '../../models/artist.dart';
 import '../../models/song.dart';
 import '../../providers/player_providers.dart';
 import '../../widgets/artwork.dart';
+import '../../widgets/collection_actions.dart';
 import '../../widgets/entrance.dart';
 import '../../widgets/pill_button.dart';
 import '../../widgets/song_tile.dart';
@@ -64,7 +65,15 @@ class CollectionScreen extends ConsumerWidget {
       body: EntranceScope(
         child: CustomScrollView(
           slivers: [
-            const CollectionAppBar(),
+            CollectionAppBar(
+              actions: [
+                IconButton(
+                  tooltip: context.l10n.more,
+                  onPressed: () => CollectionActionsSheet.show(context, title: title, songs: songs),
+                  icon: HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical, color: context.palette.ink, size: 24),
+                ),
+              ],
+            ),
             SliverToBoxAdapter(
               child: CollectionHeader(
                 cover: Artwork.song(

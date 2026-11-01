@@ -9,6 +9,7 @@ import '../../core/audio/queue_logic.dart';
 import '../../core/theme/app_colors.dart';
 import '../../providers/player_providers.dart';
 import '../../widgets/artwork.dart';
+import '../../widgets/collection_actions.dart';
 import '../../widgets/now_playing_bars.dart';
 
 /// Bottom sheet with the current track and what plays next (in real play
@@ -74,6 +75,14 @@ class QueueSheet extends ConsumerWidget {
                 Expanded(child: titleStyle(context.l10n.upNext)),
                 if (shuffling)
                   Text(context.l10n.shuffled, style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted)),
+                TextButton.icon(
+                  onPressed: () async {
+                    final album = await AlbumPickerSheet.pick(context);
+                    if (album != null && context.mounted) await enqueueWithToast(context, ref, album.songs, next: false);
+                  },
+                  icon: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: palette.ink, size: 18),
+                  label: Text(context.l10n.addAnAlbum),
+                ),
               ],
             ),
           ),
