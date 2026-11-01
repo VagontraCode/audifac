@@ -290,7 +290,7 @@ Goal: pick an evening length and a shape (calm welcome → warming up → everyb
 | 8.7 | Nokia: Soirée chip in the player → "Read the room"; "Calm it down" rebuilt the curve 15 lower from the next song, current song kept playing; unit test: rebuilding from the middle keeps what played, never repeats, "more" ends higher than "calm" | with a big library the reordering is visible; the 7-song library mostly keeps the same order |
 | 8.8 | Nokia: Buga skipped after 4 s during the soirée → danceability 81 → 73 "learned at soirées"; "Back to measured" clears it; switch in Settings; unit-tested lessons | a real evening |
 
-### Phase 9 — Soirée settings & whole albums in the queue
+### Phase 9 — Soirée settings & whole albums in the queue (released in 0.6.0)
 Goal: leave religious music out of soirées, build a soirée from folders (not only the library or one playlist), and add whole albums / artists / folders / playlists to what's already playing.
 
 | Step | What | Notes |
