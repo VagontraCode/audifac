@@ -246,7 +246,7 @@ Started 2026-10-23, built step by step without supervision. Rules from the owner
 | 7.23 | Built before 7.21 / 7.22 (those need a DAC). New `ContainerTags`: Matroska / WebM tags (track vs album levels, found through the SeekHead when they sit after the audio, segment title as fallback) and Ogg Opus / Vorbis comments (packets across pages, other streams skipped, up to 16 MB for cover art); DFF's own DIIN title / artist under its ID3. Used when Android's index or reader has no artist / title. Unit-tested on built files (5 tests); Nokia library unchanged | real .mka / .opus / .dff files (none on the test phones) |
 | 7.21 / 7.22 | **Paused, not built.** Both change what reaches a USB DAC (its own volume control; raw DSD packed as DoP instead of today's DSD → PCM) and can only be checked with a DAC on Android 14+. The test phones have no DAC (the Nokia is Android 12), so building them blind could break bit-perfect / DSD playback that works now. To do together with a DAC plugged in | a USB DAC (DoP-capable for 7.22) on an Android 14+ phone |
 
-### Phase 8 — Party builder ("Soirée"): analyse the library, build an evening that ends on the dance floor (planned, not started)
+### Phase 8 — Party builder ("Soirée"): analyse the library, build an evening that ends on the dance floor (done, released in 0.5.0)
 Goal: pick an evening length and a shape (calm welcome → warming up → everybody dancing → optional cool-down); audifac chooses songs **from the phone** that fit each moment, in an order that flows, and the owner adjusts the list before (and while) it plays. Everything runs **on the phone, offline**: no streaming service, no upload, music files never modified.
 
 **What "makes people dance" is measured as** (per song, 0–100 unless noted):
