@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the app icon. Each opens MainActivity with a "shortcut" extra,
+     handled in Dart (lib/core/launch_actions.dart). -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="shuffle" android:enabled="true"
+        android:icon="@drawable/shortcut_shuffle"
+        android:shortcutShortLabel="@string/shortcut_shuffle">
+        <intent android:action="com.gtongfa.audifac.action.SHORTCUT"
+            android:targetPackage="com.gtongfa.audifac"
+            android:targetClass="com.gtongfa.audifac.MainActivity">
+            <extra android:name="shortcut" android:value="shuffle" />
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="favorites" android:enabled="true"
+        android:icon="@drawable/shortcut_favorites"
+        android:shortcutShortLabel="@string/shortcut_favorites">
+        <intent android:action="com.gtongfa.audifac.action.SHORTCUT"
+            android:targetPackage="com.gtongfa.audifac"
+            android:targetClass="com.gtongfa.audifac.MainActivity">
+            <extra android:name="shortcut" android:value="favorites" />
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="soiree" android:enabled="true"
+        android:icon="@drawable/shortcut_soiree"
+        android:shortcutShortLabel="@string/shortcut_soiree">
+        <intent android:action="com.gtongfa.audifac.action.SHORTCUT"
+            android:targetPackage="com.gtongfa.audifac"
+            android:targetClass="com.gtongfa.audifac.MainActivity">
+            <extra android:name="shortcut" android:value="soiree" />
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="search" android:enabled="true"
+        android:icon="@drawable/shortcut_search"
+        android:shortcutShortLabel="@string/shortcut_search">
+        <intent android:action="com.gtongfa.audifac.action.SHORTCUT"
+            android:targetPackage="com.gtongfa.audifac"
+            android:targetClass="com.gtongfa.audifac.MainActivity">
+            <extra android:name="shortcut" android:value="search" />
+        </intent>
+    </shortcut>
+</shortcuts>

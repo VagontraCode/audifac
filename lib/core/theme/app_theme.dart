@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import 'app_colors.dart';
 
 abstract final class AppTheme {
-  static ThemeData light() => _build(Brightness.light, AppPalette.light);
-  static ThemeData dark() => _build(Brightness.dark, AppPalette.dark);
+  static ThemeData light([AppPalette palette = AppPalette.light]) => _build(Brightness.light, palette);
+  static ThemeData dark([AppPalette palette = AppPalette.dark]) => _build(Brightness.dark, palette);
 
   static ThemeData _build(Brightness brightness, AppPalette p) {
     final isDark = brightness == Brightness.dark;
@@ -74,6 +74,13 @@ abstract final class AppTheme {
         height: 64,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
       ),
+      // Side navigation on wide screens: same look as the bottom bar.
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: p.surface,
+        indicatorColor: p.background,
+        selectedLabelTextStyle: TextStyle(color: p.ink, fontWeight: FontWeight.w700, fontSize: 12),
+        unselectedLabelTextStyle: TextStyle(color: p.inkMuted, fontWeight: FontWeight.w600, fontSize: 12),
+      ),
       sliderTheme: SliderThemeData(
         activeTrackColor: p.ink,
         inactiveTrackColor: p.line,
@@ -118,7 +125,8 @@ abstract final class AppTheme {
         actionTextColor: p.onElevated,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
-      progressIndicatorTheme: ProgressIndicatorThemeData(color: p.ink),
+      // Light track: a bar at 0 % must look empty, not full.
+      progressIndicatorTheme: ProgressIndicatorThemeData(color: p.ink, linearTrackColor: p.line),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),

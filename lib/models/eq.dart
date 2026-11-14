@@ -586,6 +586,21 @@ class EqSettings {
   }
 }
 
+/// The bands and preamp that play: device correction + sound preset + tone.
+({List<EqBand> bands, double preampDb}) combineBands({
+  required EqPreset device,
+  required EqPreset sound,
+  required bool autoPreamp,
+  Tone tone = const Tone(),
+}) {
+  final bands = [...device.bands, ...sound.bands, ...tone.bands];
+  var preamp = device.preampDb + sound.preampDb;
+  // Enough headroom for the biggest boost — without stacking on top of a
+  // preamp the preset already has (AutoEQ profiles include one).
+  if (autoPreamp) preamp = math.min(preamp, -EqMath.maxBoostDb(bands));
+  return (bands: bands, preampDb: preamp);
+}
+
 /// What the native DSP receives: device correction + sound preset combined.
 Map<String, Object> combineForNative({
   required bool enabled,
@@ -598,11 +613,7 @@ Map<String, Object> combineForNative({
   bool linearPhase = false,
   int compressor = 0,
 }) {
-  final bands = [...device.bands, ...sound.bands, ...tone.bands];
-  var preamp = device.preampDb + sound.preampDb;
-  // Enough headroom for the biggest boost — without stacking on top of a
-  // preamp the preset already has (AutoEQ profiles include one).
-  if (autoPreamp) preamp = math.min(preamp, -EqMath.maxBoostDb(bands));
+  final (:bands, preampDb: preamp) = combineBands(device: device, sound: sound, autoPreamp: autoPreamp, tone: tone);
   return {
     'enabled': enabled,
     'preampDb': preamp,

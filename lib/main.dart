@@ -4,11 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/audio/audio_handler.dart';
 import 'core/licenses.dart';
+import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'data/app_database.dart';
 import 'features/shell/app_shell.dart';
 import 'l10n/l10n.dart';
 import 'providers/player_providers.dart';
+import 'providers/theme_providers.dart';
 import 'providers/user_data_providers.dart';
 
 Future<void> main() async {
@@ -38,12 +40,15 @@ class AudifacApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(settingsProvider.select((s) => s.themeMode));
     final language = ref.watch(settingsProvider.select((s) => s.languageCode));
+    // Material You (opt-in): tokens tinted from the wallpaper accent.
+    final wallpaper = ref.watch(settingsProvider.select((s) => s.wallpaperColors));
+    final seed = wallpaper ? ref.watch(systemAccentProvider).value : null;
 
     return MaterialApp(
       title: 'audifac',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
+      theme: seed == null ? AppTheme.light() : AppTheme.light(AppPalette.fromSeed(seed, Brightness.light)),
+      darkTheme: seed == null ? AppTheme.dark() : AppTheme.dark(AppPalette.fromSeed(seed, Brightness.dark)),
       themeMode: themeMode,
       locale: language.isEmpty ? null : Locale(language),
       supportedLocales: AppLocalizations.supportedLocales,

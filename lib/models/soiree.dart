@@ -125,10 +125,15 @@ class SoireeSettings {
     this.artistGap = 4,
     this.mustPlay = const {},
     this.seed = 0,
+    this.keepApart = const {},
   });
 
   final Duration length;
   final EnergyCurve curve;
+
+  /// Artist pairs never played close together (within [artistGap] songs),
+  /// as [KeepApart.key]s.
+  final Set<String> keepApart;
 
   /// No artist twice within this many songs.
   final int artistGap;
@@ -138,6 +143,37 @@ class SoireeSettings {
 
   /// Another seed, another mix ("Regenerate").
   final int seed;
+}
+
+/// "Never play these two artists close together", stored as [key]s.
+abstract final class KeepApart {
+  static String _norm(String artist) => artist.trim().toLowerCase();
+
+  /// The same for (a, b) and (b, a), whatever the case.
+  static String key(String a, String b) {
+    final x = _norm(a), y = _norm(b);
+    return x.compareTo(y) <= 0 ? '$x$_separator$y' : '$y$_separator$x';
+  }
+
+  /// Can't appear in an artist name.
+  static const _separator = '\u0001';
+
+  static (String, String) artists(String key) {
+    final parts = key.split(_separator);
+    return (parts.first, parts.length > 1 ? parts[1] : '');
+  }
+
+  /// Artists (normalized) paired with any of [recent] (normalized).
+  static Set<String> partners(Set<String> keys, Set<String> recent) {
+    if (keys.isEmpty || recent.isEmpty) return const {};
+    final out = <String>{};
+    for (final k in keys) {
+      final (a, b) = artists(k);
+      if (recent.contains(a)) out.add(b);
+      if (recent.contains(b)) out.add(a);
+    }
+    return out;
+  }
 }
 
 /// Builds evenings from [pool]. Levels are ranks within the pool, so the
@@ -219,17 +255,26 @@ class SoireeBuilder {
         final recentArtists = {
           for (final c in path.songs.skip(math.max(0, path.songs.length - settings.artistGap + 1))) _artistKey(c.song),
         };
+        // Artists the owner wants apart from those just played.
+        final apart = KeepApart.partners(settings.keepApart, recentArtists);
         List<SoireeCandidate> options;
         if (forced != null) {
           options = [_byId[forced.id] ?? SoireeCandidate(song: forced, features: unknown)];
         } else {
           options = [
             for (final c in pool)
-              if (!used.contains(c.song.id) && !lockedIds.contains(c.song.id) && !recentArtists.contains(_artistKey(c.song))) c,
+              if (!used.contains(c.song.id) &&
+                  !lockedIds.contains(c.song.id) &&
+                  !recentArtists.contains(_artistKey(c.song)) &&
+                  !apart.contains(_artistKey(c.song)))
+                c,
           ];
           if (options.isEmpty) {
-            // Small pool: allow artists again before giving up.
-            options = [for (final c in pool) if (!used.contains(c.song.id) && !lockedIds.contains(c.song.id)) c];
+            // Small pool: allow artists again before giving up (still
+            // keeping apart what the owner asked, while that's possible).
+            final free = [for (final c in pool) if (!used.contains(c.song.id) && !lockedIds.contains(c.song.id)) c];
+            final kept = [for (final c in free) if (!apart.contains(_artistKey(c.song))) c];
+            options = kept.isNotEmpty ? kept : free;
           }
           if (options.isEmpty) {
             finished.add(path);

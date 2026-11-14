@@ -17,6 +17,7 @@ import '../../widgets/artwork.dart';
 import '../../widgets/artwork_viewer.dart';
 import '../soiree/soiree_live.dart';
 import '../../widgets/seek_bar.dart';
+import '../../widgets/ab_repeat_chip.dart';
 import '../../widgets/lyrics_sheet.dart';
 import '../../widgets/cast_sheet.dart';
 import '../../providers/cast_provider.dart';
@@ -36,7 +37,11 @@ import '../../l10n/l10n.dart';
 import '../../l10n/labels.dart';
 
 class PlayerScreen extends ConsumerStatefulWidget {
-  const PlayerScreen({super.key});
+  const PlayerScreen({super.key, this.embedded = false});
+
+  /// Shown in a side panel (wide screens) rather than as a page: no close
+  /// button, no drag to close.
+  final bool embedded;
 
   /// Shared between the mini player and this screen so the artwork flies
   /// between them.
@@ -95,6 +100,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
     super.initState();
     // The queue ran out: nothing left to show here, back to the library
     // (the mini player stays, ready to replay).
+    if (widget.embedded) return;
     _queueEnded = ref.read(audioHandlerProvider).queueEnded.listen((_) {
       Future.delayed(const Duration(milliseconds: 1500), () {
         if (mounted && !ref.read(isPlayingProvider)) _close();
@@ -105,6 +111,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (widget.embedded) return;
     final animation = ModalRoute.of(context)?.animation;
     if (animation != _routeAnimation) {
       _routeAnimation?.removeStatusListener(_onRouteStatus);
@@ -124,7 +131,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
   void dispose() {
     _routeAnimation?.removeStatusListener(_onRouteStatus);
     _queueEnded?.cancel();
-    PlayerScreen.coversApp.value = false;
+    if (!widget.embedded) PlayerScreen.coversApp.value = false;
     _settle.dispose();
     super.dispose();
   }
@@ -156,6 +163,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
   Widget build(BuildContext context) {
     final item = ref.watch(mediaItemProvider).value;
     if (item == null) {
+      if (widget.embedded) return const SizedBox.shrink();
       // Nothing loaded anymore (e.g. stopped from the notification).
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _close();
@@ -175,8 +183,8 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
     final radius = math.min(_drag / 4, 28.0);
 
     return GestureDetector(
-      onVerticalDragUpdate: _onDragUpdate,
-      onVerticalDragEnd: _onDragEnd,
+      onVerticalDragUpdate: widget.embedded ? null : _onDragUpdate,
+      onVerticalDragEnd: widget.embedded ? null : _onDragEnd,
       child: Transform.translate(
         offset: Offset(0, _drag),
         child: ClipRRect(
@@ -200,17 +208,15 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
                 child: SafeArea(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final artSize = math.min(constraints.maxWidth - 64, constraints.maxHeight * 0.42);
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 28),
-                        child: Column(
-                          children: [
-                            _Header(album: item.album, onClose: _close),
-                            const Spacer(),
-                            _AnimatedArtwork(item: item, size: artSize),
-                            const Spacer(),
+                      // Landscape phones and wide windows: artwork beside the
+                      // controls (stacked, they don't fit the height).
+                      final landscape =
+                          constraints.maxWidth >= 560 && constraints.maxWidth > constraints.maxHeight * 1.2;
+                      final gap = landscape ? 0.5 : 1.0;
+                      final header = _Header(album: item.album, onClose: widget.embedded ? null : _close);
+                      final details = <Widget>[
                             _TrackInfo(item: item, songId: songId),
-                            const SizedBox(height: 24),
+                            SizedBox(height: 24 * gap),
                             Consumer(
                               builder: (context, ref, _) {
                                 final cast = ref.watch(castProvider);
@@ -226,20 +232,81 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> with SingleTickerPr
                                 );
                               },
                             ),
-                            const SizedBox(height: 20),
+                            SizedBox(height: 20 * gap),
                             _Controls(accent: accent, onAccent: onAccent),
-                            const SizedBox(height: 18),
-                            const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Flexible(child: _EqChip()),
-                                SizedBox(width: 8),
-                                SleepChip(),
-                                SpeedChip(),
-                                ChapterChip(),
-                                SoireeLiveChip(),
-                              ],
+                            SizedBox(height: 18 * gap),
+                            // Centered when the chips fit, scrolls sideways when they
+                            // don't (audiobooks show the most).
+                            LayoutBuilder(
+                              builder: (context, row) => SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                clipBehavior: Clip.none,
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(minWidth: row.maxWidth),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      ConstrainedBox(
+                                        constraints: BoxConstraints(maxWidth: row.maxWidth * 0.6),
+                                        child: const _EqChip(),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const SleepChip(),
+                                      const SpeedChip(),
+                                      const ChapterChip(),
+                                      const BookmarkChip(),
+                                      const AbRepeatChip(),
+                                      const SoireeLiveChip(),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
+                      ];
+
+                      if (landscape) {
+                        final artSize = math.min(constraints.maxHeight - 48, constraints.maxWidth * 0.42);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 28),
+                          child: Row(
+                            children: [
+                              _AnimatedArtwork(item: item, size: artSize),
+                              const SizedBox(width: 32),
+                              Expanded(
+                                // Scrolls only if a very short window can't hold it all.
+                                child: LayoutBuilder(
+                                  builder: (context, side) => SingleChildScrollView(
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(minHeight: side.maxHeight),
+                                      // Header on top, the rest centered below it (no
+                                      // Spacer / IntrinsicHeight: the chip row measures itself).
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          header,
+                                          Column(mainAxisSize: MainAxisSize.min, children: details),
+                                          const SizedBox(height: 8),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final artSize = math.min(constraints.maxWidth - 64, constraints.maxHeight * 0.42);
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 28),
+                        child: Column(
+                          children: [
+                            header,
+                            const Spacer(),
+                            _AnimatedArtwork(item: item, size: artSize),
+                            const Spacer(),
+                            ...details,
                             const Spacer(),
                           ],
                         ),
@@ -283,7 +350,9 @@ class _Header extends StatelessWidget {
   const _Header({required this.album, required this.onClose});
 
   final String? album;
-  final VoidCallback onClose;
+
+  /// Null in the side panel: nothing to close.
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -293,11 +362,14 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.only(top: 8),
       child: Row(
         children: [
-          IconButton(
-            tooltip: context.l10n.close,
-            onPressed: onClose,
-            icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowDown01, color: palette.ink, size: 28),
-          ),
+          if (onClose != null)
+            IconButton(
+              tooltip: context.l10n.close,
+              onPressed: onClose,
+              icon: HugeIcon(icon: HugeIcons.strokeRoundedArrowDown01, color: palette.ink, size: 28),
+            )
+          else
+            const SizedBox(width: 48),
           Expanded(
             child: Column(
               children: [
@@ -531,14 +603,17 @@ class _Controls extends ConsumerWidget {
             tooltip: context.l10n.shuffle,
             icon: HugeIcons.strokeRoundedShuffle,
             active: shuffle,
+            toggle: true,
             activeColor: accent,
             onPressed: handler.toggleShuffle,
           ),
         _PressScale(
+          label: context.l10n.previous,
           onTap: cast.active ? castNotifier.previous : handler.skipToPrevious,
           child: HugeIcon(icon: HugeIcons.strokeRoundedPrevious, color: palette.ink, size: 36),
         ),
         _PressScale(
+          label: playing ? context.l10n.pause : context.l10n.play,
           onTap: () {
             HapticFeedback.mediumImpact();
             cast.active ? castNotifier.togglePlay() : handler.togglePlayPause();
@@ -568,6 +643,7 @@ class _Controls extends ConsumerWidget {
           ),
         ),
         _PressScale(
+          label: context.l10n.next,
           onTap: cast.active ? castNotifier.next : handler.skipToNext,
           child: HugeIcon(icon: HugeIcons.strokeRoundedNext, color: palette.ink, size: 36),
         ),
@@ -586,6 +662,11 @@ class _Controls extends ConsumerWidget {
                 ? HugeIcons.strokeRoundedRepeatOne01
                 : HugeIcons.strokeRoundedRepeat,
             active: repeat != AudioServiceRepeatMode.none,
+            value: switch (repeat) {
+              AudioServiceRepeatMode.one => context.l10n.repeatOneState,
+              AudioServiceRepeatMode.none => context.l10n.off,
+              _ => context.l10n.repeatAllState,
+            },
             activeColor: accent,
             onPressed: handler.cycleRepeat,
           ),
@@ -602,11 +683,19 @@ class _ToggleButton extends StatelessWidget {
     required this.active,
     required this.activeColor,
     required this.onPressed,
+    this.toggle = false,
+    this.value,
   });
 
   final String tooltip;
   final List<List<dynamic>> icon;
   final bool active;
+
+  /// An on / off switch (shuffle): its state is announced.
+  final bool toggle;
+
+  /// A spoken state for multi-state buttons (repeat: off / all / one).
+  final String? value;
   final Color activeColor;
   final VoidCallback onPressed;
 
@@ -616,6 +705,9 @@ class _ToggleButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: _PressScale(
+        label: tooltip,
+        toggled: toggle ? active : null,
+        value: value,
         onTap: () {
           HapticFeedback.selectionClick();
           onPressed();
@@ -644,10 +736,15 @@ class _ToggleButton extends StatelessWidget {
 
 /// Shrinks slightly while pressed — gives controls a tactile feel.
 class _PressScale extends StatefulWidget {
-  const _PressScale({required this.onTap, required this.child});
+  const _PressScale({required this.onTap, required this.child, this.label, this.toggled, this.value});
 
   final VoidCallback onTap;
   final Widget child;
+
+  /// What screen readers announce (the button's name).
+  final String? label;
+  final bool? toggled;
+  final String? value;
 
   @override
   State<_PressScale> createState() => _PressScaleState();
@@ -660,7 +757,7 @@ class _PressScaleState extends State<_PressScale> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final detector = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapDown: (_) => _setPressed(true),
       onTapUp: (_) => _setPressed(false),
@@ -672,6 +769,18 @@ class _PressScaleState extends State<_PressScale> {
         curve: Curves.easeOut,
         child: widget.child,
       ),
+    );
+    final label = widget.label;
+    if (label == null) return detector;
+    // The gesture's own semantics are replaced: the tap is offered here.
+    return Semantics(
+      button: true,
+      label: label,
+      toggled: widget.toggled,
+      value: widget.value,
+      excludeSemantics: true,
+      onTap: widget.onTap,
+      child: detector,
     );
   }
 }
@@ -696,10 +805,21 @@ class _EqChip extends ConsumerWidget {
             if (device.id != BuiltInPresets.deviceNone.id) context.l10n.presetName(device),
           ].join('  ·  ');
 
-    return GestureDetector(
-      onTap: () => QuickEqSheet.show(context, song: song),
-      onLongPress: () => EqualizerScreen.open(context),
-      child: Container(
+    void open() => QuickEqSheet.show(context, song: song);
+    void openEqualizer() => EqualizerScreen.open(context);
+
+    return Semantics(
+      button: true,
+      label: context.l10n.soundPresetEllipsis,
+      value: text,
+      onTap: open,
+      onLongPress: openEqualizer,
+      onLongPressHint: context.l10n.equalizer,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: open,
+        onLongPress: openEqualizer,
+        child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: enabled ? palette.ink.withValues(alpha: 0.08) : Colors.transparent,
@@ -729,6 +849,7 @@ class _EqChip extends ConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

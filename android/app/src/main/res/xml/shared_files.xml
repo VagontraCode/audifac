@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Songs shared from the song menu (SongFileActions). Nothing is reachable
+     unless the app grants that one file's URI to the app it's shared with. -->
+<paths>
+    <external-path name="storage" path="." />
+    <!-- SD cards and other volumes (/storage/XXXX-XXXX/…). -->
+    <root-path name="volumes" path="storage" />
+</paths>

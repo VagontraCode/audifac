@@ -506,6 +506,13 @@ class AppDatabase {
     return {for (final r in rows) r['key'] as String: r['value'] as String};
   }
 
+  /// Every value whose key starts with [prefix], by key.
+  Future<Map<String, String>> valuesWithPrefix(String prefix) async {
+    // substr, not LIKE: keys hold paths, where _ and % are ordinary characters.
+    final rows = await _db.query('kv', where: 'substr(key, 1, ?) = ?', whereArgs: [prefix.length, prefix]);
+    return {for (final r in rows) r['key'] as String: r['value'] as String};
+  }
+
   Future<String?> getValue(String key) async {
     final rows = await _db.query('kv', where: 'key = ?', whereArgs: [key]);
     return rows.isEmpty ? null : rows.first['value'] as String;

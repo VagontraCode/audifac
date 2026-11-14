@@ -2516,4 +2516,355 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get markReligious => 'Religious: leave out';
+
+  @override
+  String get abRepeatSetA => 'A–B repeat: tap to mark the start (A)';
+
+  @override
+  String get abRepeatSetB => 'A–B repeat: tap to mark the end (B)';
+
+  @override
+  String abRepeatOn(Object from, Object to) {
+    return 'Repeating $from – $to. Tap to stop';
+  }
+
+  @override
+  String get wallpaperColors => 'Wallpaper colours';
+
+  @override
+  String get wallpaperColorsHint =>
+      'Tint the app with your wallpaper\'s colours (Material You)';
+
+  @override
+  String get shareFile => 'Share file…';
+
+  @override
+  String get couldNotShare => 'Couldn\'t share this file';
+
+  @override
+  String get deleteFile => 'Delete file';
+
+  @override
+  String fileDeleted(Object title) {
+    return 'Deleted $title';
+  }
+
+  @override
+  String get couldNotDelete => 'Couldn\'t delete this file';
+
+  @override
+  String get bookmarks => 'Bookmarks';
+
+  @override
+  String get addBookmark => 'Bookmark';
+
+  @override
+  String bookmarkAt(Object time) {
+    return 'Bookmark at $time';
+  }
+
+  @override
+  String get bookmarkNoteHint => 'Note (optional)';
+
+  @override
+  String get noBookmarks =>
+      'No bookmarks yet. Mark a spot to come back to it later.';
+
+  @override
+  String get continueListening => 'Continue listening';
+
+  @override
+  String timeLeft(Object time) {
+    return '$time left';
+  }
+
+  @override
+  String get searchLyricsOnline => 'Search online';
+
+  @override
+  String get noLyricsOnline => 'No lyrics found online for this song';
+
+  @override
+  String get lyricsSearchFailed =>
+      'Couldn\'t reach the lyrics service. Check your connection.';
+
+  @override
+  String get removeOnlineLyrics => 'Remove downloaded lyrics';
+
+  @override
+  String get nothingLost =>
+      'Nothing lost on the way: you hear the file as it is (plus the sound you chose).';
+
+  @override
+  String qualityChangesAt(Object steps) {
+    return 'Quality changes at: $steps';
+  }
+
+  @override
+  String get lossLossySource => 'lossy file';
+
+  @override
+  String get lossResampling => 'Android resampling';
+
+  @override
+  String get lossTo16Bit => '16-bit output';
+
+  @override
+  String get lossLimiting => 'limiter (lower the EQ or volume)';
+
+  @override
+  String get lossBluetooth => 'Bluetooth';
+
+  @override
+  String get bluetoothLink => 'Bluetooth link';
+
+  @override
+  String get bluetoothReencodes =>
+      'Re-encoded for the radio link, usually with loss. The codec (SBC, AAC, aptX, LDAC…) is chosen by the phone and the headphones; see Developer options.';
+
+  @override
+  String get abxOpen => 'Blind test: can you really hear it?';
+
+  @override
+  String get abxTitle => 'Blind test (ABX)';
+
+  @override
+  String get abxNeedsEq =>
+      'Turn the equalizer on first: the test compares your sound with the original.';
+
+  @override
+  String get abxHowTo =>
+      'A is the original, B is your sound. X is one of them, chosen at random. Listen as much as you like, then say which one X is. 10 rounds.';
+
+  @override
+  String get abxLevelNote =>
+      'Levels are matched, so loudness doesn\'t give the answer away.';
+
+  @override
+  String abxTrial(Object n, Object total) {
+    return 'Round $n of $total';
+  }
+
+  @override
+  String get abxListen => 'Listen';
+
+  @override
+  String get abxAIsOriginal => 'original';
+
+  @override
+  String get abxBIsYourSound => 'your sound';
+
+  @override
+  String get abxQuestion => 'X is…';
+
+  @override
+  String get abxXIsA => 'X is A';
+
+  @override
+  String get abxXIsB => 'X is B';
+
+  @override
+  String get abxPlayMusic => 'Play music to start';
+
+  @override
+  String get abxHeard => 'You really hear the difference.';
+
+  @override
+  String get abxNotHeard => 'Not enough to rule out luck.';
+
+  @override
+  String abxLuck(Object percent) {
+    return 'Chance of doing this well by guessing: $percent%';
+  }
+
+  @override
+  String get abxAgain => 'Test again';
+
+  @override
+  String get repeatOneState => 'this song';
+
+  @override
+  String get repeatAllState => 'all';
+
+  @override
+  String get clearSearch => 'Clear search';
+
+  @override
+  String get transferTitle => 'Add music from a computer';
+
+  @override
+  String get transferSubtitle =>
+      'Over Wi-Fi, from any browser: no cable, no app';
+
+  @override
+  String get transferStep1 =>
+      'On a computer connected to the same Wi-Fi, open this address in a browser:';
+
+  @override
+  String get transferStep2 =>
+      'Then drop your music files on the page. They are saved in Music/audifac and appear in your library.';
+
+  @override
+  String get transferKeepOpen =>
+      'Keep this screen open while sending. The address works only while it is open, and only on your Wi-Fi.';
+
+  @override
+  String get transferWaiting => 'Waiting for files…';
+
+  @override
+  String transferReceived(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files saved',
+      one: '1 file saved',
+      zero: 'No file saved yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String transferRefused(Object reason) {
+    return 'Not saved: $reason';
+  }
+
+  @override
+  String get transferNoWifi =>
+      'Connect the phone to Wi-Fi first: the computer sends the files over your local network.';
+
+  @override
+  String get transferNeedsAndroid10 =>
+      'Receiving files needs Android 10 or later.';
+
+  @override
+  String get transferFailed => 'Couldn\'t start receiving. Try again.';
+
+  @override
+  String get transferPageTitle => 'Send music to audifac';
+
+  @override
+  String get transferPageDrop => 'Drop audio files here';
+
+  @override
+  String get transferPageChoose => 'Choose files';
+
+  @override
+  String get transferPageDone => 'Saved on the phone';
+
+  @override
+  String get transferPageFailed => 'Not saved';
+
+  @override
+  String get transferPageNotAudio => 'Not an audio file';
+
+  @override
+  String get copy => 'Copy';
+
+  @override
+  String get copied => 'Copied';
+
+  @override
+  String get keepApart => 'Keep apart';
+
+  @override
+  String get keepApartNone => 'Artists you never want back to back';
+
+  @override
+  String keepApartPairs(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pairs kept apart',
+      one: '1 pair kept apart',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get keepApartHint =>
+      'These artists won\'t play within a few songs of each other.';
+
+  @override
+  String get keepApartAdd => 'Add a pair';
+
+  @override
+  String get keepApartFirst => 'First artist';
+
+  @override
+  String keepApartSecond(Object artist) {
+    return 'Keep apart from $artist';
+  }
+
+  @override
+  String get searchArtists => 'Search artists';
+
+  @override
+  String get guestRequests => 'Guest requests';
+
+  @override
+  String get guestRequestsHint => 'Guests scan a code and ask for songs';
+
+  @override
+  String get guestRequestsOn => 'Take requests';
+
+  @override
+  String get guestRequestsPrivacy =>
+      'Guests on your Wi-Fi can search your library\'s titles and artists, and ask for songs. You decide what plays.';
+
+  @override
+  String get guestQrLabel => 'QR code to open the request page';
+
+  @override
+  String get guestScan =>
+      'Guests scan this with their phone camera (same Wi-Fi).';
+
+  @override
+  String guestPending(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count requests',
+      one: '1 request',
+      zero: 'Requests',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get guestNoRequests => 'Nothing yet. Requests appear here.';
+
+  @override
+  String guestFrom(Object names) {
+    return 'from $names';
+  }
+
+  @override
+  String get guestAccept => 'Accept';
+
+  @override
+  String get guestDecline => 'Decline';
+
+  @override
+  String get guestPageTitle => 'Ask for a song';
+
+  @override
+  String get guestPageName => 'Your name (optional)';
+
+  @override
+  String get guestPageSearch => 'Search a song or an artist';
+
+  @override
+  String get guestPageRequest => 'Request';
+
+  @override
+  String get guestPageSent => 'Sent ✓';
+
+  @override
+  String get guestPageTooMany => 'Wait a minute';
+
+  @override
+  String get guestPageFailed => 'Couldn\'t reach the host';
+
+  @override
+  String get guestPageNothing => 'Nothing found';
 }

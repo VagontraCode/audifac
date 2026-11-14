@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../../core/format.dart';
 import '../../core/theme/app_colors.dart';
 import '../../l10n/l10n.dart';
 import '../../models/album.dart';
 import '../../models/song.dart';
 import '../../providers/library_providers.dart';
 import '../../providers/player_providers.dart';
+import '../../providers/spoken_providers.dart';
 import '../../providers/user_data_providers.dart';
 import '../../widgets/artwork.dart';
 import '../../widgets/entrance.dart';
@@ -90,6 +92,7 @@ class _HomeContent extends ConsumerWidget {
     final recentAlbums = ref.watch(recentlyAddedAlbumsProvider);
     final favorites = ref.watch(favoriteSongsProvider);
     final playlists = ref.watch(playlistsProvider);
+    final inProgress = ref.watch(continueListeningProvider).value ?? const [];
 
     var section = 0;
     Widget animated(Widget child) => Entrance(index: section++, child: child);
@@ -125,6 +128,43 @@ class _HomeContent extends ConsumerWidget {
             ),
           ),
         ),
+        if (inProgress.isNotEmpty) ...[
+          animated(_SectionTitle(context.l10n.continueListening)),
+          animated(
+            _HorizontalList(
+              itemCount: inProgress.length,
+              itemBuilder: (context, i) {
+                final (:song, :position, :progress) = inProgress[i];
+                return _Card(
+                  cover: Stack(
+                    children: [
+                      Artwork.song(song, size: 140, radius: 16),
+                      Positioned(
+                        left: 10,
+                        right: 10,
+                        bottom: 10,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(2),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            minHeight: 4,
+                            color: Colors.white,
+                            backgroundColor: Colors.white.withValues(alpha: 0.35),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  title: song.title,
+                  subtitle: context.l10n.timeLeft(formatTotalDuration(song.duration - position)),
+                  // Starting it resumes at the saved spot (spokenControllerProvider).
+                  onTap: () => handler.playSongs([song]),
+                  onLongPress: () => SongActionsSheet.show(context, song),
+                );
+              },
+            ),
+          ),
+        ],
         if (recent.isNotEmpty) ...[
           animated(_SectionTitle(context.l10n.recentlyPlayed)),
           animated(
@@ -246,7 +286,11 @@ class _Card extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return GestureDetector(
+    // One button for screen readers: "title, subtitle".
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        child: GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
       child: SizedBox(
@@ -269,6 +313,8 @@ class _Card extends StatelessWidget {
               style: theme.textTheme.bodySmall?.copyWith(color: context.palette.inkMuted),
             ),
           ],
+        ),
+      ),
         ),
       ),
     );

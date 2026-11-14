@@ -249,7 +249,12 @@ final libraryTracksProvider = Provider<List<Song>>((ref) {
 /// notification sounds.
 final songsProvider = Provider<List<Song>>((ref) {
   final all = ref.watch(libraryTracksProvider);
-  final settings = ref.watch(settingsProvider);
+  // Only the settings that decide visibility: changing the sort, the filter
+  // chips, the theme… must not rebuild albums, artists and folders.
+  final (minDuration, recordings, excluded) = ref.watch(settingsProvider
+      .select((s) => (s.minDurationSeconds, s.includeRecordings, s.excludedFolders)));
+  final settings = AppSettings(
+      minDurationSeconds: minDuration, includeRecordings: recordings, excludedFolders: excluded);
   final edits = ref.watch(tagEditsProvider);
   return withTagEdits(all.where((s) => isVisibleSong(s, settings)).toList(growable: false), edits);
 });
@@ -279,7 +284,7 @@ final songsByIdProvider = Provider<Map<int, Song>>((ref) {
 final sortedSongsProvider = Provider<List<Song>>((ref) {
   final songs = ref.watch(songsProvider);
   final sort = ref.watch(settingsProvider.select((s) => s.songSort));
-  int text(String a, String b) => a.toLowerCase().compareTo(b.toLowerCase());
+  final text = caseInsensitiveCompare();
   final sorted = [...songs];
   switch (sort) {
     case SongSort.title:
@@ -305,10 +310,12 @@ final sortedSongsProvider = Provider<List<Song>>((ref) {
 
 /// Albums ordered by their newest song, for the Home screen.
 final recentlyAddedAlbumsProvider = Provider<List<Album>>((ref) {
-  DateTime newest(Album a) =>
-      a.songs.map((s) => s.dateAdded).reduce((x, y) => x.isAfter(y) ? x : y);
   final albums = [...ref.watch(albumsProvider)];
-  albums.sort((a, b) => newest(b).compareTo(newest(a)));
+  final newest = Map<Album, DateTime>.identity();
+  for (final a in albums) {
+    newest[a] = a.songs.map((s) => s.dateAdded).reduce((x, y) => x.isAfter(y) ? x : y);
+  }
+  albums.sort((a, b) => newest[b]!.compareTo(newest[a]!));
   return albums.take(12).toList();
 });
 
@@ -327,7 +334,9 @@ final albumsProvider = Provider<List<Album>>((ref) {
         artist: _albumArtist(entry.value),
         songs: entry.value..sort(_byTrack),
       ),
-  ]..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+  ];
+  final text = caseInsensitiveCompare();
+  albums.sort((a, b) => text(a.title, b.title));
   return albums;
 });
 
@@ -335,31 +344,44 @@ final artistsProvider = Provider<List<Artist>>((ref) {
   final albums = ref.watch(albumsProvider);
   final songs = ref.watch(songsProvider);
 
-  final songsByArtist = <String, List<Song>>{};
+  // Each artist's first song, in library order (gives the artist id).
+  final firstSong = <String, Song>{};
   for (final song in songs) {
-    songsByArtist.putIfAbsent(song.artist, () => []).add(song);
+    firstSong.putIfAbsent(song.artist, () => song);
   }
 
+  // One pass over the albums, in their order: each artist gets the albums
+  // they appear on, and their songs album by album, in track order.
+  final albumsByArtist = <String, List<Album>>{};
+  final songsByArtist = <String, List<Song>>{};
+  for (final album in albums) {
+    for (final song in album.songs) {
+      final artistAlbums = albumsByArtist.putIfAbsent(song.artist, () => []);
+      if (artistAlbums.isEmpty || !identical(artistAlbums.last, album)) artistAlbums.add(album);
+      songsByArtist.putIfAbsent(song.artist, () => []).add(song);
+    }
+  }
+
+  final text = caseInsensitiveCompare();
   final artists = [
-    for (final entry in songsByArtist.entries)
-      () {
-        final artistAlbums =
-            albums.where((a) => a.songs.any((s) => s.artist == entry.key)).toList();
-        // Order the artist's songs album by album, in track order.
-        final ordered = [
-          for (final album in artistAlbums)
-            ...album.songs.where((s) => s.artist == entry.key),
-        ];
-        return Artist(
-          id: entry.value.first.artistId,
-          name: entry.key,
-          songs: ordered,
-          albums: artistAlbums,
-        );
-      }(),
-  ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    for (final entry in firstSong.entries)
+      Artist(
+        id: entry.value.artistId,
+        name: entry.key,
+        songs: songsByArtist[entry.key] ?? [],
+        albums: albumsByArtist[entry.key] ?? [],
+      ),
+  ]..sort((a, b) => text(a.name, b.name));
   return artists;
 });
+
+/// A case-insensitive string comparison for sorting: each distinct string is
+/// lowercased once, not on every one of the O(n log n) comparisons.
+int Function(String, String) caseInsensitiveCompare() {
+  final lower = <String, String>{};
+  String low(String s) => lower[s] ??= s.toLowerCase();
+  return (a, b) => low(a).compareTo(low(b));
+}
 
 int _byTrack(Song a, Song b) {
   final byTrack = a.trackNumber.compareTo(b.trackNumber);
@@ -393,3 +415,6 @@ class TagEditsNotifier extends Notifier<Map<String, TagEdit>> {
 List<Song> withTagEdits(List<Song> songs, Map<String, TagEdit> edits) => edits.isEmpty
     ? songs
     : [for (final s in songs) edits[s.key]?.apply(s) ?? s];
+
+/// Whether song files can be deleted from the app (Android 10+).
+final canDeleteSongsProvider = FutureProvider<bool>((ref) => ref.read(mediaLibraryProvider).canDeleteSongs());

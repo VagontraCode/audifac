@@ -10,6 +10,7 @@ import '../core/theme/app_colors.dart';
 import '../data/dsp_channel.dart';
 import '../models/audio_info.dart';
 import '../models/eq.dart';
+import '../models/signal_path.dart';
 import '../providers/audio_info_providers.dart';
 import '../providers/eq_providers.dart';
 import '../providers/player_providers.dart';
@@ -271,8 +272,30 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
         l10n.compressorIs([l10n.compressorLight, l10n.compressorMedium, l10n.compressorStrong][compressor - 1]),
     ];
     final rates = [for (final r in (out?['deviceRates'] as List? ?? const [])) (r as num).toInt()];
+    final outputKind = out?['kind'] as String?;
+    final losses = p == null
+        ? null
+        : signalLosses(
+            sourceLossless: info?.quality.isLossless,
+            sourceBits: info?.bitDepth,
+            bitPerfect: bitPerfect,
+            reachingRate: reaching,
+            mixerRate: mixer,
+            output16: output16,
+            limitedFraction: limitedPct / 100,
+            clippedFrames: clipped,
+            outputKind: outputKind,
+          );
+    String lossLabel(SignalLoss loss) => switch (loss) {
+      SignalLoss.lossySource => l10n.lossLossySource,
+      SignalLoss.androidResampling => l10n.lossResampling,
+      SignalLoss.reducedTo16Bit => l10n.lossTo16Bit,
+      SignalLoss.limiting => l10n.lossLimiting,
+      SignalLoss.bluetooth => l10n.lossBluetooth,
+    };
 
     return [
+      if (losses != null) _Verdict(losses: [for (final l in losses) lossLabel(l)]),
       _Step(
         title: l10n.fieldSource,
         value: info == null
@@ -326,6 +349,7 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
             : l10n.resampled(khz(reaching), khz(mixer)),
         good: bitPerfect || (mixer != null && mixer == reaching),
       ),
+      if (outputKind == 'bluetooth') _Step(title: l10n.bluetoothLink, value: l10n.bluetoothReencodes, good: false),
       _Step(
         title: l10n.output,
         value: [
@@ -335,6 +359,34 @@ class _SignalSheetState extends ConsumerState<SignalSheet> with SingleTickerProv
         last: true,
       ),
     ];
+  }
+}
+
+/// The path in one line: nothing lost, or where quality changes.
+class _Verdict extends StatelessWidget {
+  const _Verdict({required this.losses});
+
+  final List<String> losses;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final clean = losses.isEmpty;
+    final color = clean ? palette.lossless : palette.ink;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        clean ? context.l10n.nothingLost : context.l10n.qualityChangesAt(losses.join(' · ')),
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color, fontWeight: FontWeight.w700),
+      ),
+    );
   }
 }
 

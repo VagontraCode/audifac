@@ -16,6 +16,7 @@ import '../../providers/player_providers.dart';
 import '../../widgets/eq_curve.dart';
 import 'autoeq_search_screen.dart';
 import 'eq_rules_screen.dart';
+import 'abx_screen.dart';
 import 'quick_eq_sheet.dart';
 import '../../l10n/l10n.dart';
 import '../../l10n/labels.dart';
@@ -404,6 +405,13 @@ class _EqualizerScreenState extends ConsumerState<EqualizerScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
             child: _HoldToCompare(onChanged: (held) => _dsp.setBypass(held)),
+          ),
+          Align(
+            child: TextButton.icon(
+              onPressed: () => AbxScreen.open(context),
+              icon: HugeIcon(icon: HugeIcons.strokeRoundedEar, color: palette.ink, size: 18),
+              label: Text(context.l10n.abxOpen),
+            ),
           ),
 
           section(editing.kind == EqPresetKind.device ? context.l10n.deviceCorrection : context.l10n.soundPreset),

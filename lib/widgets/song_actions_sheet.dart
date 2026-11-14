@@ -9,6 +9,7 @@ import '../features/collection/collection_screen.dart';
 import '../features/equalizer/quick_eq_sheet.dart';
 import '../models/song.dart';
 import '../providers/library_providers.dart';
+import '../providers/player_providers.dart';
 import '../providers/queue_actions.dart';
 import '../providers/user_data_providers.dart';
 import 'artwork.dart';
@@ -143,6 +144,34 @@ class SongActionsSheet extends ConsumerWidget {
           TagEditorSheet.show(hostContext, song);
         },
       ),
+      SongMenuAction(
+        icon: HugeIcons.strokeRoundedShare08,
+        label: context.l10n.shareFile,
+        onSelected: () async {
+          final failed = context.l10n.couldNotShare;
+          close();
+          if (!await ref.read(mediaLibraryProvider).shareSong(song)) toast(failed);
+        },
+      ),
+      // The whole file goes: not offered for one track of a CUE album.
+      if (!song.isCueTrack && (ref.watch(canDeleteSongsProvider).value ?? false))
+        SongMenuAction(
+          icon: HugeIcons.strokeRoundedDelete02,
+          label: context.l10n.deleteFile,
+          onSelected: () async {
+            final l10n = context.l10n;
+            close();
+            try {
+              // Android asks for confirmation itself.
+              if (!await ref.read(mediaLibraryProvider).deleteSong(song)) return;
+              await ref.read(audioHandlerProvider).removeSong(song.id);
+              await ref.read(libraryProvider.notifier).reload();
+              toast(l10n.fileDeleted(song.title));
+            } on PlatformException {
+              toast(l10n.couldNotDelete);
+            }
+          },
+        ),
       if (album != null)
         SongMenuAction(
           icon: HugeIcons.strokeRoundedCd,

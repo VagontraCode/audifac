@@ -65,6 +65,35 @@ class _LyricsSheetState extends ConsumerState<LyricsSheet> {
     }
   }
 
+  bool _searching = false;
+
+  /// The last online search's outcome, shown in the sheet (a snackbar would
+  /// be hidden behind it). Null: nothing to say.
+  String? _notice;
+  int? _noticeSongId;
+
+  /// LRCLIB lookup (sends the title / artist / album / length: only on tap).
+  Future<void> _searchOnline(Song song) async {
+    final l10n = context.l10n;
+    setState(() {
+      _searching = true;
+      _notice = null;
+    });
+    String? notice;
+    try {
+      if (!await fetchOnlineLyrics(ref, song)) notice = l10n.noLyricsOnline;
+    } on Exception {
+      notice = l10n.lyricsSearchFailed;
+    }
+    if (mounted) {
+      setState(() {
+        _searching = false;
+        _notice = notice;
+        _noticeSongId = song.id;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final song = ref.watch(currentSongProvider);
@@ -112,11 +141,21 @@ class _LyricsSheetState extends ConsumerState<LyricsSheet> {
                     PopupMenuButton<String>(
                       tooltip: context.l10n.lyricsOptions,
                       icon: HugeIcon(icon: HugeIcons.strokeRoundedMoreVertical, color: palette.ink, size: 22),
-                      onSelected: (v) => v == 'attach' ? _attach(song) : setPickedLyrics(ref, song, null),
+                      onSelected: (v) => switch (v) {
+                        'attach' => _attach(song),
+                        'online' => _searchOnline(song),
+                        'removeOnline' => removeOnlineLyrics(ref, song),
+                        _ => setPickedLyrics(ref, song, null),
+                      },
                       itemBuilder: (_) => [
                         PopupMenuItem(value: 'attach', child: Text(context.l10n.useLyricsFile)),
+                        // Not over lyrics of the file itself (they win anyway).
+                        if (data == null || data.source == LyricsSource.online)
+                          PopupMenuItem(value: 'online', child: Text(context.l10n.searchLyricsOnline)),
                         if (data?.source == LyricsSource.picked)
                           PopupMenuItem(value: 'remove', child: Text(context.l10n.removeAttachedFile)),
+                        if (data?.source == LyricsSource.online)
+                          PopupMenuItem(value: 'removeOnline', child: Text(context.l10n.removeOnlineLyrics)),
                       ],
                     ),
                 ],
@@ -125,14 +164,30 @@ class _LyricsSheetState extends ConsumerState<LyricsSheet> {
             Expanded(
               child: switch (lyrics) {
                 AsyncLoading() => const Center(child: CircularProgressIndicator()),
+                _ when _searching => const Center(child: CircularProgressIndicator()),
                 _ when data == null || song == null => Center(
                     child: SingleChildScrollView(
-                      child: EmptyState(
-                        icon: HugeIcons.strokeRoundedQuoteDown,
-                        title: context.l10n.noLyrics,
-                        message: context.l10n.noLyricsHint,
-                        actionLabel: song == null ? null : context.l10n.chooseLyricsFile,
-                        onAction: song == null ? null : () => _attach(song),
+                      child: Column(
+                        children: [
+                          EmptyState(
+                            icon: HugeIcons.strokeRoundedQuoteDown,
+                            title: context.l10n.noLyrics,
+                            message: context.l10n.noLyricsHint,
+                            actionLabel: song == null ? null : context.l10n.searchLyricsOnline,
+                            onAction: song == null ? null : () => _searchOnline(song),
+                          ),
+                          if (song != null)
+                            TextButton(onPressed: () => _attach(song), child: Text(context.l10n.chooseLyricsFile)),
+                          if (_notice case final notice? when _noticeSongId == song?.id)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+                              child: Text(
+                                notice,
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodyMedium?.copyWith(color: palette.hiRes, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),

@@ -41,6 +41,9 @@
 <ul>
 <li><strong>Last.fm scrobbling.</strong> If you connect your own Last.fm account, audifac sends the title, artist, album and time of the songs you listen to, to Last.fm (last.fm/legal/privacy). Your Last.fm password is used once to log in and is not stored; only the session key is kept on your device.</li>
 <li><strong>Casting to a TV or speaker.</strong> When you choose a Chromecast or DLNA device on your Wi-Fi, audifac shares the song being played with that device over your local network. Nothing leaves your network.</li>
+<li><strong>Lyrics search.</strong> Only when you tap “Search online” in the lyrics panel, audifac sends that song's title, artist, album and length to LRCLIB (lrclib.net) to find its lyrics. The lyrics found are kept on your device. Nothing else is sent, and no account is involved.</li>
+<li><strong>Receiving music from a computer.</strong> While the “Add music from a computer” screen is open, audifac runs a small web page on your local Wi-Fi, at an address with a random code shown only on that screen. Files sent to it are saved in Music/audifac on your phone. Nothing goes through the internet, and the page stops when you leave the screen.</li>
+<li><strong>Soirée guest requests.</strong> Only while you switch “Take requests” on, guests on your local Wi-Fi who open the page (QR code on your screen) can search the titles and artists of your library and ask for songs, with a name they type if they want. Nothing goes through the internet, and nothing plays unless you accept it.</li>
 </ul>
 
 <h2>Permissions</h2>
@@ -48,7 +51,7 @@
 <ul>
 <li><strong>Music and audio</strong> (READ_MEDIA_AUDIO / storage on older Android): to find and play your audio files.</li>
 <li><strong>Notifications and foreground service (media playback)</strong>: to keep playing with the screen off and show the player controls.</li>
-<li><strong>Network and Wi-Fi multicast</strong>: only for Last.fm and casting, as described above.</li>
+<li><strong>Network and Wi-Fi multicast</strong>: only for Last.fm, casting, lyrics search and receiving music from a computer and Soirée guest requests, as described above.</li>
 </ul>
 
 <h2>Children</h2>

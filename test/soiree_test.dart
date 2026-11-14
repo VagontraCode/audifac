@@ -47,6 +47,35 @@ void main() {
   final builder = SoireeBuilder(pool);
   final twoHours = SoireeSettings(length: const Duration(hours: 2), curve: SoireeShape.dinnerToDance.curve);
 
+  test('keep apart: paired artists never within the artist gap of each other', () {
+    final settings = SoireeSettings(
+      length: const Duration(hours: 2),
+      curve: SoireeShape.dinnerToDance.curve,
+      keepApart: {KeepApart.key('Artist 3', 'artist 4'), KeepApart.key('Artist 10', 'Artist 11')},
+    );
+    final plan = builder.build(settings);
+    final artists = [for (final s in plan) s.song.artist.toLowerCase()];
+    bool apart(String a, String b) {
+      for (var i = 0; i < artists.length; i++) {
+        for (var j = i + 1; j < artists.length && j - i < settings.artistGap; j++) {
+          if ({artists[i], artists[j]}.containsAll({a, b})) return false;
+        }
+      }
+      return true;
+    }
+
+    expect(apart('artist 3', 'artist 4'), isTrue);
+    expect(apart('artist 10', 'artist 11'), isTrue);
+    expect(plan.length, greaterThan(20), reason: 'the evening still fills');
+  });
+
+  test('keep apart keys ignore order and case; saved with the soirée', () {
+    expect(KeepApart.key('Bob', 'alice'), KeepApart.key('ALICE', ' bob '));
+    expect(KeepApart.partners({KeepApart.key('A', 'B')}, {'a'}), {'b'});
+    final state = SoireeState(keepApart: {KeepApart.key('A', 'B')});
+    expect(SoireeState.decode(state.encode(), const {}).keepApart, state.keepApart);
+  });
+
   test('fills the evening once, following the curve from calm to the floor', () {
     final plan = builder.build(twoHours);
     final total = plan.fold(Duration.zero, (sum, s) => sum + s.song.duration);

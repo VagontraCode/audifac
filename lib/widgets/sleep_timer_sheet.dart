@@ -122,7 +122,14 @@ class SleepChip extends ConsumerWidget {
     };
     return Tooltip(
       message: context.l10n.sleepTimer,
-      child: GestureDetector(
+      excludeFromSemantics: true,
+      child: Semantics(
+        button: true,
+        label: context.l10n.sleepTimer,
+        value: label ?? context.l10n.off,
+        onTap: () => SleepTimerSheet.show(context),
+        excludeSemantics: true,
+        child: GestureDetector(
         onTap: () => SleepTimerSheet.show(context),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
@@ -146,6 +153,7 @@ class SleepChip extends ConsumerWidget {
               ],
             ],
           ),
+        ),
         ),
       ),
     );

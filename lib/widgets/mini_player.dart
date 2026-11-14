@@ -1,5 +1,6 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -51,7 +52,18 @@ class _MiniPlayerBar extends ConsumerWidget {
     final palette = context.palette;
     final fg = palette.onElevated;
 
-    return GestureDetector(
+    // Swipes have no screen-reader equivalent: next / previous are offered as
+    // actions, and the bar itself opens the player.
+    return Semantics(
+      container: true,
+      button: true,
+      label: '${context.l10n.nowPlaying}: ${item.title}${(item.artist ?? '').isEmpty ? '' : ', ${item.artist}'}',
+      onTap: () => PlayerScreen.open(context),
+      customSemanticsActions: {
+        CustomSemanticsAction(label: context.l10n.next): () => cast.active ? castNotifier.next() : handler.skipToNext(),
+        CustomSemanticsAction(label: context.l10n.previous): () => handler.skipToPrevious(),
+      },
+      child: GestureDetector(
       onTap: () => PlayerScreen.open(context),
       onVerticalDragEnd: (d) {
         final v = d.primaryVelocity ?? 0;
@@ -155,6 +167,7 @@ class _MiniPlayerBar extends ConsumerWidget {
             _ProgressLine(duration: item.duration, color: fg),
           ],
         ),
+      ),
       ),
     );
   }

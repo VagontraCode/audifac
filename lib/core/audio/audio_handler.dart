@@ -5,6 +5,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../../models/ab_loop.dart';
 import '../../models/song.dart';
 import 'browse_tree.dart';
 import 'queue_logic.dart';
@@ -56,6 +57,8 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
 
   /// Player volume (0–1), used for fades; the DSP gain is separate.
   Future<void> setVolume(double volume) => _player.setVolume(volume.clamp(0, 1).toDouble());
+
+  double get volume => _player.volume;
 
   /// Human-readable messages about tracks that could not be played.
   Stream<String> get errors => _errors.stream;
@@ -139,6 +142,21 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
     if (index < 0 || index >= items.length || index == _player.currentIndex) return;
     await _player.removeAudioSourceAt(index);
     queue.add([...items]..removeAt(index));
+  }
+
+  /// A song's file was deleted: takes every copy out of the queue, moving on
+  /// to the next song first if it's the one playing (stops if none is left).
+  Future<void> removeSong(int songId) async {
+    bool isIt(MediaItem item) => item.extras?['songId'] == songId;
+    final items = queue.value;
+    final current = _player.currentIndex;
+    if (current != null && current < items.length && isIt(items[current])) {
+      if (!_player.hasNext || items.every(isIt)) return stop();
+      await _player.seekToNext();
+    }
+    for (var i = queue.value.length - 1; i >= 0; i--) {
+      if (isIt(queue.value[i])) await removeFromQueue(i);
+    }
   }
 
   /// Replaces everything after the current track with [songs] (a soirée
@@ -411,10 +429,43 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // A–B repeat (enforced here, not in the UI, so it also loops in the background)
+
+  AbLoop _abLoop = AbLoop.off;
+  final _abLoopChanges = StreamController<AbLoop>.broadcast();
+  StreamSubscription<Duration>? _abWatch;
+  bool _abJumping = false;
+
+  AbLoop get abLoop => _abLoop;
+  Stream<AbLoop> get abLoopChanges => _abLoopChanges.stream;
+
+  void setAbLoop(AbLoop loop) {
+    if (loop == _abLoop) return;
+    _abLoop = loop;
+    _abLoopChanges.add(loop);
+    _abWatch?.cancel();
+    _abWatch = null;
+    if (!loop.isLooping) return;
+    // A fine position stream only while looping (20–50 ms: B is hit closely).
+    _abWatch = _player
+        .createPositionStream(steps: 1 << 20, minPeriod: const Duration(milliseconds: 20), maxPeriod: const Duration(milliseconds: 50))
+        .listen((position) async {
+      if (_abJumping || !_abLoop.shouldJump(position)) return;
+      _abJumping = true;
+      try {
+        await _player.seek(_abLoop.a);
+      } finally {
+        _abJumping = false;
+      }
+    });
+  }
+
   void _onCurrentIndexChanged(int? index) {
     final items = queue.value;
     if (index == null || index >= items.length) return;
     final item = items[index];
+    if (!_abLoop.isOff && _abLoop.songId != item.extras?['songId']) setAbLoop(AbLoop.off);
     final cached = _artFiles[item.extras?['songId']];
     // Prefetched artwork: the song's details go out once, complete.
     mediaItem.add(cached == null ? item : _withArt(item, cached));
@@ -545,6 +596,8 @@ class AudifacAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandle
       await s.cancel();
     }
     await _errors.close();
+    await _abWatch?.cancel();
+    await _abLoopChanges.close();
     _idleStop?.cancel();
     await _queueEnded.close();
     await _player.dispose();

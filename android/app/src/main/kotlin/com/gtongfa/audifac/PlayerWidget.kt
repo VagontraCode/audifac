@@ -28,7 +28,7 @@ class PlayerWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) = render(context)
 
     companion object {
-        private const val PREFS = "audifac_widget"
+        const val PREFS = "audifac_widget"
 
         fun register(context: Context, messenger: BinaryMessenger) {
             MethodChannel(messenger, "audifac/widget").setMethodCallHandler { call, result ->
@@ -40,6 +40,7 @@ class PlayerWidget : AppWidgetProvider() {
                         .putString("art", call.argument<String>("art"))
                         .apply()
                     render(context)
+                    PlaybackTile.requestUpdate(context)
                     result.success(null)
                 } else if (call.method == "pin") {
                     val manager = AppWidgetManager.getInstance(context)

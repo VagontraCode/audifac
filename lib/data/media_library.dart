@@ -230,6 +230,72 @@ class MediaLibrary {
     }
   }
 
+  /// Opens Android's share sheet with [song]'s file.
+  Future<bool> shareSong(Song song) async {
+    try {
+      return await _channel.invokeMethod<bool>('shareSong', {
+            'path': song.path,
+            'uri': song.uri,
+            'mime': song.mimeType ?? 'audio/*',
+            'title': song.title,
+          }) ??
+          false;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
+  bool? _canDelete;
+
+  /// Whether files can be deleted (Android 10+, through its confirmation).
+  Future<bool> canDeleteSongs() async {
+    try {
+      return _canDelete ??= await _channel.invokeMethod<bool>('canDeleteSongs') ?? false;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
+  /// Deletes [song]'s file after Android's confirmation. True once deleted;
+  /// false when the user said no; throws [PlatformException] on failure.
+  Future<bool> deleteSong(Song song) async =>
+      await _channel.invokeMethod<bool>('deleteSong', {'path': song.path, 'uri': song.uri}) ?? false;
+
+  /// Whether files received over Wi-Fi can be saved (Android 10+).
+  Future<bool> canImportAudio() async {
+    try {
+      return await _channel.invokeMethod<bool>('canImportAudio') ?? false;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
+  /// Saves a received file into Music/audifac. Null when saved, else why not.
+  Future<String?> importAudio(String path, String name) async {
+    try {
+      return await _channel.invokeMethod<String>('importAudio', {'path': path, 'name': name});
+    } on PlatformException catch (e) {
+      return e.message ?? 'failed';
+    }
+  }
+
+  /// The wallpaper-based system accent (ARGB, Android 12+), or null.
+  Future<int?> systemAccent() async {
+    try {
+      return await _channel.invokeMethod<int>('systemAccent');
+    } on PlatformException {
+      return null;
+    } on MissingPluginException {
+      return null;
+    }
+  }
+
   /// `0.1.0+3`.
   Future<String> appVersion() async {
     try {

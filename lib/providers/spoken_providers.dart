@@ -57,7 +57,9 @@ final spokenControllerProvider = Provider<void>((ref) {
   Timer? saver;
   Song? current;
 
-  Future<void> savePosition() async {
+  /// [announce]: tell "Continue listening" (not for the 5 s saves while
+  /// playing, which would rebuild Home all the time).
+  Future<void> savePosition({bool announce = false}) async {
     final song = current;
     if (song == null || !isLongForm(song)) return;
     final position = handler.position;
@@ -65,8 +67,11 @@ final spokenControllerProvider = Provider<void>((ref) {
     if (finished) {
       await db.deleteValue(_resumeKey(song));
     } else if (position > const Duration(seconds: 10)) {
-      await db.setValue(_resumeKey(song), '${position.inMilliseconds}');
+      await db.setValue(_resumeKey(song), encodeResumeSpot(position, DateTime.now()));
+    } else {
+      return;
     }
+    if (announce) ref.read(resumeRevisionProvider.notifier).bump();
   }
 
   Future<void> onSong(Song? song, {bool restarted = false}) async {
@@ -77,8 +82,8 @@ final spokenControllerProvider = Provider<void>((ref) {
     current = song;
     if (song == null) return;
     if (!isLongForm(song)) return;
-    final saved = int.tryParse(await db.getValue(_resumeKey(song)) ?? '');
-    final point = resumePoint(saved == null ? null : Duration(milliseconds: saved), song.duration);
+    final saved = decodeResumeSpot(await db.getValue(_resumeKey(song)));
+    final point = resumePoint(saved?.position, song.duration);
     // Only jump when the song is starting from the top (not a restored session
     // or a seek the user just made).
     if (point != null && handler.position < const Duration(seconds: 5)) await handler.seek(point);
@@ -96,7 +101,7 @@ final spokenControllerProvider = Provider<void>((ref) {
     if (playing) {
       saver = Timer.periodic(const Duration(seconds: 5), (_) => savePosition());
     } else {
-      savePosition();
+      savePosition(announce: true);
     }
   });
   ref.onDispose(() {
@@ -104,3 +109,72 @@ final spokenControllerProvider = Provider<void>((ref) {
     starts.cancel();
   });
 });
+
+/// Bumped when a resume spot is saved on pause / finished: "Continue
+/// listening" reloads.
+final resumeRevisionProvider = NotifierProvider<ResumeRevision, int>(ResumeRevision.new);
+
+class ResumeRevision extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void bump() => state++;
+}
+
+/// A recording left part-way, for Home → Continue listening.
+typedef InProgress = ({Song song, Duration position, double progress});
+
+/// Audiobooks and podcasts started but not finished, most recent first.
+final continueListeningProvider = FutureProvider<List<InProgress>>((ref) async {
+  ref.watch(resumeRevisionProvider);
+  final songs = ref.watch(songsProvider);
+  final spots = await ref.read(databaseProvider).valuesWithPrefix('resume:');
+  if (spots.isEmpty) return const [];
+  final byLocation = {for (final s in songs) if (!s.isCueTrack) s.location: s};
+  final found = <(InProgress, DateTime?)>[];
+  for (final MapEntry(:key, :value) in spots.entries) {
+    final song = byLocation[key.substring('resume:'.length)];
+    final spot = decodeResumeSpot(value);
+    if (song == null || spot == null || !isLongForm(song)) continue;
+    if (resumePoint(spot.position, song.duration) == null) continue;
+    final length = song.duration.inMilliseconds;
+    final progress = length <= 0 ? 0.0 : (spot.position.inMilliseconds / length).clamp(0.0, 1.0);
+    found.add(((song: song, position: spot.position, progress: progress), spot.savedAt));
+  }
+  // Newest first; spots from older versions (no date) last.
+  found.sort((a, b) => (b.$2?.millisecondsSinceEpoch ?? 0).compareTo(a.$2?.millisecondsSinceEpoch ?? 0));
+  return [for (final f in found.take(10)) f.$1];
+});
+
+/// Database keys of bookmarks: this prefix + [Song.location].
+const bookmarksKeyPrefix = 'bookmarks:';
+
+/// Bookmarks of one recording (by [Song.location]).
+final bookmarksProvider =
+    AsyncNotifierProvider.family<BookmarksNotifier, List<Bookmark>, String>(BookmarksNotifier.new);
+
+class BookmarksNotifier extends AsyncNotifier<List<Bookmark>> {
+  BookmarksNotifier(this.location);
+
+  final String location;
+
+  String get _key => '$bookmarksKeyPrefix$location';
+
+  @override
+  Future<List<Bookmark>> build() async => Bookmark.decodeAll(await ref.read(databaseProvider).getValue(_key));
+
+  Future<void> add(Bookmark bookmark) =>
+      _save([...?state.value, bookmark]..sort((a, b) => a.position.compareTo(b.position)));
+
+  Future<void> remove(Bookmark bookmark) => _save([...?state.value]..remove(bookmark));
+
+  Future<void> _save(List<Bookmark> bookmarks) async {
+    state = AsyncData(bookmarks);
+    final db = ref.read(databaseProvider);
+    if (bookmarks.isEmpty) {
+      await db.deleteValue(_key);
+    } else {
+      await db.setValue(_key, Bookmark.encodeAll(bookmarks));
+    }
+  }
+}

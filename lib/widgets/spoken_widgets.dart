@@ -13,9 +13,9 @@ import '../l10n/l10n.dart';
 /// 1 → "1×", 1.25 → "1.25×", 1.5 → "1.5×".
 String speedLabel(double s) => '${s.toStringAsFixed(2).replaceAll(RegExp(r'\.?0+$'), '')}×';
 
-/// A small outlined chip like the EQ / sleep chips.
-class _Chip extends StatelessWidget {
-  const _Chip({required this.icon, required this.label, required this.onTap, this.tooltip, this.active = true});
+/// A small outlined chip for the player's chip row (like the EQ / sleep chips).
+class PlayerChip extends StatelessWidget {
+  const PlayerChip({super.key, required this.icon, required this.label, required this.onTap, this.tooltip, this.active = true});
 
   final List<List<dynamic>> icon;
   final String label;
@@ -30,7 +30,15 @@ class _Chip extends StatelessWidget {
       padding: const EdgeInsets.only(left: 8),
       child: Tooltip(
         message: tooltip ?? label,
-        child: GestureDetector(
+        // Read as one button: its name (tooltip) and what it shows.
+        excludeFromSemantics: true,
+        child: Semantics(
+          button: true,
+          label: tooltip ?? label,
+          value: tooltip == null ? null : label,
+          onTap: onTap,
+          excludeSemantics: true,
+          child: GestureDetector(
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -52,6 +60,7 @@ class _Chip extends StatelessWidget {
             ),
           ),
         ),
+        ),
       ),
     );
   }
@@ -67,7 +76,7 @@ class SpeedChip extends ConsumerWidget {
     final remembered = ref.watch(currentPlaybackMemoryProvider).speed != null;
     if (!ref.watch(currentIsLongFormProvider) && !remembered) return const SizedBox.shrink();
     final speed = ref.watch(effectiveSpeedProvider);
-    return _Chip(
+    return PlayerChip(
       icon: HugeIcons.strokeRoundedDashboardSpeed01,
       label: speedLabel(speed),
       tooltip: context.l10n.playbackSpeed,
@@ -172,7 +181,7 @@ class ChapterChip extends ConsumerWidget {
     if (chapters.isEmpty) return const SizedBox.shrink();
     final position = ref.watch(positionProvider).value ?? Duration.zero;
     final i = chapterAt(chapters, position);
-    return _Chip(
+    return PlayerChip(
       icon: HugeIcons.strokeRoundedBookBookmark01,
       label: '${i + 1}/${chapters.length}',
       tooltip: chapters[i].title,
@@ -238,6 +247,150 @@ class ChaptersSheet extends ConsumerWidget {
                 },
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bookmarks of the current audiobook / podcast (count shown); tap for the
+/// list and to add one. Only for long recordings.
+class BookmarkChip extends ConsumerWidget {
+  const BookmarkChip({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final song = ref.watch(currentSongProvider);
+    if (song == null || !ref.watch(currentIsLongFormProvider)) return const SizedBox.shrink();
+    final count = ref.watch(bookmarksProvider(song.location)).value?.length ?? 0;
+    return PlayerChip(
+      icon: HugeIcons.strokeRoundedBookmark02,
+      label: count == 0 ? '+' : '$count',
+      tooltip: context.l10n.bookmarks,
+      active: count > 0,
+      onTap: () => BookmarksSheet.show(context),
+    );
+  }
+}
+
+class BookmarksSheet extends ConsumerWidget {
+  const BookmarksSheet({super.key});
+
+  static Future<void> show(BuildContext context) => showModalBottomSheet<void>(
+        context: context,
+        useRootNavigator: true,
+        isScrollControlled: true,
+        builder: (_) => const BookmarksSheet(),
+      );
+
+  /// Asks for an optional note; null when cancelled.
+  static Future<String?> _askNote(BuildContext context, Duration at) {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.l10n.bookmarkAt(formatDuration(at))),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(hintText: context.l10n.bookmarkNoteHint),
+          onSubmitted: (text) => Navigator.of(context).pop(text.trim()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(context.l10n.cancel)),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            child: Text(context.l10n.save),
+          ),
+        ],
+      ),
+    ).whenComplete(controller.dispose);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final song = ref.watch(currentSongProvider);
+    final theme = Theme.of(context);
+    final palette = context.palette;
+    if (song == null) return const SizedBox.shrink();
+    final bookmarks = ref.watch(bookmarksProvider(song.location)).value ?? const <Bookmark>[];
+    final notifier = ref.read(bookmarksProvider(song.location).notifier);
+    final handler = ref.read(audioHandlerProvider);
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.8),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 16, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      context.l10n.bookmarks,
+                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  FilledButton.icon(
+                    onPressed: () async {
+                      final at = handler.position;
+                      final note = await _askNote(context, at);
+                      if (note != null) await notifier.add(Bookmark(at, note));
+                    },
+                    icon: HugeIcon(icon: HugeIcons.strokeRoundedAdd01, color: palette.onInk, size: 18),
+                    label: Text(context.l10n.addBookmark),
+                  ),
+                ],
+              ),
+            ),
+            if (bookmarks.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                child: Text(context.l10n.noBookmarks, style: theme.textTheme.bodyMedium),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: bookmarks.length,
+                  itemBuilder: (context, i) {
+                    final b = bookmarks[i];
+                    return Dismissible(
+                      key: ValueKey((b.position, b.note)),
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (_) => notifier.remove(b),
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 24),
+                        child: HugeIcon(icon: HugeIcons.strokeRoundedDelete02, color: palette.inkMuted, size: 22),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                        leading: HugeIcon(icon: HugeIcons.strokeRoundedBookmark02, color: palette.ink, size: 20),
+                        title: Text(
+                          formatDuration(b.position),
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontFeatures: [FontFeature.tabularFigures()]),
+                        ),
+                        subtitle: b.note.isEmpty ? null : Text(b.note),
+                        trailing: IconButton(
+                          tooltip: context.l10n.remove,
+                          onPressed: () => notifier.remove(b),
+                          icon: HugeIcon(icon: HugeIcons.strokeRoundedCancel01, color: palette.inkMuted, size: 18),
+                        ),
+                        onTap: () {
+                          handler.seek(b.position);
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
           ],
         ),
       ),

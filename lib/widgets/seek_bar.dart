@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/format.dart';
 import '../core/theme/app_colors.dart';
+import '../models/ab_loop.dart';
 import '../providers/player_providers.dart';
 import '../providers/waveform_provider.dart';
 import 'waveform_painter.dart';
@@ -45,6 +46,7 @@ class _SeekBarState extends ConsumerState<SeekBar> {
     // The song's loudness over time, once known, replaces the track.
     final song = ref.watch(currentSongProvider);
     final levels = song == null ? null : ref.watch(waveformProvider(song)).value;
+    final loop = ref.watch(abLoopProvider).value ?? AbLoop.off;
     final rest = palette.ink.withValues(alpha: levels == null ? 0.12 : 0.22);
     final progress = max <= 0 ? 0.0 : value / max;
 
@@ -71,6 +73,8 @@ class _SeekBarState extends ConsumerState<SeekBar> {
         value: max <= 0 ? 0 : value,
         onChangeStart: max <= 0 ? null : (v) => setState(() => _dragValue = v),
         onChanged: max <= 0 ? null : (v) => setState(() => _dragValue = v),
+        // Screen readers say the time, not a percentage.
+        semanticFormatterCallback: (v) => formatDuration(Duration(milliseconds: v.round())),
         onChangeEnd: (v) {
           ref.read(audioHandlerProvider).seek(Duration(milliseconds: v.round()));
           setState(() => _dragValue = null);
@@ -96,6 +100,12 @@ class _SeekBarState extends ConsumerState<SeekBar> {
                         ),
                 ),
               ),
+              if (max > 0 && !loop.isOff && loop.songId == song?.id)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(painter: _AbLoopPainter(loop: loop, totalMs: max, color: color)),
+                  ),
+                ),
               slider,
             ],
           ),
@@ -111,4 +121,36 @@ class _SeekBarState extends ConsumerState<SeekBar> {
       ],
     );
   }
+}
+
+/// The A–B section: a light band from A to B, with a tick at each mark
+/// (only A while B isn't set yet).
+class _AbLoopPainter extends CustomPainter {
+  _AbLoopPainter({required this.loop, required this.totalMs, required this.color});
+
+  final AbLoop loop;
+  final double totalMs;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    double x(Duration d) => (d.inMilliseconds / totalMs).clamp(0.0, 1.0) * size.width;
+    final tick = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    final a = x(loop.a!);
+    if (loop.b != null) {
+      final b = x(loop.b!);
+      canvas.drawRRect(
+        RRect.fromLTRBR(a, 2, b, size.height - 2, const Radius.circular(4)),
+        Paint()..color = color.withValues(alpha: 0.16),
+      );
+      canvas.drawLine(Offset(b, 4), Offset(b, size.height - 4), tick);
+    }
+    canvas.drawLine(Offset(a, 4), Offset(a, size.height - 4), tick);
+  }
+
+  @override
+  bool shouldRepaint(_AbLoopPainter old) => old.loop != loop || old.totalMs != totalMs || old.color != color;
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/app_visibility.dart';
 import '../core/audio/audio_handler.dart';
 import '../data/artwork_colors.dart';
+import '../models/ab_loop.dart';
 import '../models/song.dart';
 import 'library_providers.dart';
 
@@ -80,3 +81,10 @@ final artworkSeedProvider = FutureProvider.family<int?, ({int songId, int albumI
     }
   },
 );
+
+/// A–B repeat of the current song.
+final abLoopProvider = StreamProvider<AbLoop>((ref) async* {
+  final handler = ref.watch(audioHandlerProvider);
+  yield handler.abLoop;
+  yield* handler.abLoopChanges;
+});

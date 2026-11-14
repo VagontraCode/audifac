@@ -16,9 +16,11 @@ import '../../providers/lastfm_provider.dart';
 import '../../providers/loudness_providers.dart';
 import '../../providers/soiree_plan_provider.dart';
 import '../../providers/soiree_providers.dart';
+import '../../providers/theme_providers.dart';
 import '../../providers/user_data_providers.dart';
 import '../../providers/widget_provider.dart';
 import 'lastfm_sheet.dart';
+import 'transfer_screen.dart';
 import 'folders_screen.dart';
 import '../library/duplicates_screen.dart';
 import 'volume_matching_sheet.dart';
@@ -93,6 +95,17 @@ class SettingsSheet extends ConsumerWidget {
                   onSelectionChanged: (s) => notifier.setThemeMode(s.first),
                 ),
               ),
+              // Material You: only where Android provides wallpaper colours (12+).
+              if (ref.watch(systemAccentProvider).value != null)
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  activeThumbColor: palette.onInk,
+                  activeTrackColor: palette.ink,
+                  title: Text(context.l10n.wallpaperColors, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(context.l10n.wallpaperColorsHint),
+                  value: settings.wallpaperColors,
+                  onChanged: notifier.setWallpaperColors,
+                ),
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
@@ -228,6 +241,15 @@ class SettingsSheet extends ConsumerWidget {
                 trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
                 onTap: () => DuplicatesScreen.open(context),
               ),
+              if (Platform.isAndroid)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: HugeIcon(icon: HugeIcons.strokeRoundedLaptopPhoneSync, color: palette.ink, size: 22),
+                  title: Text(context.l10n.transferTitle, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(context.l10n.transferSubtitle),
+                  trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
+                  onTap: () => TransferScreen.open(context),
+                ),
               Consumer(
                 builder: (context, ref, _) {
                   final on = ref.watch(rhythmEnabledProvider);
@@ -369,7 +391,7 @@ class SettingsSheet extends ConsumerWidget {
     final backup = ref.read(backupServiceProvider);
     Navigator.of(context).pop();
     try {
-      final data = backup.create(appVersion: await library.appVersion());
+      final data = await backup.create(appVersion: await library.appVersion());
       final d = data.exportedAt;
       String two(int n) => n.toString().padLeft(2, '0');
       final saved = await library.saveTextDocument(

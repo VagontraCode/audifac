@@ -6,7 +6,8 @@ class LyricLine {
   final String text;
 }
 
-enum LyricsSource { file, tags, picked }
+/// [online]: found on LRCLIB (Lyrics → Search online) and kept in the app.
+enum LyricsSource { file, tags, picked, online }
 
 /// A song's lyrics, parsed from LRC (`[mm:ss.xx] text`) or plain text.
 class Lyrics {

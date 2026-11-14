@@ -26,7 +26,11 @@ class SoireeState {
     this.plan = const [],
     this.building = false,
     this.live = false,
+    this.keepApart = const {},
   }) : _curve = curve;
+
+  /// Artist pairs kept apart ([KeepApart.key]s). Kept between soirées.
+  final Set<String> keepApart;
 
   final Duration length;
 
@@ -50,7 +54,8 @@ class SoireeState {
 
   Duration get total => plan.fold(Duration.zero, (sum, s) => sum + s.song.duration);
 
-  SoireeSettings get settings => SoireeSettings(length: length, curve: curve, mustPlay: mustPlay, seed: seed);
+  SoireeSettings get settings =>
+      SoireeSettings(length: length, curve: curve, mustPlay: mustPlay, seed: seed, keepApart: keepApart);
 
   SoireeState copyWith({
     Duration? length,
@@ -63,6 +68,7 @@ class SoireeState {
     List<SoireeSlot>? plan,
     bool? building,
     bool? live,
+    Set<String>? keepApart,
   }) =>
       SoireeState(
         length: length ?? this.length,
@@ -75,6 +81,7 @@ class SoireeState {
         plan: plan ?? this.plan,
         building: building ?? this.building,
         live: live ?? this.live,
+        keepApart: keepApart ?? this.keepApart,
       );
 
   String encode() => jsonEncode({
@@ -87,6 +94,7 @@ class SoireeState {
         'excluded': excluded.toList(),
         'plan': [for (final s in plan) [s.song.id, if (s.locked) 1]],
         'live': live,
+        if (keepApart.isNotEmpty) 'keepApart': keepApart.toList(),
       });
 
   /// [songs] resolves saved song ids (missing songs are dropped).
@@ -113,6 +121,7 @@ class SoireeState {
               SoireeSlot(song: song, target: 0, level: 0, locked: e.length > 1),
         ],
         live: j['live'] == true,
+        keepApart: {for (final x in (j['keepApart'] as List? ?? const [])) if (x is String) x},
       );
     } catch (_) {
       return const SoireeState();
@@ -191,6 +200,18 @@ class SoireeNotifier extends Notifier<SoireeState> {
     if (generation != _generation) return; // A newer change won.
     state = state.copyWith(plan: plan, building: false);
     _save();
+  }
+
+  /// Never play [a] and [b] close together.
+  void keepApart(String a, String b) {
+    if (a.trim().toLowerCase() == b.trim().toLowerCase()) return;
+    state = state.copyWith(keepApart: {...state.keepApart, KeepApart.key(a, b)});
+    rebuild();
+  }
+
+  void allowTogether(String key) {
+    state = state.copyWith(keepApart: {...state.keepApart}..remove(key));
+    rebuild();
   }
 
   void setLength(Duration length) {

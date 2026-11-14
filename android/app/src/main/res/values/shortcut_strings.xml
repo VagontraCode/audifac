@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_shuffle">Shuffle all</string>
+    <string name="shortcut_favorites">Favorites</string>
+    <string name="shortcut_soiree">Soirée</string>
+    <string name="shortcut_search">Search</string>
+    <string name="tile_label">audifac</string>
+</resources>

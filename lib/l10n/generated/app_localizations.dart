@@ -4117,6 +4117,582 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Religious: leave out'**
   String get markReligious;
+
+  /// No description provided for @abRepeatSetA.
+  ///
+  /// In en, this message translates to:
+  /// **'A–B repeat: tap to mark the start (A)'**
+  String get abRepeatSetA;
+
+  /// No description provided for @abRepeatSetB.
+  ///
+  /// In en, this message translates to:
+  /// **'A–B repeat: tap to mark the end (B)'**
+  String get abRepeatSetB;
+
+  /// No description provided for @abRepeatOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeating {from} – {to}. Tap to stop'**
+  String abRepeatOn(Object from, Object to);
+
+  /// No description provided for @wallpaperColors.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallpaper colours'**
+  String get wallpaperColors;
+
+  /// No description provided for @wallpaperColorsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tint the app with your wallpaper\'s colours (Material You)'**
+  String get wallpaperColorsHint;
+
+  /// No description provided for @shareFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Share file…'**
+  String get shareFile;
+
+  /// No description provided for @couldNotShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share this file'**
+  String get couldNotShare;
+
+  /// No description provided for @deleteFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete file'**
+  String get deleteFile;
+
+  /// No description provided for @fileDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {title}'**
+  String fileDeleted(Object title);
+
+  /// No description provided for @couldNotDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete this file'**
+  String get couldNotDelete;
+
+  /// No description provided for @bookmarks.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmarks'**
+  String get bookmarks;
+
+  /// No description provided for @addBookmark.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmark'**
+  String get addBookmark;
+
+  /// No description provided for @bookmarkAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmark at {time}'**
+  String bookmarkAt(Object time);
+
+  /// No description provided for @bookmarkNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get bookmarkNoteHint;
+
+  /// No description provided for @noBookmarks.
+  ///
+  /// In en, this message translates to:
+  /// **'No bookmarks yet. Mark a spot to come back to it later.'**
+  String get noBookmarks;
+
+  /// No description provided for @continueListening.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue listening'**
+  String get continueListening;
+
+  /// No description provided for @timeLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{time} left'**
+  String timeLeft(Object time);
+
+  /// No description provided for @searchLyricsOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Search online'**
+  String get searchLyricsOnline;
+
+  /// No description provided for @noLyricsOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'No lyrics found online for this song'**
+  String get noLyricsOnline;
+
+  /// No description provided for @lyricsSearchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the lyrics service. Check your connection.'**
+  String get lyricsSearchFailed;
+
+  /// No description provided for @removeOnlineLyrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove downloaded lyrics'**
+  String get removeOnlineLyrics;
+
+  /// No description provided for @nothingLost.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing lost on the way: you hear the file as it is (plus the sound you chose).'**
+  String get nothingLost;
+
+  /// No description provided for @qualityChangesAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Quality changes at: {steps}'**
+  String qualityChangesAt(Object steps);
+
+  /// No description provided for @lossLossySource.
+  ///
+  /// In en, this message translates to:
+  /// **'lossy file'**
+  String get lossLossySource;
+
+  /// No description provided for @lossResampling.
+  ///
+  /// In en, this message translates to:
+  /// **'Android resampling'**
+  String get lossResampling;
+
+  /// No description provided for @lossTo16Bit.
+  ///
+  /// In en, this message translates to:
+  /// **'16-bit output'**
+  String get lossTo16Bit;
+
+  /// No description provided for @lossLimiting.
+  ///
+  /// In en, this message translates to:
+  /// **'limiter (lower the EQ or volume)'**
+  String get lossLimiting;
+
+  /// No description provided for @lossBluetooth.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth'**
+  String get lossBluetooth;
+
+  /// No description provided for @bluetoothLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth link'**
+  String get bluetoothLink;
+
+  /// No description provided for @bluetoothReencodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-encoded for the radio link, usually with loss. The codec (SBC, AAC, aptX, LDAC…) is chosen by the phone and the headphones; see Developer options.'**
+  String get bluetoothReencodes;
+
+  /// No description provided for @abxOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Blind test: can you really hear it?'**
+  String get abxOpen;
+
+  /// No description provided for @abxTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Blind test (ABX)'**
+  String get abxTitle;
+
+  /// No description provided for @abxNeedsEq.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn the equalizer on first: the test compares your sound with the original.'**
+  String get abxNeedsEq;
+
+  /// No description provided for @abxHowTo.
+  ///
+  /// In en, this message translates to:
+  /// **'A is the original, B is your sound. X is one of them, chosen at random. Listen as much as you like, then say which one X is. 10 rounds.'**
+  String get abxHowTo;
+
+  /// No description provided for @abxLevelNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Levels are matched, so loudness doesn\'t give the answer away.'**
+  String get abxLevelNote;
+
+  /// No description provided for @abxTrial.
+  ///
+  /// In en, this message translates to:
+  /// **'Round {n} of {total}'**
+  String abxTrial(Object n, Object total);
+
+  /// No description provided for @abxListen.
+  ///
+  /// In en, this message translates to:
+  /// **'Listen'**
+  String get abxListen;
+
+  /// No description provided for @abxAIsOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'original'**
+  String get abxAIsOriginal;
+
+  /// No description provided for @abxBIsYourSound.
+  ///
+  /// In en, this message translates to:
+  /// **'your sound'**
+  String get abxBIsYourSound;
+
+  /// No description provided for @abxQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'X is…'**
+  String get abxQuestion;
+
+  /// No description provided for @abxXIsA.
+  ///
+  /// In en, this message translates to:
+  /// **'X is A'**
+  String get abxXIsA;
+
+  /// No description provided for @abxXIsB.
+  ///
+  /// In en, this message translates to:
+  /// **'X is B'**
+  String get abxXIsB;
+
+  /// No description provided for @abxPlayMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Play music to start'**
+  String get abxPlayMusic;
+
+  /// No description provided for @abxHeard.
+  ///
+  /// In en, this message translates to:
+  /// **'You really hear the difference.'**
+  String get abxHeard;
+
+  /// No description provided for @abxNotHeard.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough to rule out luck.'**
+  String get abxNotHeard;
+
+  /// No description provided for @abxLuck.
+  ///
+  /// In en, this message translates to:
+  /// **'Chance of doing this well by guessing: {percent}%'**
+  String abxLuck(Object percent);
+
+  /// No description provided for @abxAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Test again'**
+  String get abxAgain;
+
+  /// No description provided for @repeatOneState.
+  ///
+  /// In en, this message translates to:
+  /// **'this song'**
+  String get repeatOneState;
+
+  /// No description provided for @repeatAllState.
+  ///
+  /// In en, this message translates to:
+  /// **'all'**
+  String get repeatAllState;
+
+  /// No description provided for @clearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearSearch;
+
+  /// No description provided for @transferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add music from a computer'**
+  String get transferTitle;
+
+  /// No description provided for @transferSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Over Wi-Fi, from any browser: no cable, no app'**
+  String get transferSubtitle;
+
+  /// No description provided for @transferStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'On a computer connected to the same Wi-Fi, open this address in a browser:'**
+  String get transferStep1;
+
+  /// No description provided for @transferStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'Then drop your music files on the page. They are saved in Music/audifac and appear in your library.'**
+  String get transferStep2;
+
+  /// No description provided for @transferKeepOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep this screen open while sending. The address works only while it is open, and only on your Wi-Fi.'**
+  String get transferKeepOpen;
+
+  /// No description provided for @transferWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for files…'**
+  String get transferWaiting;
+
+  /// No description provided for @transferReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No file saved yet} =1{1 file saved} other{{count} files saved}}'**
+  String transferReceived(num count);
+
+  /// No description provided for @transferRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'Not saved: {reason}'**
+  String transferRefused(Object reason);
+
+  /// No description provided for @transferNoWifi.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect the phone to Wi-Fi first: the computer sends the files over your local network.'**
+  String get transferNoWifi;
+
+  /// No description provided for @transferNeedsAndroid10.
+  ///
+  /// In en, this message translates to:
+  /// **'Receiving files needs Android 10 or later.'**
+  String get transferNeedsAndroid10;
+
+  /// No description provided for @transferFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t start receiving. Try again.'**
+  String get transferFailed;
+
+  /// No description provided for @transferPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send music to audifac'**
+  String get transferPageTitle;
+
+  /// No description provided for @transferPageDrop.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop audio files here'**
+  String get transferPageDrop;
+
+  /// No description provided for @transferPageChoose.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose files'**
+  String get transferPageChoose;
+
+  /// No description provided for @transferPageDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved on the phone'**
+  String get transferPageDone;
+
+  /// No description provided for @transferPageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not saved'**
+  String get transferPageFailed;
+
+  /// No description provided for @transferPageNotAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Not an audio file'**
+  String get transferPageNotAudio;
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// No description provided for @copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get copied;
+
+  /// No description provided for @keepApart.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep apart'**
+  String get keepApart;
+
+  /// No description provided for @keepApartNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Artists you never want back to back'**
+  String get keepApartNone;
+
+  /// No description provided for @keepApartPairs.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 pair kept apart} other{{count} pairs kept apart}}'**
+  String keepApartPairs(num count);
+
+  /// No description provided for @keepApartHint.
+  ///
+  /// In en, this message translates to:
+  /// **'These artists won\'t play within a few songs of each other.'**
+  String get keepApartHint;
+
+  /// No description provided for @keepApartAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a pair'**
+  String get keepApartAdd;
+
+  /// No description provided for @keepApartFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'First artist'**
+  String get keepApartFirst;
+
+  /// No description provided for @keepApartSecond.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep apart from {artist}'**
+  String keepApartSecond(Object artist);
+
+  /// No description provided for @searchArtists.
+  ///
+  /// In en, this message translates to:
+  /// **'Search artists'**
+  String get searchArtists;
+
+  /// No description provided for @guestRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Guest requests'**
+  String get guestRequests;
+
+  /// No description provided for @guestRequestsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Guests scan a code and ask for songs'**
+  String get guestRequestsHint;
+
+  /// No description provided for @guestRequestsOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Take requests'**
+  String get guestRequestsOn;
+
+  /// No description provided for @guestRequestsPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Guests on your Wi-Fi can search your library\'s titles and artists, and ask for songs. You decide what plays.'**
+  String get guestRequestsPrivacy;
+
+  /// No description provided for @guestQrLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'QR code to open the request page'**
+  String get guestQrLabel;
+
+  /// No description provided for @guestScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Guests scan this with their phone camera (same Wi-Fi).'**
+  String get guestScan;
+
+  /// No description provided for @guestPending.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Requests} =1{1 request} other{{count} requests}}'**
+  String guestPending(num count);
+
+  /// No description provided for @guestNoRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing yet. Requests appear here.'**
+  String get guestNoRequests;
+
+  /// No description provided for @guestFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'from {names}'**
+  String guestFrom(Object names);
+
+  /// No description provided for @guestAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get guestAccept;
+
+  /// No description provided for @guestDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get guestDecline;
+
+  /// No description provided for @guestPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for a song'**
+  String get guestPageTitle;
+
+  /// No description provided for @guestPageName.
+  ///
+  /// In en, this message translates to:
+  /// **'Your name (optional)'**
+  String get guestPageName;
+
+  /// No description provided for @guestPageSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a song or an artist'**
+  String get guestPageSearch;
+
+  /// No description provided for @guestPageRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Request'**
+  String get guestPageRequest;
+
+  /// No description provided for @guestPageSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent ✓'**
+  String get guestPageSent;
+
+  /// No description provided for @guestPageTooMany.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait a minute'**
+  String get guestPageTooMany;
+
+  /// No description provided for @guestPageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the host'**
+  String get guestPageFailed;
+
+  /// No description provided for @guestPageNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found'**
+  String get guestPageNothing;
 }
 
 class _AppLocalizationsDelegate

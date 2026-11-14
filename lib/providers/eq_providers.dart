@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/autoeq_database.dart';
 import '../data/dsp_channel.dart';
+import '../models/abx.dart';
 import '../models/eq.dart';
 import '../models/eq_rules.dart';
 import '../models/song.dart';
@@ -203,6 +204,19 @@ final activeSoundProvider = Provider<({EqPreset preset, EqReason reason})>((ref)
     return (preset: draft, reason: resolved.reason);
   }
   return (preset: preset, reason: resolved.reason);
+});
+
+/// About how much louder (dB) the active EQ makes music: for level-matched
+/// comparisons (ABX test).
+final eqLevelDbProvider = Provider<double>((ref) {
+  final settings = ref.watch(eqSettingsProvider);
+  final (:bands, :preampDb) = combineBands(
+    device: ref.watch(activeDevicePresetProvider),
+    sound: ref.watch(activeSoundProvider).preset,
+    autoPreamp: settings.autoPreamp,
+    tone: settings.tone,
+  );
+  return eqLevelDb(bands, preampDb);
 });
 
 /// Pushes the combined settings to the native DSP whenever they change.

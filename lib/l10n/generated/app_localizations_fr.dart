@@ -2557,4 +2557,359 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get markReligious => 'Religieux : écarter';
+
+  @override
+  String get abRepeatSetA =>
+      'Répétition A–B : touchez pour marquer le début (A)';
+
+  @override
+  String get abRepeatSetB => 'Répétition A–B : touchez pour marquer la fin (B)';
+
+  @override
+  String abRepeatOn(Object from, Object to) {
+    return 'Répétition de $from à $to. Touchez pour arrêter';
+  }
+
+  @override
+  String get wallpaperColors => 'Couleurs du fond d\'écran';
+
+  @override
+  String get wallpaperColorsHint =>
+      'Teinter l\'app avec les couleurs de votre fond d\'écran (Material You)';
+
+  @override
+  String get shareFile => 'Partager le fichier…';
+
+  @override
+  String get couldNotShare => 'Impossible de partager ce fichier';
+
+  @override
+  String get deleteFile => 'Supprimer le fichier';
+
+  @override
+  String fileDeleted(Object title) {
+    return '$title supprimé';
+  }
+
+  @override
+  String get couldNotDelete => 'Impossible de supprimer ce fichier';
+
+  @override
+  String get bookmarks => 'Signets';
+
+  @override
+  String get addBookmark => 'Marquer';
+
+  @override
+  String bookmarkAt(Object time) {
+    return 'Signet à $time';
+  }
+
+  @override
+  String get bookmarkNoteHint => 'Note (facultative)';
+
+  @override
+  String get noBookmarks =>
+      'Aucun signet. Marquez un passage pour y revenir plus tard.';
+
+  @override
+  String get continueListening => 'Reprendre l\'écoute';
+
+  @override
+  String timeLeft(Object time) {
+    return 'Il reste $time';
+  }
+
+  @override
+  String get searchLyricsOnline => 'Chercher en ligne';
+
+  @override
+  String get noLyricsOnline => 'Aucune parole trouvée en ligne pour ce titre';
+
+  @override
+  String get lyricsSearchFailed =>
+      'Service de paroles injoignable. Vérifiez votre connexion.';
+
+  @override
+  String get removeOnlineLyrics => 'Retirer les paroles téléchargées';
+
+  @override
+  String get nothingLost =>
+      'Rien de perdu en route : vous entendez le fichier tel quel (plus le son choisi).';
+
+  @override
+  String qualityChangesAt(Object steps) {
+    return 'La qualité change à : $steps';
+  }
+
+  @override
+  String get lossLossySource => 'fichier compressé avec pertes';
+
+  @override
+  String get lossResampling => 'rééchantillonnage d\'Android';
+
+  @override
+  String get lossTo16Bit => 'sortie 16 bits';
+
+  @override
+  String get lossLimiting => 'limiteur (baissez l\'EQ ou le volume)';
+
+  @override
+  String get lossBluetooth => 'Bluetooth';
+
+  @override
+  String get bluetoothLink => 'Liaison Bluetooth';
+
+  @override
+  String get bluetoothReencodes =>
+      'Réencodé pour la liaison radio, en général avec pertes. Le codec (SBC, AAC, aptX, LDAC…) est choisi par le téléphone et le casque ; voir les Options pour les développeurs.';
+
+  @override
+  String get abxOpen => 'Test à l\'aveugle : l\'entendez-vous vraiment ?';
+
+  @override
+  String get abxTitle => 'Test à l\'aveugle (ABX)';
+
+  @override
+  String get abxNeedsEq =>
+      'Activez d\'abord l\'égaliseur : le test compare votre son à l\'original.';
+
+  @override
+  String get abxHowTo =>
+      'A est l\'original, B votre son. X est l\'un des deux, tiré au hasard. Écoutez autant que vous voulez, puis dites lequel est X. 10 manches.';
+
+  @override
+  String get abxLevelNote =>
+      'Les niveaux sont égalisés : le volume ne trahit pas la réponse.';
+
+  @override
+  String abxTrial(Object n, Object total) {
+    return 'Manche $n sur $total';
+  }
+
+  @override
+  String get abxListen => 'Écouter';
+
+  @override
+  String get abxAIsOriginal => 'original';
+
+  @override
+  String get abxBIsYourSound => 'votre son';
+
+  @override
+  String get abxQuestion => 'X est…';
+
+  @override
+  String get abxXIsA => 'X est A';
+
+  @override
+  String get abxXIsB => 'X est B';
+
+  @override
+  String get abxPlayMusic => 'Lancez la musique pour commencer';
+
+  @override
+  String get abxHeard => 'Vous entendez vraiment la différence.';
+
+  @override
+  String get abxNotHeard => 'Pas assez pour exclure la chance.';
+
+  @override
+  String abxLuck(Object percent) {
+    return 'Probabilité de faire aussi bien au hasard : $percent %';
+  }
+
+  @override
+  String get abxAgain => 'Recommencer';
+
+  @override
+  String get repeatOneState => 'ce titre';
+
+  @override
+  String get repeatAllState => 'tout';
+
+  @override
+  String get clearSearch => 'Effacer la recherche';
+
+  @override
+  String get transferTitle => 'Ajouter de la musique depuis un ordinateur';
+
+  @override
+  String get transferSubtitle =>
+      'Par Wi-Fi, depuis n\'importe quel navigateur : sans câble ni logiciel';
+
+  @override
+  String get transferStep1 =>
+      'Sur un ordinateur connecté au même Wi-Fi, ouvrez cette adresse dans un navigateur :';
+
+  @override
+  String get transferStep2 =>
+      'Déposez ensuite vos fichiers audio sur la page. Ils sont enregistrés dans Musique/audifac et apparaissent dans votre bibliothèque.';
+
+  @override
+  String get transferKeepOpen =>
+      'Gardez cet écran ouvert pendant l\'envoi. L\'adresse ne fonctionne que tant qu\'il est ouvert, et seulement sur votre Wi-Fi.';
+
+  @override
+  String get transferWaiting => 'En attente de fichiers…';
+
+  @override
+  String transferReceived(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fichiers enregistrés',
+      one: '1 fichier enregistré',
+      zero: 'Aucun fichier enregistré',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String transferRefused(Object reason) {
+    return 'Non enregistré : $reason';
+  }
+
+  @override
+  String get transferNoWifi =>
+      'Connectez d\'abord le téléphone au Wi-Fi : l\'ordinateur envoie les fichiers par votre réseau local.';
+
+  @override
+  String get transferNeedsAndroid10 =>
+      'La réception de fichiers nécessite Android 10 ou plus récent.';
+
+  @override
+  String get transferFailed =>
+      'Impossible de démarrer la réception. Réessayez.';
+
+  @override
+  String get transferPageTitle => 'Envoyer de la musique vers audifac';
+
+  @override
+  String get transferPageDrop => 'Déposez vos fichiers audio ici';
+
+  @override
+  String get transferPageChoose => 'Choisir des fichiers';
+
+  @override
+  String get transferPageDone => 'Enregistré sur le téléphone';
+
+  @override
+  String get transferPageFailed => 'Non enregistré';
+
+  @override
+  String get transferPageNotAudio => 'Pas un fichier audio';
+
+  @override
+  String get copy => 'Copier';
+
+  @override
+  String get copied => 'Copié';
+
+  @override
+  String get keepApart => 'Tenir à distance';
+
+  @override
+  String get keepApartNone => 'Des artistes à ne jamais enchaîner';
+
+  @override
+  String keepApartPairs(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count paires tenues à distance',
+      one: '1 paire tenue à distance',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get keepApartHint =>
+      'Ces artistes ne passeront pas à quelques titres l\'un de l\'autre.';
+
+  @override
+  String get keepApartAdd => 'Ajouter une paire';
+
+  @override
+  String get keepApartFirst => 'Premier artiste';
+
+  @override
+  String keepApartSecond(Object artist) {
+    return 'Tenir à distance de $artist';
+  }
+
+  @override
+  String get searchArtists => 'Rechercher un artiste';
+
+  @override
+  String get guestRequests => 'Demandes des invités';
+
+  @override
+  String get guestRequestsHint =>
+      'Les invités scannent un code et demandent des titres';
+
+  @override
+  String get guestRequestsOn => 'Accepter les demandes';
+
+  @override
+  String get guestRequestsPrivacy =>
+      'Les invités sur votre Wi-Fi peuvent chercher les titres et artistes de votre bibliothèque et demander des morceaux. Vous décidez de ce qui passe.';
+
+  @override
+  String get guestQrLabel => 'Code QR pour ouvrir la page de demandes';
+
+  @override
+  String get guestScan =>
+      'Les invités le scannent avec l\'appareil photo de leur téléphone (même Wi-Fi).';
+
+  @override
+  String guestPending(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count demandes',
+      one: '1 demande',
+      zero: 'Demandes',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get guestNoRequests =>
+      'Rien pour l\'instant. Les demandes s\'affichent ici.';
+
+  @override
+  String guestFrom(Object names) {
+    return 'de $names';
+  }
+
+  @override
+  String get guestAccept => 'Accepter';
+
+  @override
+  String get guestDecline => 'Refuser';
+
+  @override
+  String get guestPageTitle => 'Demander un morceau';
+
+  @override
+  String get guestPageName => 'Votre prénom (facultatif)';
+
+  @override
+  String get guestPageSearch => 'Chercher un titre ou un artiste';
+
+  @override
+  String get guestPageRequest => 'Demander';
+
+  @override
+  String get guestPageSent => 'Envoyé ✓';
+
+  @override
+  String get guestPageTooMany => 'Patientez une minute';
+
+  @override
+  String get guestPageFailed => 'Hôte injoignable';
+
+  @override
+  String get guestPageNothing => 'Aucun résultat';
 }

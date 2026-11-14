@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_color_utilities/material_color_utilities.dart';
 
 /// Design tokens, one set per brightness. Widgets read them with
 /// `context.palette` and never hardcode colors.
@@ -78,6 +79,46 @@ class AppPalette extends ThemeExtension<AppPalette> {
     lossless: Color(0xFF4CD9A0),
     hiRes: Color(0xFFF5C451),
   );
+
+  /// Material You: the same tokens, tinted from a wallpaper accent [seed].
+  /// Backgrounds get a light wash of the hue and ink takes the colour, at
+  /// tones that keep text as readable as the neutral palettes. The quality
+  /// label colours are kept (they mean something).
+  factory AppPalette.fromSeed(int seed, Brightness brightness) {
+    final hct = Hct.fromInt(seed);
+    final accent = TonalPalette.of(hct.hue, hct.chroma.clamp(16, 40).toDouble());
+    final neutral = TonalPalette.of(hct.hue, 6);
+    final muted = TonalPalette.of(hct.hue, 10);
+    Color a(int tone) => Color(accent.get(tone));
+    Color n(int tone) => Color(neutral.get(tone));
+    Color m(int tone) => Color(muted.get(tone));
+    final base = brightness == Brightness.dark ? dark : light;
+    return brightness == Brightness.dark
+        ? base.copyWith(
+            background: n(6),
+            surface: n(12),
+            ink: a(90),
+            inkSoft: a(80),
+            inkMuted: m(65),
+            line: n(22),
+            artwork: n(20),
+            onInk: a(10),
+            elevated: n(17),
+            onElevated: n(98),
+          )
+        : base.copyWith(
+            background: n(96),
+            surface: n(99),
+            ink: a(20),
+            inkSoft: a(30),
+            inkMuted: m(42),
+            line: n(88),
+            artwork: n(20),
+            onInk: a(100),
+            elevated: a(20),
+            onElevated: a(100),
+          );
+  }
 
   @override
   AppPalette copyWith({

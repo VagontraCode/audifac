@@ -95,7 +95,7 @@ class HeldAudio(val channels: Int, val rate: Int) {
 
     /** Frames from the front up to the next timestamp jump (at most [max]). */
     fun runLength(max: Int): Int {
-        val next = anchors.drop(1).firstOrNull()?.first
+        val next = anchors.getOrNull(1)?.first // no copy: runs on every buffer
         val untilJump = if (next == null) frames.toLong() else next - frontAbs
         return minOf(max.toLong(), untilJump, frames.toLong()).toInt()
     }

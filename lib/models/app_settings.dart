@@ -127,6 +127,9 @@ class AppSettings {
   /// Fold surround files (5.1, 7.1…) to stereo before the DSP.
   final bool downmix;
 
+  /// Material You: tint the app with the wallpaper colours (Android 12+).
+  final bool wallpaperColors;
+
   const AppSettings({
     this.themeMode = ThemeMode.system,
     this.songSort = SongSort.title,
@@ -141,6 +144,7 @@ class AppSettings {
     this.bitPerfectUsb = false,
     this.hqResampler = false,
     this.downmix = true,
+    this.wallpaperColors = false,
   });
 
   static const crossfadeChoices = [0, 2, 4, 6, 8, 12];
@@ -161,6 +165,7 @@ class AppSettings {
     bool? bitPerfectUsb,
     bool? hqResampler,
     bool? downmix,
+    bool? wallpaperColors,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -176,6 +181,7 @@ class AppSettings {
         bitPerfectUsb: bitPerfectUsb ?? this.bitPerfectUsb,
         hqResampler: hqResampler ?? this.hqResampler,
         downmix: downmix ?? this.downmix,
+        wallpaperColors: wallpaperColors ?? this.wallpaperColors,
       );
 
   /// Whether [folder] (or one of its parents) is excluded.
@@ -198,6 +204,7 @@ class AppSettings {
         'bitPerfectUsb': '$bitPerfectUsb',
         'hqResampler': '$hqResampler',
         'downmix': '$downmix',
+        'wallpaperColors': '$wallpaperColors',
       };
 
   factory AppSettings.fromKeyValues(Map<String, String> kv) {
@@ -226,6 +233,7 @@ class AppSettings {
       bitPerfectUsb: kv['bitPerfectUsb'] == 'true',
       hqResampler: kv['hqResampler'] == 'true',
       downmix: kv['downmix'] != 'false',
+      wallpaperColors: kv['wallpaperColors'] == 'true',
     );
   }
 }

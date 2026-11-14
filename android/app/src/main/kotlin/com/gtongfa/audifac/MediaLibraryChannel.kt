@@ -62,6 +62,7 @@ class MediaLibraryChannel(
     private val mainHandler = Handler(Looper.getMainLooper())
     private lateinit var channel: MethodChannel
     private var pendingPick: MethodChannel.Result? = null
+    private val fileActions = SongFileActions(context, activity, executor)
 
     private val notifyChanged = Runnable { channel.invokeMethod("mediaChanged", null) }
     private val observer = object : ContentObserver(mainHandler) {
@@ -83,6 +84,10 @@ class MediaLibraryChannel(
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "sdkInt" -> result.success(Build.VERSION.SDK_INT)
+            // Material You: the wallpaper-based accent (Android 12+), as ARGB.
+            "systemAccent" -> result.success(
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) context.getColor(android.R.color.system_accent1_500) else null,
+            )
             "getSongs" -> runIn(executor, result) { querySongs() }
             "scanStorage" -> {
                 val excluded = call.argument<List<String>>("excluded") ?: emptyList()
@@ -112,6 +117,16 @@ class MediaLibraryChannel(
             "pickFolder" -> pickFolder(result)
             "openTextDocument" -> openTextDocument(result, call.argument<Boolean>("anyType") ?: false)
             "importImpulseResponse" -> importImpulseResponse(result)
+            "shareSong" -> fileActions.share(call, result)
+            "deleteSong" -> fileActions.delete(call, result)
+            "canDeleteSongs" -> result.success(fileActions.canDelete)
+            // Wi-Fi transfer: a received temp file into Music/audifac.
+            "canImportAudio" -> result.success(AudioImporter.supported)
+            "importAudio" -> {
+                val temp = java.io.File(call.argument<String>("path") ?: return result.error("args", "path", null))
+                val name = call.argument<String>("name") ?: temp.name
+                runIn(executor, result) { AudioImporter.import(context, temp, name) }
+            }
             "saveTextDocument" -> {
                 val name = call.argument<String>("name") ?: "audifac.txt"
                 val mime = call.argument<String>("mime") ?: "text/plain"
@@ -701,6 +716,7 @@ class MediaLibraryChannel(
 
     /** Forwarded from [MainActivity.onActivityResult]; true if handled. */
     fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
+        if (fileActions.onActivityResult(requestCode, resultCode)) return true
         if (requestCode == OPEN_DOCUMENT_REQUEST) {
             onDocumentResult(resultCode, data)
             return true

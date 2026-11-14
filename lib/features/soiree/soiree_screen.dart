@@ -19,6 +19,8 @@ import '../../providers/user_data_providers.dart';
 import '../../widgets/artwork.dart';
 import '../../widgets/playlist_dialogs.dart';
 import 'soiree_play.dart';
+import 'guest_requests_screen.dart';
+import 'soiree_keep_apart.dart';
 import 'soiree_sources.dart';
 
 /// Library → Playlists → Plan a soirée: an evening from the phone's songs,
@@ -232,6 +234,20 @@ class _SoireeScreenState extends ConsumerState<SoireeScreen> {
                   if (await ReligiousCheckSheet.show(context, ref)) notifier.rebuild();
                 }
               : () => notifier.setReligious(true),
+        ),
+        ListTile(
+          contentPadding: const EdgeInsets.only(left: 20, right: 16),
+          title: Text(l10n.keepApart, style: const TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text(s.keepApart.isEmpty ? l10n.keepApartNone : l10n.keepApartPairs(s.keepApart.length)),
+          trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
+          onTap: () => KeepApartSheet.show(context),
+        ),
+        ListTile(
+          contentPadding: const EdgeInsets.only(left: 20, right: 16),
+          title: Text(l10n.guestRequests, style: const TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text(l10n.guestRequestsHint),
+          trailing: HugeIcon(icon: HugeIcons.strokeRoundedArrowRight01, color: palette.inkMuted, size: 20),
+          onTap: () => GuestRequestsScreen.open(context),
         ),
         if (!s.building && s.plan.isNotEmpty && s.total < s.length * 0.9)
           Padding(

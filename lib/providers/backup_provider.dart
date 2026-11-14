@@ -17,6 +17,7 @@ import 'loudness_providers.dart';
 import 'playback_memory_provider.dart';
 import 'smart_playlist_providers.dart';
 import 'stats_providers.dart';
+import 'spoken_providers.dart';
 import 'user_data_providers.dart';
 
 final backupServiceProvider = Provider<BackupService>(BackupService.new);
@@ -27,7 +28,9 @@ class BackupService {
 
   final Ref _ref;
 
-  BackupData create({required String appVersion}) {
+  Future<BackupData> create({required String appVersion}) async {
+    // Audiobook bookmarks, by file location (kept as is: same paths on a new phone).
+    final bookmarks = await _ref.read(databaseProvider).valuesWithPrefix(bookmarksKeyPrefix);
     final byId = _ref.read(songsByIdProvider);
     final albums = {for (final a in _ref.read(albumsProvider)) a.id: a};
     List<SongRef> refs(Iterable<int> ids) => [
@@ -89,6 +92,7 @@ class BackupService {
         VolumeMatchingNotifier.key: _ref.read(volumeMatchingProvider).encode(),
         SmartPlaylistsNotifier.key: SmartPlaylist.encodeAll(_ref.read(smartPlaylistsProvider).where((l) => !l.builtIn).toList()),
         PlaybackMemoryNotifier.key: _memoriesByName(),
+        ...bookmarks,
       },
     );
   }
@@ -228,6 +232,14 @@ class BackupService {
       if (data.settings[PlaybackMemoryNotifier.key] case final memories?) _restoreMemories(memories);
       if (data.settings[SmartPlaylistsNotifier.key] case final smart?) {
         _ref.read(smartPlaylistsProvider.notifier).restore(SmartPlaylist.decodeAll(smart));
+      }
+      final bookmarks = {
+        for (final e in data.settings.entries)
+          if (e.key.startsWith(bookmarksKeyPrefix)) e.key: e.value,
+      };
+      if (bookmarks.isNotEmpty) {
+        await _ref.read(databaseProvider).setValues(bookmarks);
+        _ref.invalidate(bookmarksProvider);
       }
       report.settings = true;
     }
