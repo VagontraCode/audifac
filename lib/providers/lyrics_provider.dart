@@ -47,7 +47,8 @@ Future<void> setPickedLyrics(WidgetRef ref, Song song, String? text) async {
 Future<bool> fetchOnlineLyrics(WidgetRef ref, Song song) async {
   final text = await ref.read(lrcLibProvider).find(
         title: song.title,
-        artist: song.artist,
+        // "Unknown artist" is our placeholder, not a name to search for.
+        artist: song.artist == Song.unknownArtist ? null : song.artist,
         album: song.album,
         duration: song.duration,
       );
